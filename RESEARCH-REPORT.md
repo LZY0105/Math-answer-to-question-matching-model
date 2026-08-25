@@ -128,34 +128,7 @@ input.
 Four stages, ordered by cost. A question stops at the first stage that resolves
 it, so the expensive stages run only on the residue.
 
-```mermaid
-flowchart TD
-    Q["Question q on the current page"] --> S0
-
-    S0{"<b>Stage 0</b><br/>hierarchical id in<br/>both bookmark trees,<br/>exactly once?"}
-    S0 -->|"yes — 508/508 here"| H["<b>HIGH</b><br/>exact id"]
-    S0 -->|"no"| S1
-
-    S1{"<b>Stage 1</b><br/>chapters alignable?<br/>monotonic, depth-aware"}
-    S1 -->|"yes"| N["candidates narrowed<br/>to one chapter"]
-    S1 -->|"no"| W["whole key is the<br/>candidate pool"]
-
-    N --> S2
-    W --> S2
-
-    S2{"<b>Stage 2</b><br/>content decisive?<br/>math-weighted +<br/>operator context"}
-    S2 -->|"one candidate clearly ahead"| M["<b>MEDIUM</b><br/>content agrees"]
-    S2 -->|"tie, or text untrustworthy"| S3
-
-    S3{"<b>Stage 3</b><br/>position established<br/>by neighbours?<br/>bounded Needleman–Wunsch"}
-    S3 -->|"bracketed by strong matches"| L["<b>LOW / MEDIUM</b><br/>positional support"]
-    S3 -->|"no, or duplicate id<br/>with no alignment"| X["<b>NONE — refused</b><br/>candidates + reason returned"]
-
-    style H fill:#2a78d6,color:#fff,stroke:none
-    style M fill:#2a78d6,color:#fff,stroke:none
-    style L fill:#eb6834,color:#fff,stroke:none
-    style X fill:#d03b3b,color:#fff,stroke:none
-```
+![The four-stage cascade](figures/cascade.svg)
 
 **Figure 1.** The cascade. Cost rises left to right; a question exits at the
 first stage that can justify an answer. The refusal exit is reachable from every

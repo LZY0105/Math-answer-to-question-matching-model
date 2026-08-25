@@ -70,6 +70,77 @@ const svg = (w, h, body, extra) =>
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" role="img">`
   + style(extra) + `<rect width="${w}" height="${h}" class="surface"/>` + body + '</svg>\n';
 
+
+// ── Figure: the stage cascade ───────────────────────────────────────────────
+// Drawn rather than left to Mermaid so the report renders the same way offline,
+// in a plain Markdown viewer, and on GitHub.
+function cascade() {
+  const W = 760, H = 470;
+  let b = '';
+  const box = (x, y, w, h, cls, lines, opts = {}) => {
+    const r = opts.diamond ? 0 : 6;
+    let o = opts.diamond
+      ? `<path d="M${x + w / 2},${y} L${x + w},${y + h / 2} L${x + w / 2},${y + h} L${x},${y + h / 2} Z" class="${cls}"/>`
+      : `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" class="${cls}"/>`;
+    const n = lines.length;
+    lines.forEach((t, i) => {
+      const fw = i === 0 && opts.bold ? ' font-weight="600"' : '';
+      o += `<text x="${x + w / 2}" y="${y + h / 2 - (n - 1) * 7 + i * 14 + 4}" text-anchor="middle"`
+        + ` class="${opts.onFill ? 'tick' : 'tick muted'}"${fw}`
+        + `${opts.onFill ? ' fill="#ffffff"' : ''}>${esc(t)}</text>`;
+    });
+    return o;
+  };
+  const arrow = (x1, y1, x2, y2, label, side) => {
+    let o = `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="grid" stroke-width="1.5"`
+      + ` marker-end="url(#ah)"/>`;
+    if (label) {
+      const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+      o += `<text x="${mx + (side === 'left' ? -8 : 8)}" y="${my - 2}"`
+        + ` text-anchor="${side === 'left' ? 'end' : 'start'}" class="tick muted">${esc(label)}</text>`;
+    }
+    return o;
+  };
+
+  b += `<defs><marker id="ah" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6"`
+    + ` orient="auto"><path d="M0,0 L8,4 L0,8 z" class="grid" fill="currentColor" stroke="none"/></marker></defs>`;
+
+  const cx = 250, dw = 210, dh = 74;
+  const stages = [
+    { y: 60,  t: ['Stage 0', 'exact hierarchical id in', 'both bookmark trees?'] },
+    { y: 168, t: ['Stage 1', 'chapters alignable?', 'monotonic, depth-aware'] },
+    { y: 276, t: ['Stage 2', 'content decisive?', 'operator context'] },
+    { y: 384, t: ['Stage 3', 'position established', 'by neighbours?'] },
+  ];
+  b += box(cx - 90, 8, 180, 30, 'grid', ['question on the current page'], { onFill: false });
+  b += `<rect x="${cx - 90}" y="8" width="180" height="30" rx="6" fill="none" class="grid" stroke-width="1.5"/>`;
+  b += arrow(cx, 38, cx, 56);
+
+  stages.forEach((st, i) => {
+    b += box(cx - dw / 2, st.y, dw, dh, 'grid', st.t, { diamond: true, bold: true });
+    b += `<path d="M${cx},${st.y} L${cx + dw / 2},${st.y + dh / 2} L${cx},${st.y + dh}`
+      + ` L${cx - dw / 2},${st.y + dh / 2} Z" fill="none" class="grid" stroke-width="1.5"/>`;
+    if (i < stages.length - 1) b += arrow(cx, st.y + dh, cx, stages[i + 1].y - 4, 'no', 'left');
+  });
+
+  // Accepting exits on the right, refusal at the bottom.
+  const exits = [
+    { y: 60,  cls: 's1f', t: ['HIGH', 'exact id'], lab: 'yes — 508/508 here' },
+    { y: 276, cls: 's1f', t: ['MEDIUM', 'content agrees'], lab: 'one clearly ahead' },
+    { y: 384, cls: 's2f', t: ['LOW / MEDIUM', 'positional support'], lab: 'bracketed' },
+  ];
+  for (const e of exits) {
+    b += arrow(cx + dw / 2, e.y + dh / 2, 540, e.y + dh / 2, e.lab, 'right');
+    b += box(548, e.y + dh / 2 - 21, 170, 42, e.cls, e.t, { onFill: true, bold: true });
+  }
+  b += arrow(cx, 384 + dh, cx, 440);
+  b += box(cx - 130, 440, 260, 30, 'crit', ['NONE — refused, with candidates and reason'],
+    { onFill: true });
+
+  b += `<text x="20" y="26" class="title ink">Four stages; a question exits at the first that can justify an answer</text>`;
+  return svg(W, H, b);
+}
+
 // ── Figure: operator-context window radius sweep ────────────────────────────
 // Source: test/test_question_matcher.js, group 1c.
 function radiusSweep() {
@@ -246,6 +317,7 @@ function latency() {
 }
 
 const figures = {
+  'cascade.svg': cascade(),
   'radius-sweep.svg': radiusSweep(),
   'ablation-precision-refusal.svg': ablation(),
   'latency-by-regime.svg': latency(),
