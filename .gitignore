@@ -1,0 +1,9 @@
+node_modules/
+
+# Extracted text from copyrighted textbooks — see test/test_real_pdfs.js.
+# Point FIND_ENGINE_CORPUS at it, or keep it beside the repo, never inside it.
+find-engine-corpus/
+*.corpus.json
+
+# Device test evidence — screenshots and UI dumps, not source.
+.test-evidence/

@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: ['20', '22', '24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      # No dependencies by design — there is nothing to install.
+      - name: Unit suites
+        run: npm run test:unit
+
+      # The real-PDF corpus is extracted text from copyrighted books and is not
+      # committed. This step reports the skip rather than silently passing, so a
+      # green CI run never implies the real books were exercised.
+      - name: Real-PDF suite (skips without the corpus)
+        run: npm run test:real

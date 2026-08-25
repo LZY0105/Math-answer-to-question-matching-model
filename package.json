@@ -1,0 +1,32 @@
+{
+  "name": "find-engine",
+  "version": "0.2.0",
+  "description": "Matches exercise-book questions to their answers in a separate answer key",
+  "type": "module",
+  "main": "src/question-matcher.js",
+  "exports": {
+    "./matcher": "./src/question-matcher.js",
+    "./index": "./src/answer-index.js",
+    "./panel": "./src/answer-panel.js",
+    "./question-id": "./src/question-id.js",
+    "./text-quality": "./src/text-quality.js",
+    "./positional-prior": "./src/positional-prior.js",
+    "./symbol-context": "./src/symbol-context.js",
+    "./text-source": "./src/text-source.js",
+    "./glyph-map": "./src/glyph-map.js"
+  },
+  "scripts": {
+    "test": "node test/test_question_matcher.js && node test/test_answer_index.js && node test/test_text_source.js && node test/test_glyph_map.js && node test/test_real_pdfs.js",
+    "test:unit": "node test/test_question_matcher.js && node test/test_answer_index.js && node test/test_text_source.js && node test/test_glyph_map.js",
+    "test:real": "node test/test_real_pdfs.js"
+  },
+  "keywords": [
+    "text-alignment",
+    "question-matching",
+    "education",
+    "pdf",
+    "ocr"
+  ],
+  "license": "MIT",
+  "dependencies": {}
+}
