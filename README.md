@@ -1,5 +1,7 @@
 # Find-Engine
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 Matches exercise-book questions to their answers in a separate answer key, so a
 student reading a textbook sees the answer for the question in front of them.
 
