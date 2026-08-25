@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 400" width="760" height="400" role="img">
+  <style>
+    .surface { fill: #fcfcfb; }
+    .ink   { fill: #0b0b0b; }
+    .muted { fill: #52514e; }
+    .grid  { stroke: #e6e5e1; }
+    .s1f { fill: #2a78d6; } .s1s { stroke: #2a78d6; }
+    .s2f { fill: #eb6834; } .s2s { stroke: #eb6834; }
+    .crit { fill: #d03b3b; stroke: #d03b3b; }
+    text { font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    .title { font-size: 15px; font-weight: 600; }
+    .sub   { font-size: 12px; }
+    .lab   { font-size: 12px; }
+    .tick  { font-size: 11px; }
+    .val   { font-size: 11px; font-weight: 600; }
+    .grid  { stroke-width: 1; }
+    .axis  { stroke-width: 1.5; }
+    @media (prefers-color-scheme: dark) {
+      .surface { fill: #1a1a19; }
+      .ink   { fill: #ffffff; }
+      .muted { fill: #c3c2b7; }
+      .grid  { stroke: #333331; }
+      .s1f { fill: #3987e5; } .s1s { stroke: #3987e5; }
+      .s2f { fill: #d95926; } .s2s { stroke: #d95926; }
+    }
+    
+  </style><rect width="760" height="400" class="surface"/><line x1="62" y1="344.0" x2="550" y2="344.0" class="grid"/><text x="52" y="348.0" text-anchor="end" class="tick muted">0.0</text><line x1="62" y1="303.1" x2="550" y2="303.1" class="grid"/><text x="52" y="307.1" text-anchor="end" class="tick muted">0.1</text><line x1="62" y1="262.3" x2="550" y2="262.3" class="grid"/><text x="52" y="266.3" text-anchor="end" class="tick muted">0.2</text><line x1="62" y1="221.4" x2="550" y2="221.4" class="grid"/><text x="52" y="225.4" text-anchor="end" class="tick muted">0.3</text><line x1="62" y1="180.6" x2="550" y2="180.6" class="grid"/><text x="52" y="184.6" text-anchor="end" class="tick muted">0.4</text><line x1="62" y1="139.7" x2="550" y2="139.7" class="grid"/><text x="52" y="143.7" text-anchor="end" class="tick muted">0.5</text><line x1="62" y1="98.9" x2="550" y2="98.9" class="grid"/><text x="52" y="102.9" text-anchor="end" class="tick muted">0.6</text><line x1="62" y1="58.0" x2="550" y2="58.0" class="grid"/><text x="52" y="62.0" text-anchor="end" class="tick muted">0.7</text><line x1="62" y1="284.8" x2="550" y2="284.8" class="grid" stroke-dasharray="5 4"/><text x="558" y="288.8" class="tick muted">plain similarity 0.145</text><line x1="62" y1="268.8" x2="550" y2="268.8" class="grid" stroke-dasharray="5 4"/><text x="558" y="272.8" class="tick muted">fragment bigrams 0.184</text><rect x="231.2" y="58" width="52" height="286" fill="currentColor" class="s1f" opacity="0.07"/><text x="257.2" y="44" text-anchor="middle" class="val s1f">chosen</text><path d="M62.0,225.1 L159.6,159.3 L257.2,77.6 L354.8,129.9 L452.4,123.4 L550.0,205.9" fill="none" class="s1s" stroke-width="2"/><path d="M62.0,275.8 L159.6,241.9 L257.2,139.7 L354.8,207.9 L452.4,207.9 L550.0,344.0" fill="none" class="s2s" stroke-width="2"/><circle cx="62.0" cy="225.1" r="4.5" class="s1f" stroke="#fcfcfb" stroke-width="2"/><circle cx="62.0" cy="275.8" r="4.5" class="s2f" stroke="#fcfcfb" stroke-width="2"/><circle cx="159.6" cy="159.3" r="4.5" class="s1f" stroke="#fcfcfb" stroke-width="2"/><circle cx="159.6" cy="241.9" r="4.5" class="s2f" stroke="#fcfcfb" stroke-width="2"/><circle cx="257.2" cy="77.6" r="4.5" class="s1f" stroke="#fcfcfb" stroke-width="2"/><circle cx="257.2" cy="139.7" r="4.5" class="s2f" stroke="#fcfcfb" stroke-width="2"/><circle cx="354.8" cy="129.9" r="4.5" class="s1f" stroke="#fcfcfb" stroke-width="2"/><circle cx="354.8" cy="207.9" r="4.5" class="s2f" stroke="#fcfcfb" stroke-width="2"/><circle cx="452.4" cy="123.4" r="4.5" class="s1f" stroke="#fcfcfb" stroke-width="2"/><circle cx="452.4" cy="207.9" r="4.5" class="s2f" stroke="#fcfcfb" stroke-width="2"/><circle cx="550.0" cy="205.9" r="4.5" class="s1f" stroke="#fcfcfb" stroke-width="2"/><circle cx="550.0" cy="344.0" r="4.5" class="s2f" stroke="#fcfcfb" stroke-width="2"/><circle cx="550.0" cy="344.0" r="7" fill="none" class="crit" stroke-width="2"/><text x="546.0" y="328.0" text-anchor="end" class="val crit">1 pair inverts</text><text x="562.0" y="209.9" class="lab s1f">mean margin</text><text x="562.0" y="362.0" class="lab s2f">worst case</text><line x1="62" y1="344" x2="550" y2="344" class="grid axis"/><text x="62.0" y="364" text-anchor="middle" class="tick muted">1</text><text x="159.6" y="364" text-anchor="middle" class="tick muted">2</text><text x="257.2" y="364" text-anchor="middle" class="tick muted">3</text><text x="354.8" y="364" text-anchor="middle" class="tick muted">4</text><text x="452.4" y="364" text-anchor="middle" class="tick muted">5</text><text x="550.0" y="364" text-anchor="middle" class="tick muted">6</text><text x="306.0" y="388" text-anchor="middle" class="lab muted">operator context window radius (characters either side)</text><text x="16" y="201.0" transform="rotate(-90 16 201.0)" text-anchor="middle" class="lab muted">margin (correct − best wrong)</text><text x="62" y="26" class="title ink">Discrimination margin peaks at radius 3</text><text x="62" y="44" class="sub muted">Five near-identical question pairs; higher is better separation</text></svg>

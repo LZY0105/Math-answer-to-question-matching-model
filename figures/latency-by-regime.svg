@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 320" width="760" height="320" role="img">
+  <style>
+    .surface { fill: #fcfcfb; }
+    .ink   { fill: #0b0b0b; }
+    .muted { fill: #52514e; }
+    .grid  { stroke: #e6e5e1; }
+    .s1f { fill: #2a78d6; } .s1s { stroke: #2a78d6; }
+    .s2f { fill: #eb6834; } .s2s { stroke: #eb6834; }
+    .crit { fill: #d03b3b; stroke: #d03b3b; }
+    text { font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    .title { font-size: 15px; font-weight: 600; }
+    .sub   { font-size: 12px; }
+    .lab   { font-size: 12px; }
+    .tick  { font-size: 11px; }
+    .val   { font-size: 11px; font-weight: 600; }
+    .grid  { stroke-width: 1; }
+    .axis  { stroke-width: 1.5; }
+    @media (prefers-color-scheme: dark) {
+      .surface { fill: #1a1a19; }
+      .ink   { fill: #ffffff; }
+      .muted { fill: #c3c2b7; }
+      .grid  { stroke: #333331; }
+      .s1f { fill: #3987e5; } .s1s { stroke: #3987e5; }
+      .s2f { fill: #d95926; } .s2s { stroke: #d95926; }
+    }
+    
+  </style><rect width="760" height="320" class="surface"/><line x1="150.0" y1="58" x2="150.0" y2="268" class="grid"/><text x="150.0" y="286" text-anchor="middle" class="tick muted">0</text><line x1="236.7" y1="58" x2="236.7" y2="268" class="grid"/><text x="236.7" y="286" text-anchor="middle" class="tick muted">100</text><line x1="323.3" y1="58" x2="323.3" y2="268" class="grid"/><text x="323.3" y="286" text-anchor="middle" class="tick muted">200</text><line x1="410.0" y1="58" x2="410.0" y2="268" class="grid"/><text x="410.0" y="286" text-anchor="middle" class="tick muted">300</text><line x1="496.7" y1="58" x2="496.7" y2="268" class="grid"/><text x="496.7" y="286" text-anchor="middle" class="tick muted">400</text><line x1="583.3" y1="58" x2="583.3" y2="268" class="grid"/><text x="583.3" y="286" text-anchor="middle" class="tick muted">500</text><line x1="670.0" y1="58" x2="670.0" y2="268" class="grid"/><text x="670.0" y="286" text-anchor="middle" class="tick muted">600</text><line x1="583.3" y1="52" x2="583.3" y2="268" class="crit" stroke-width="1.5" stroke-dasharray="5 4"/><text x="589.3" y="48" class="val crit">500 ms target</text><line x1="150" y1="84.3" x2="152" y2="84.3" class="s1s" stroke-width="2"/><text x="138" y="88.3" text-anchor="end" class="lab muted">both bookmarked</text><text x="158.0" y="88.3" class="val ink">0 ms</text><path d="M150,123.75 L185.0,123.75 Q189.0,123.75 189.0,127.75 L189.0,145.75 Q189.0,149.75 185.0,149.75 L150,149.75 Z" class="s1f"/><text x="138" y="140.8" text-anchor="end" class="lab muted">neither bookmarked</text><text x="197.0" y="140.8" class="val ink">45 ms</text><path d="M150,176.25 L442.4,176.25 Q446.4,176.25 446.4,180.25 L446.4,198.25 Q446.4,202.25 442.4,202.25 L150,202.25 Z" class="s1f"/><text x="138" y="193.3" text-anchor="end" class="lab muted">key not bookmarked</text><text x="454.4" y="193.3" class="val ink">342 ms</text><path d="M150,228.75 L585.4,228.75 Q589.4,228.75 589.4,232.75 L589.4,250.75 Q589.4,254.75 585.4,254.75 L150,254.75 Z" class="s1f"/><text x="138" y="245.8" text-anchor="end" class="lab muted">exercise not bookmarked</text><text x="597.4" y="245.8" class="val ink">507 ms</text><line x1="150" y1="58" x2="150" y2="268" class="grid axis"/><text x="410.0" y="310" text-anchor="middle" class="lab muted">95th-percentile per-page matching latency (ms)</text><text x="20" y="24" class="title ink">Losing the exercise bookmarks costs four orders of magnitude</text><text x="20" y="42" class="sub muted">Bookmarked pages resolve at stage 0 and never reach content scoring</text></svg>

@@ -53,6 +53,8 @@ Neither token matches, where a bigram bag shares `x^`, `+` and `x`. Three is
 measured, not conventional — the margin peaks there, and at six a pair inverts
 outright. [Full sweep in the report](RESEARCH-REPORT.md#61-operator-context-window-radius).
 
+![Discrimination margin against operator-context window radius](figures/radius-sweep.svg)
+
 ## Confidence, and the right to refuse
 
 Confidence comes from **how many independent signals agree**, and is computed
@@ -87,6 +89,8 @@ Stripping the bookmark trees and scoring against an oracle built from them,
 **precision stays at 100% in all four regimes** — zero wrong answers — while
 recall collapses and per-page latency rises to 507 ms.
 [Ablation methodology and full table](RESEARCH-REPORT.md#5-evaluation).
+
+![Precision stays at 100% across regimes while the refusal rate climbs](figures/ablation-precision-refusal.svg)
 
 ## Usage
 

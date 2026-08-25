@@ -85,6 +85,10 @@ it could not honour the constraint.
    oracle constructed from that same metadata.
 5. Two documented negative results with their measurements.
 
+**Figures.** 1 — the stage cascade (§3.1). 2 — precision against refusal rate
+under ablation (§5.3). 3 — per-page latency by regime (§5.4). 4 — the operator
+window radius sweep (§6.1).
+
 ---
 
 ## 2. Related work
@@ -123,6 +127,39 @@ input.
 
 Four stages, ordered by cost. A question stops at the first stage that resolves
 it, so the expensive stages run only on the residue.
+
+```mermaid
+flowchart TD
+    Q["Question q on the current page"] --> S0
+
+    S0{"<b>Stage 0</b><br/>hierarchical id in<br/>both bookmark trees,<br/>exactly once?"}
+    S0 -->|"yes — 508/508 here"| H["<b>HIGH</b><br/>exact id"]
+    S0 -->|"no"| S1
+
+    S1{"<b>Stage 1</b><br/>chapters alignable?<br/>monotonic, depth-aware"}
+    S1 -->|"yes"| N["candidates narrowed<br/>to one chapter"]
+    S1 -->|"no"| W["whole key is the<br/>candidate pool"]
+
+    N --> S2
+    W --> S2
+
+    S2{"<b>Stage 2</b><br/>content decisive?<br/>math-weighted +<br/>operator context"}
+    S2 -->|"one candidate clearly ahead"| M["<b>MEDIUM</b><br/>content agrees"]
+    S2 -->|"tie, or text untrustworthy"| S3
+
+    S3{"<b>Stage 3</b><br/>position established<br/>by neighbours?<br/>bounded Needleman–Wunsch"}
+    S3 -->|"bracketed by strong matches"| L["<b>LOW / MEDIUM</b><br/>positional support"]
+    S3 -->|"no, or duplicate id<br/>with no alignment"| X["<b>NONE — refused</b><br/>candidates + reason returned"]
+
+    style H fill:#2a78d6,color:#fff,stroke:none
+    style M fill:#2a78d6,color:#fff,stroke:none
+    style L fill:#eb6834,color:#fff,stroke:none
+    style X fill:#d03b3b,color:#fff,stroke:none
+```
+
+**Figure 1.** The cascade. Cost rises left to right; a question exits at the
+first stage that can justify an answer. The refusal exit is reachable from every
+stage, and is the only outcome when evidence is absent — never a default.
 
 | Stage | Signal | Resolves | Cost |
 |---|---|---|---|
@@ -335,6 +372,12 @@ errors.
 
 † Sampled every 8th and 16th page respectively.
 
+![Precision stays at 100% across regimes while the refusal rate climbs](figures/ablation-precision-refusal.svg)
+
+**Figure 2.** Precision of accepted matches against the share of attempts
+refused. Precision is invariant; the cost of preserving it is visible as the
+refusal rate. Zero wrong answers in every regime.
+
 **Precision is invariant at 100% across all regimes**, verified against an oracle
 the ablated runs cannot observe. This is the system's central claim and it holds
 under ablation.
@@ -357,6 +400,12 @@ but it is precisely why body-parsed labels cannot serve as ground truth.
 | Key not bookmarked | 159 ms | 342 ms |
 | Exercise not bookmarked | 298 ms | **507 ms** |
 | Neither bookmarked | 34 ms | 45 ms |
+
+![95th-percentile per-page latency by regime](figures/latency-by-regime.svg)
+
+**Figure 3.** 95th-percentile per-page matching latency. The host application's
+responsiveness target is marked. Bookmarked pages never reach content scoring,
+which is why the first bar is flat against the axis.
 
 Removing the exercise book's bookmarks raises p95 latency by roughly four orders
 of magnitude, because every question is then scored against a large pool of long
@@ -387,6 +436,13 @@ between the correct and the best wrong candidate.
 | 6 | 0.338 | 0.000 | **1** |
 | *plain similarity* | *0.145* | *0.107* | *0* |
 | *fragment bigrams* | *0.184* | *0.160* | *0* |
+
+![Discrimination margin against operator-context window radius](figures/radius-sweep.svg)
+
+**Figure 4.** The margin between the correct and the best wrong candidate, by
+window radius. Both baselines are shown dashed. The peak at radius 3 is the
+selection criterion; the marked point at radius 6 is a pair whose ordering
+inverts — the wrong candidate outscores the correct one.
 
 The curve is interpretable. At radius 1–2 the window holds a fragment of an
 operand with no redundancy: two expressions differing in one position either
