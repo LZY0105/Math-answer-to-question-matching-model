@@ -16,9 +16,10 @@
     "./glyph-map": "./src/glyph-map.js"
   },
   "scripts": {
-    "test": "node test/test_question_matcher.js && node test/test_answer_index.js && node test/test_text_source.js && node test/test_glyph_map.js && node test/test_real_pdfs.js",
+    "test": "node test/test_question_matcher.js && node test/test_answer_index.js && node test/test_text_source.js && node test/test_glyph_map.js && node test/test_real_pdfs.js && node test/test_no_bookmarks.js",
     "test:unit": "node test/test_question_matcher.js && node test/test_answer_index.js && node test/test_text_source.js && node test/test_glyph_map.js",
-    "test:real": "node test/test_real_pdfs.js"
+    "test:real": "node test/test_real_pdfs.js && node test/test_no_bookmarks.js",
+    "test:nobookmarks": "node test/test_no_bookmarks.js"
   },
   "keywords": [
     "text-alignment",

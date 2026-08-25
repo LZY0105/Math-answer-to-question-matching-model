@@ -338,28 +338,44 @@ decline.
 
 The bookmark tree does two independent jobs: it supplies the exact question ids
 (stage 0), and it bounds the search so a repeated number becomes unique inside
-its window (stage 1). Losing it costs both. Measured:
+its window (stage 1). Losing either costs recall.
 
-| Outline | Text layer | Numbering | Resolved | Wrong | Confidence |
-|---|---|---|---|---|---|
-| both books | corrupt | hierarchical | **508 / 508** | 0 | `HIGH` |
-| neither | opaque | hierarchical | 225 indexed, 21 matched | 0 | `MEDIUM` |
-| neither | clean | book-wide unique | **120 / 120** | 0 | `MEDIUM` |
-| neither | clean | restarts per chapter | **114 / 120** | 0 | `MEDIUM` |
+These numbers are scored by `test/test_no_bookmarks.js`, which is careful about
+one thing that is easy to get wrong: **ground truth comes from the bookmark
+trees**, which are structural and independent of the text layer the stripped
+runs must fall back on. Scoring a body-parsed match against another body-parsed
+label grades the text layer against itself. A match counts only when two
+independent facts agree — the parsed label is a real question id, *and* the
+bookmark tree places that id on the page the parser found it.
 
-**Precision never degrades.** Zero wrong matches in every regime — the engine
-stops answering rather than starts guessing.
+| regime | question index | answer index | correct | wrong | precision | distinct resolved |
+|---|---|---|---|---|---|---|
+| both books bookmarked | outline (508) | outline (508) | 872 | **0** | **100%** | **508 / 508** |
+| answer key not bookmarked | outline (508) | body (1235) | 14 | **0** | **100%** | 8 |
+| exercise book not bookmarked | body (730) | outline (508) | 77 | **0** | **100%** | 77 † |
+| neither bookmarked | body (730) | body (1235) | 8 | **0** | **100%** | 8 † |
 
-**Recall is what collapses.** With no bookmarks the engine falls back to body
-text; on the opaque 2023 book that still recovers 225 of 508 questions and
-matches 21 of them, against nothing at all before. Where the text is genuinely
-readable, operator context resolves 114 of 120 duplicated numbers and refuses
-the six it cannot separate.
+† sampled every 8th and 16th page respectively; these regimes are slow, see below.
 
-The two outline failures differ in kind and need different messages: with no
-bookmarks on the **answer key**, questions are still enumerated and every one
-refuses; with no bookmarks on the **exercise book**, the engine cannot enumerate
-the page's questions at all.
+**Precision never degrades — zero wrong answers in any regime**, verified against
+an oracle the runs cannot see. The engine stops answering rather than starts
+guessing.
+
+**Recall is what collapses.** Losing the answer key's bookmarks costs almost
+everything: 8 questions of 508, with 858 of 872 matches refused. The engine is
+declining, not failing silently.
+
+**The body parser over-extracts**, which is why its own labels cannot be the
+oracle: 730 "questions" against 508 real ones, and 1235 "answers" against 508.
+Section headings and stray numbering parse as entries. Harmless for precision —
+the surplus entries simply never match — but disqualifying as ground truth.
+
+**Losing the exercise book's bookmarks is expensive.** With them a page costs
+p95 **0 ms**, because stage 0 answers it outright. Without them every question is
+scored against a large pool of long attached texts: p95 **507 ms**, four orders of
+magnitude worse and enough to be felt on a tablet. The alignment's own 1500 ms
+deadline is the only thing bounding it. If the no-bookmark path ever matters in
+production, that is the number to attack.
 
 ### Why there is no positional fallback
 

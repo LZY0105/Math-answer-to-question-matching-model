@@ -67,11 +67,16 @@ Against the real 2023 pair: 508/508 questions resolved, zero wrong matches, 100%
 `HIGH`-confidence precision, per-page p95 0.01 ms, 9 ms to index the 372-page
 key. The 2024 volumes index at 271 and 217, all ids distinct.
 
-Not measured: Android on-device performance and memory. Every real question
-resolves at stage 0 by bookmark id, so **stages 1–3 have never run against a real
-book** — a pair whose ids do not correspond would exercise them for the first
-time. The `SIMILARITY_STRONG` and `SIMILARITY_WEAK` thresholds were inherited
-rather than swept.
+Stages 1–3 are measured too, by stripping the bookmark trees and scoring what
+remains against an oracle built *from* those trees — see
+`test/test_no_bookmarks.js`. Precision holds at 100% in all four regimes; recall
+collapses (8 distinct questions of 508 when the answer key has no bookmarks) and
+per-page cost rises from p95 0 ms to p95 507 ms. That the engine refuses rather
+than guesses is the whole point, and it is now demonstrated rather than asserted.
+
+Not measured: Android on-device performance and memory. The `SIMILARITY_STRONG`
+and `SIMILARITY_WEAK` thresholds were inherited rather than swept, and they only
+bind once stages 2–3 run, which on a bookmarked corpus they never do.
 
 The test corpus is extracted text from copyrighted textbooks and is not
 committed; `tools/extract-corpus.mjs` rebuilds it, and the real-PDF suite skips
