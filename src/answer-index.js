@@ -387,23 +387,38 @@ function labelStatistics(entries) {
  * @returns {{lines, assessment, usable, pagesRecognised, pagesFailed, truncated, reason}}
  */
 async function recogniseDocument(doc, recognizer, { expectScript, budget }) {
-  const source = createTextSource(doc, { recognise: recognizer, expectScript });
   const total = doc.numPages ?? 0;
   const limit = Math.min(total, budget);
   const lines = [];
   let pagesRecognised = 0;
   let pagesFailed = 0;
 
+  // The recognizer is called directly rather than through createTextSource,
+  // for one reason that matters: pageText JOINS a page's lines into a single
+  // string. Every label parser in this engine is anchored to the start of a
+  // line, and the start of a joined page is its running head — so a page whose
+  // second line reads "例题 1.78 ..." yields no question at all. Measured, that
+  // turned 400 successfully recognised pages into 0 indexed questions.
+  //
+  // A document that reaches here has already been judged unable to serve its own
+  // text, so there is no layer for createTextSource to prefer and nothing lost by
+  // going straight to the recogniser.
   for (let page = 1; page <= limit; page++) {
-    let got = null;
+    let text = '';
     try {
-      got = await source.pageText(page, { needReadable: true });
+      const got = await recognizer(page);
+      text = Array.isArray(got)
+        ? got.map(r => r?.text ?? '').join('\n')
+        : String(got ?? '');
     } catch {
       pagesFailed++;
       continue;
     }
-    if (got?.text) { lines.push({ page, text: got.text }); pagesRecognised++; }
-    else pagesFailed++;
+
+    const pageLines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (pageLines.length === 0) { pagesFailed++; continue; }
+    for (const line of pageLines) lines.push({ page, text: line });
+    pagesRecognised++;
   }
 
   const assessment = assessTextQuality(lines, { expectScript, pagesRead: limit });

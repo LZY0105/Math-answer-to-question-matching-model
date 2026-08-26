@@ -183,6 +183,108 @@ await check('OCR_REQUIRED yields no automatic answer anywhere in the book', asyn
 });
 
 // ═══════════════════════════════════════════════════════════════
+group('4b. A recognizer is used, not merely noted');
+
+/** A recognizer that produces indexable pages, the way a real one does. */
+/**
+ * A recognizer that reproduces what the page actually says.
+ *
+ * The sparse fixture bookmarks question 1.i on page i+2, and the answer
+ * document restates that question before solving it. A recognizer whose output
+ * does not correspond to the answer book is not a recognition failure — the
+ * pair genuinely is a mismatch, and the engine is right to say so — so the fake
+ * has to emit the same question the real page carries.
+ */
+const workingRecognizer = () => {
+  const calls = [];
+  const fn = async (page) => {
+    calls.push(page);
+    const i = page - 2;
+    // Every page returns something. A recognizer that reads only the 24
+    // bookmarked pages of a 400-page book leaves coverage at 6 percent, and the
+    // quality gate is right to keep calling that sparse — recognition has to
+    // cover the document, not only the parts already known about.
+    if (i < 1 || i > N) {
+      return `本页为解答留白区域，第 ${page} 页，无题目内容。`;
+    }
+    return [
+      `例题 1.${i} (2024. 某大学). 求导数，f(x)=x^${i}+${i}`,
+      `其中 极限与连续函数 为本节内容，f(x)=x^${i}+${i} 为待求函数`,
+    ].join(n);
+  };
+  fn.calls = calls;
+  return fn;
+};
+
+await check('a sparse document with no recognizer is never recognised', async () => {
+  const p = await preparePair({
+    exerciseDocument: makeDoc({ role: 'EXERCISE', sparse: true }),
+    answerDocument: ANS(),
+  });
+  assert.ok(p.decision.reasonCodes.includes('OCR_REQUIRED'));
+  assert.equal(p.session?.exerciseIndex.ocr?.attempted ?? false, false,
+    'nothing to attempt without a recognizer');
+});
+
+await check('a recognizer that returns nothing leaves OCR_REQUIRED set', async () => {
+  // The defect this replaced: supplying any truthy recognizer cleared
+  // OCR_REQUIRED while the recognizer was never called at all.
+  const calls = [];
+  const recognizer = async (page) => { calls.push(page); return ''; };
+  const p = await preparePair({
+    exerciseDocument: makeDoc({ role: 'EXERCISE', sparse: true }),
+    answerDocument: ANS(),
+    recognizer,
+  });
+  assert.ok(calls.length > 0, 'the recognizer must actually be called');
+  assert.ok(p.decision.reasonCodes.includes('OCR_REQUIRED'),
+    'empty recognition is not recognition');
+});
+
+await check('a recognizer that throws leaves OCR_REQUIRED set', async () => {
+  const recognizer = async () => { throw new Error('recognizer exploded'); };
+  const p = await preparePair({
+    exerciseDocument: makeDoc({ role: 'EXERCISE', sparse: true }),
+    answerDocument: ANS(),
+    recognizer,
+  });
+  assert.ok(p.decision.reasonCodes.includes('OCR_REQUIRED'));
+  // A throwing recognizer must not take the process with it.
+  assert.ok(p.session || p.decision, 'preparation survived the failure');
+});
+
+await check('successful recognition clears OCR_REQUIRED and yields an index', async () => {
+  const recognizer = workingRecognizer();
+  const p = await preparePair({
+    exerciseDocument: makeDoc({ role: 'EXERCISE', sparse: true }),
+    answerDocument: ANS(),
+    recognizer,
+  });
+  assert.ok(recognizer.calls.length > 0, 'the recognizer must be called');
+  assert.equal(p.decision.reasonCodes.includes('OCR_REQUIRED'), false,
+    `still OCR_REQUIRED: ${p.decision.reasonCodes.join(',')}`);
+  assert.equal(p.session.exerciseIndex.textOrigin, 'OCR',
+    'recognised text must be labelled as such');
+  assert.ok(p.session.exerciseIndex.entries.length > 0,
+    'recognised pages must produce questions');
+});
+
+await check('recognised pages keep their line structure', async () => {
+  // Joining a page's lines into one string puts the running head at the start,
+  // where every label parser is anchored — measured, that turned 400
+  // successfully recognised pages into zero indexed questions.
+  const recognizer = workingRecognizer();
+  const p = await preparePair({
+    exerciseDocument: makeDoc({ role: 'EXERCISE', sparse: true }),
+    answerDocument: ANS(),
+    recognizer,
+  });
+  const labels = p.session.exerciseIndex.entries.map(e => e.label);
+  assert.ok(labels.some(l => /^1\.\d+$/.test(l)),
+    `no hierarchical label survived recognition: ${labels.slice(0, 5).join(', ')}`);
+});
+
+// ═══════════════════════════════════════════════════════════════
 group('5. The rung ladder is honoured end to end');
 
 await check('a verified pair produces automatic answers', async () => {

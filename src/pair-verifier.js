@@ -324,9 +324,47 @@ export function verifyPair({
   const anchorsAreReliable = exerciseIndex?.source === 'OUTLINE'
     && answerIndex?.source === 'OUTLINE';
 
+  /**
+   * A binding is the user asserting a pairing the engine could not establish.
+   *
+   * It resolves ABSENCE of reliable evidence, and nothing else. Every hard
+   * conflict — wrong role, wrong year, wrong subject, and weak content agreement
+   * between two indexes good enough to be believed — has already returned above,
+   * so a binding can never reach one. What remains is the case it exists for: a
+   * scanned book whose identity simply cannot be checked, where the alternative
+   * is refusing a pair the user is looking at.
+   *
+   * The binding must still name the documents it was made against. A stale one
+   * confers nothing.
+   */
+  const useBinding = () => {
+    if (!manualBinding) return null;
+    const exFp = fingerprintDocument(exerciseDoc);
+    const anFp = fingerprintDocument(answerDoc);
+    const check = bindingMatches(manualBinding, exFp, anFp);
+    evidence.binding = {
+      checked: true,
+      valid: check.valid,
+      reason: check.reason,
+      changed: check.changed,
+      exercise: exFp.id,
+      answer: anFp.id,
+    };
+    if (!check.valid) { reasonCodes.push(check.reason); return null; }
+    reasonCodes.push('PAIR_BOUND_MANUALLY');
+    return {
+      status: PAIR_STATUS.VERIFIED_PAIR,
+      exerciseRole: left.role, answerRole: right.role, reasonCodes, evidence,
+    };
+  };
+
   if (anchors.sufficient && anchors.top1 !== null
     && anchors.top1 < THRESHOLDS.anchorTop1) {
+    // Two bookmark-derived indexes disagreeing on content is a contradiction,
+    // and no binding overrides it.
     if (anchorsAreReliable) return reject('PAIR_IDENTITY_MISMATCH');
+    const bound = useBinding();
+    if (bound) return bound;
     reasonCodes.push('PAIR_IDENTITY_UNKNOWN');
     return {
       status: PAIR_STATUS.UNKNOWN_PAIR,
@@ -335,36 +373,9 @@ export function verifyPair({
   }
 
   if (!anchors.sufficient) {
-    // Not enough shared, readable material to confirm. A manual binding the user
-    // has already made may stand in for the confirmation, but never over a
-    // conflict — those returned above.
-    if (manualBinding) {
-      // A binding must name the documents it was made against, and they must
-      // still be those documents. Accepting any truthy object let a binding
-      // with deliberately wrong fingerprints promote an unverified pair, and
-      // let a binding survive the file being replaced.
-      const exFp = fingerprintDocument(exerciseDoc);
-      const anFp = fingerprintDocument(answerDoc);
-      const check = bindingMatches(manualBinding, exFp, anFp);
-      evidence.binding = {
-        checked: true,
-        valid: check.valid,
-        reason: check.reason,
-        changed: check.changed,
-        exercise: exFp.id,
-        answer: anFp.id,
-      };
-      if (check.valid) {
-        reasonCodes.push('PAIR_BOUND_MANUALLY');
-        return {
-          status: PAIR_STATUS.VERIFIED_PAIR,
-          exerciseRole: left.role, answerRole: right.role, reasonCodes, evidence,
-        };
-      }
-      // An invalid binding is not a rejection — the documents may still be a
-      // real pair the engine simply cannot confirm — but it confers nothing.
-      reasonCodes.push(check.reason);
-    }
+    // Not enough shared, readable material to confirm.
+    const bound = useBinding();
+    if (bound) return bound;
     reasonCodes.push('PAIR_IDENTITY_UNKNOWN');
     return {
       status: PAIR_STATUS.UNKNOWN_PAIR,

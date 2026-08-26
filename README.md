@@ -29,7 +29,26 @@ confidently wrong about work that was right.
 
 ## How it works
 
-Four stages, cheapest first. A question stops at the first one that resolves it.
+Two documents go in. Before any question is matched, the engine decides
+whether it is willing to work on them at all.
+
+### Gates, in order
+
+| Gate | Question | On failure |
+|---|---|---|
+| **Role** | Is the left an exercise book and the right an answer key? | `BLOCKED` |
+| **Identity** | Are these the same book — year, subject, sampled content anchors? | `BLOCKED`, or `UNKNOWN_PAIR` when evidence is merely absent |
+| **Text quality** | Does the text layer actually cover the document? | `OCR_REQUIRED` |
+| **Structure** | Which bookmarks are questions rather than sections? | no question index; region only |
+
+These are derived by the engine, never supplied by the caller. That is the
+whole point: an earlier version accepted `exactId`, `sectionAligned` and
+`pairStatus` as arguments, and measured across all 60 wrong-book and
+wrong-role combinations, 52 produced confident answers. It is now **0 of 60**.
+
+### Then the cascade, cheapest first
+
+A question stops at the first stage that resolves it.
 
 | Stage | Signal | Resolves |
 |---|---|---|
@@ -57,19 +76,31 @@ outright. [Full sweep in the report](RESEARCH-REPORT.md#61-operator-context-wind
 
 ![Discrimination margin against operator-context window radius](figures/radius-sweep.svg)
 
-## Confidence, and the right to refuse
+## Five answers, not two
 
-Confidence comes from **how many independent signals agree**, and is computed
-separately from the alignment — the dynamic program decides *which* entry, the
-per-question rules decide *how much to trust it*. Without that split, the
-ordering constraint could manufacture certainty the evidence does not support.
+Refusing to *answer* must not mean refusing to *help*. The engine returns one
+of five claims, and only the first can be wrong in the way that matters.
 
-| | Basis |
-|---|---|
-| `HIGH` | Exact bookmark id, or chapter aligned + number + content |
-| `MEDIUM` | Two signals agree |
-| `LOW` | One weak signal — shown with a visible caution |
-| `NONE` | Refused. Candidate ids, pages and the reason are returned |
+| Rung | Means | Can be wrong the costly way? |
+|---|---|---|
+| `AUTO_MATCH` | This entry is the answer | **Yes** — everything else protects this |
+| `REVIEW` | One of these few is | No — it asserts no choice |
+| `LOCATED` | The answer is in these pages | No — a range, not an identity |
+| `REFUSED` | Not enough to say anything | No |
+| `BLOCKED` | These two books do not belong together | No |
+
+A rung is a **ceiling, not a target**: nothing may promote a result to improve a
+coverage number. `matched` follows the rung, so a low-confidence guess can no
+longer reach a reader as a final answer.
+
+Pair status decides which rungs are available. An unverified pair may still
+locate and offer review — it simply may not answer:
+
+| Pair status | `AUTO_MATCH` | `REVIEW` | `LOCATED` |
+|---|---|---|---|
+| `VERIFIED_PAIR` | ✅ | ✅ | ✅ |
+| `UNKNOWN_PAIR` | ❌ | ✅ | ✅ |
+| `REJECTED_PAIR` | ❌ | ❌ | ❌ |
 
 A duplicated id with no section alignment is **refused, never settled by
 position**. The alignment always produces *some* assignment; accepting it would
@@ -77,74 +108,129 @@ turn genuine ambiguity into a confident wrong answer.
 
 ## Results
 
-Against the real 2023 pair (368-page exercise book, 372-page key):
+Eight documents: three matched exercise/answer pairs with bookmarks on both
+sides, and one scanned pair. Every figure is full-book; nothing is sampled.
+
+### Safety
 
 | | |
 |---|---|
-| Questions resolved | **508 / 508** |
-| Wrong matches | **0** |
-| `HIGH` confidence precision | **100%** |
-| Per-page matching | p95 0.01 ms |
-| Indexing the 372-page key | 9 ms |
+| Wrong-book / wrong-role combinations tested | **60** |
+| Producing any automatic answer | **0** |
+| Blocked at document level | 53 / 60 |
+| Remainder | held at `UNKNOWN_PAIR`, which cannot auto-answer |
 
-Stripping the bookmark trees and scoring against an oracle built from them,
-**precision stays at 100% in all four regimes** — zero wrong answers. Recall is
-reduced but not destroyed: without the answer key's bookmarks, 270 of the 508
-questions still resolve. Per-page latency rises to a p95 of 328 ms.
-[Ablation methodology and full table](RESEARCH-REPORT.md#5-evaluation).
+This covers wrong year, wrong subject, answer↔answer, exercise↔exercise and
+reversed orientation. Measured through the public interface only — testing an
+internal helper would prove nothing about whether a caller can bypass a gate.
 
-| Regime | Distinct resolved | Wrong | Per-page p95 |
+### Capability
+
+| Pair | Resolved | Wrong | Per-page p95 |
 |---|---|---|---|
-| Both bookmarked | 508 / 508 | **0** | 0 ms |
-| Answer key not bookmarked | 490 / 508 | **0** | 1 ms |
-| Exercise book not bookmarked † | 77 | **0** | 431–550 ms |
-| Neither bookmarked † | 46 | **0** | 33 ms |
+| 2023 | **508 / 508** | **0** | 1 ms |
+| 2024 Mathematical Analysis | **271 / 271** | **0** | 2 ms |
+| 2024 Advanced Algebra | **217 / 217** | **0** | 1 ms |
 
-† sampled every 8th and 16th page respectively.
+Those are under the calibrated formula policy. Under the strict policy — every
+complete expression in a question must have a counterpart in its answer — the
+same pairs resolve 470, 159 and 175, still with **zero wrong**. The rule costs
+recall and buys no measurable precision on this corpus, so it ships enforced
+and switchable, with both halves exercised in the suite. See
+`FORMULA_POLICY`.
 
-Three structural readings account for most of that recall, and none of them is a
-similarity threshold. The answer key prints its own table of contents, so body
-parsing found every identifier twice and refused 825 of 872 lookups as ambiguous
-when it had already located the answer; running heads made unrelated entries look
-similar; and — once those are out of the way — **the printed contents is itself a
-label-to-location index**, the very thing the missing bookmark tree would have
-provided.
+### Degraded structure
 
-Reading it needs the offset between printed page numbers and PDF page indices,
-which is recovered from the document rather than guessed: every label appearing
-in both the contents and the body parse votes on it, and on the 2023 key 492 of
-508 votes agree on +18. Applying that offset blindly would place 492 correctly
-and 16 wrongly — so a location is emitted only where the two independent readings
-agree, which excludes exactly those 16. The result is 492 locations at 100%
-precision with no ground truth consulted, and it is what takes the
-no-answer-bookmarks regime from 8 resolved questions to 490.
-
-See `src/toc-filter.js`, `src/boilerplate.js` and `src/contents-index.js`.
+Stripping bookmark trees and scoring against an oracle built from them:
+precision never falls, and no valid pair is ever rejected merely for missing a
+bookmark tree. Recall moves to the lower rungs instead of disappearing.
+[Ablation methodology and full table](RESEARCH-REPORT.md#5-evaluation).
 
 ![Precision stays at 100% across regimes while the refusal rate climbs](figures/ablation-precision-refusal.svg)
 
+Three structural readings account for most of the no-bookmark recall, and none
+is a similarity threshold. The answer key prints its own table of contents, so
+body parsing found every identifier twice and refused questions it had already
+located; running heads made unrelated entries look similar; and — once those
+are out of the way — **the printed contents is itself a label-to-location
+index**, the very thing a missing bookmark tree would have provided.
+
+Reading it needs the offset between printed page numbers and PDF page indices,
+recovered from the document rather than guessed: every label appearing in both
+the contents and the body parse votes, and on the 2023 key 492 of 508 agree on
++18. Applying that offset blindly would place 492 correctly and 16 wrongly, so
+a location is emitted only where the two independent readings agree — which
+excludes exactly those 16.
+
+See `src/toc-filter.js`, `src/boilerplate.js`, `src/contents-index.js`.
+
+## Scanned books
+
+A scanned exercise book has no text layer worth the name — the 2025 volume
+here yields 609 characters across 465 pages, on 0.7% of them. The engine
+refuses it by default, and `tools/windows-ocr.mjs` is a working recognizer that
+makes it usable: `pdftoppm` renders a page, `Windows.Media.Ocr` reads it. No
+install, no network, nothing leaves the device.
+
+| | Before | With OCR | With OCR + a confirmed binding |
+|---|---|---|---|
+| Text quality | `SPARSE_LAYER` | `USABLE` (origin `OCR`) | `USABLE` |
+| Questions indexed | 0 | 607 (306 real) | 607 |
+| Automatic answers | 0 | 0 | **178** |
+| Wrong | — | — | **0** |
+| Distinct questions answered | 0 | 0 | **108 / 573** |
+
+465 pages recognised in 6.7 minutes, zero page failures — a preparation job,
+not something done while a reader waits.
+
+The middle column is the point as much as the last. Recognition alone does not
+unlock automatic answers, because the engine still cannot verify that these two
+books belong together: content anchors drawn from OCR are not evidence it will
+trust. It offers review and page locations instead. A binding — the user saying
+"yes, these two" — supplies the missing identity, and only then does it answer.
+That binding is checked against both documents’ fingerprints, so replacing
+either file invalidates it.
+
+For comparison, the same book before this work produced **479 confident wrong
+answers**, by reading its 18 chapter bookmarks as questions.
+
 ## Usage
 
+One entry point. `preparePair` owns the gates; nothing else can produce a match.
+
 ```js
-import { indexAnswerDocument, indexQuestionDocument, questionsOnPage }
-  from './src/answer-index.js';
-import { alignOutlines, matchPage } from './src/question-matcher.js';
+import { preparePair } from './src/matching-engine.js';
 
-const questionIndex = await indexQuestionDocument(exerciseDoc, { expectScript: 'han' });
-const answerIndex   = await indexAnswerDocument(answerDoc,   { expectScript: 'han' });
-const alignment     = alignOutlines(exerciseDoc.outline, answerDoc.outline);
+const prepared = await preparePair({
+  exerciseDocument,           // DocumentAdapter
+  answerDocument,             // DocumentAdapter
+  recognizer,                 // optional; required for scanned books
+  binding,                    // optional; a pairing the user already confirmed
+  expectScript: 'han',
+});
 
-const matches = matchPage(
-  questionsOnPage(questionIndex, currentPage),
-  answerIndex,
-  { alignment, exercisePage: currentPage, answerPageCount: answerDoc.numPages },
-);
+if (prepared.status === 'REJECTED_PAIR') {
+  // Wrong book, wrong role, wrong year. Say so; do not match.
+  return prepared.decision.reasonCodes;
+}
+
+const matches = await prepared.session.matchQuestion({ page, region });
 
 for (const m of matches) {
-  if (!m.matched) continue;            // refused — show m.reason, m.candidates
-  console.log(m.question.label, m.entry.answer, m.confidence, m.reason);
+  switch (m.rung) {
+    case 'AUTO_MATCH': show(m.entry.answer); break;
+    case 'REVIEW':     offer(m.candidates); break;
+    case 'LOCATED':    say(`answers on pages ${m.region.from}–${m.region.to}`); break;
+    default:           explain(m.cappedBy, m.reasonCodes);
+  }
 }
 ```
+
+The whole book at once: `await prepared.session.matchAll()`.
+
+**What may not cross this interface**: `exactId`, `sectionAligned`,
+`crossBookComparable`, `pairStatus`, or any boolean asserting that something
+was verified. Those are conclusions, and reaching them is the module’s job.
 
 `expectScript: 'han'` tells the quality gate the book should be Chinese, which
 catches a broken reader configuration that the noise rate alone would not.
@@ -161,7 +247,20 @@ The engine does not read PDFs. Supply any object exposing:
 }
 ```
 
-In the host application these come from pdf.js, but nothing here depends on it.
+Lines may additionally carry `y` and `height`. When they do, `region` selects
+the tapped question rather than the whole page; when they do not, the result
+says `regionApplied: false` instead of silently returning everything.
+
+### Recognizer interface
+
+For scanned books, supply `recognizer(page) => Promise<string>`. The engine
+calls it, and **only successful recognition clears `OCR_REQUIRED`** — a
+recognizer that returns nothing, throws, or yields a layer still too sparse
+leaves the document fail-closed.
+
+`tools/windows-ocr.mjs` is a working reference implementation built from what
+Windows already has — `pdftoppm` to render, `Windows.Media.Ocr` to recognise —
+so it needs no install and no network, and no page leaves the device.
 
 ### Numbering recognised
 
@@ -172,14 +271,22 @@ of whichever question is open, never questions in their own right.
 ## Tests
 
 ```bash
-npm test            # all seven suites, 170 checks
-npm run test:unit   # synthetic fixtures only
-npm run test:real   # the real books, including the ablation
+npm test              # all nine suites, 217 checks
+npm run test:unit     # synthetic fixtures only, no corpus needed
+npm run test:scenarios  # bookmarks, no bookmarks, and the 60 invalid pairs
 ```
 
-Most tests are about **refusing** rather than matching. The real-PDF suites need
-a corpus of extracted text that is **not committed** — it derives from
-copyrighted books. `tools/extract-corpus.mjs` rebuilds it; point
+Most tests are about **refusing** rather than matching, and the primary test
+surface is the public interface: a suite that reached into internals could not
+show whether a caller can bypass a gate.
+
+Correctness is checked by two oracles that share no failure mode — the two
+bookmark trees, and the answer’s own printed label in its body text. A
+*contradiction* between them fails absolutely; *silence* is tolerated only at
+its measured rate.
+
+The real-PDF suites need a corpus of extracted text that is **not committed** —
+it derives from copyrighted books. `tools/extract-corpus.mjs` rebuilds it; point
 `FIND_ENGINE_CORPUS` at the result, or place it at `../find-engine-corpus/`.
 Absent, those suites skip rather than fail, so a fresh clone runs green.
 
@@ -206,8 +313,12 @@ Vecalign and Bitextor is in
 
 ## Limitations
 
-- Scanned books need OCR; the engine provides the seam, not the recogniser.
-- Without a bookmark tree, recall degrades sharply — precision does not.
+- Reordered answer books lose recall. Alignment is monotonic; there is no
+  global non-monotonic assignment yet, so crossings are refused, not resolved.
+- Bidirectional consistency and bounded Top-K retrieval are not implemented.
+  Degraded 2024 regimes run at roughly 0.7–1.6 s per page as a result.
+- Confidence is an ordinal band, not a calibrated probability. It stays that
+  way until enough independent book pairs exist to calibrate honestly.
 - Bigram similarity is language-agnostic but not semantic.
 - Android performance is unmeasured; all figures are desktop.
 - Tuned against Chinese mathematics textbooks. The approach is general; the

@@ -232,16 +232,21 @@ export async function preparePair({
   expectScript = 'auto',
   /** See FORMULA_POLICY. STRICT is the agreed product rule. */
   formulaPolicy = undefined,
+  /** Pages a recognizer may be asked for before the attempt is truncated. */
+  ocrPageBudget = undefined,
 } = {}) {
   const exercise = await readDocument(exerciseDocument);
   const answer = await readDocument(answerDocument);
 
   // Indexing comes first only because role and identity are judged on indexed
   // entries; nothing here can match until the verdict below is in.
-  const exerciseIndex = await cached(exerciseDocument, `q:${expectScript}`,
-    () => indexQuestionDocument(exerciseDocument, { expectScript, recognizer }));
-  const answerIndex = await cached(answerDocument, `a:${expectScript}`,
-    () => indexAnswerDocument(answerDocument, { expectScript, recognizer }));
+  const indexOptions = { expectScript, recognizer };
+  if (ocrPageBudget !== undefined) indexOptions.ocrPageBudget = ocrPageBudget;
+
+  const exerciseIndex = await cached(exerciseDocument, `q:${expectScript}:${ocrPageBudget ?? ''}`,
+    () => indexQuestionDocument(exerciseDocument, indexOptions));
+  const answerIndex = await cached(answerDocument, `a:${expectScript}:${ocrPageBudget ?? ''}`,
+    () => indexAnswerDocument(answerDocument, indexOptions));
 
   const ocrRequired = !!(exerciseIndex.ocrRequired || answerIndex.ocrRequired);
 
