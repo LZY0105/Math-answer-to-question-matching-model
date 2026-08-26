@@ -28,10 +28,19 @@
 
 import {
   compareIds,
-  idFromOutlineTitle,
   normalizeId,
   sameQuestionId,
 } from './question-id.js';
+import { classifyOutline } from './outline-classify.js';
+import {
+  PAIR_STATUS,
+  RUNG,
+  applyPairPermissions,
+  capRung,
+  rungForConfidence,
+} from './decision.js';
+import { locateAnswerRegion, sectionRangeForPage } from './region-locator.js';
+import { FORMULA_POLICY, formulaCeiling } from './formula-set.js';
 import { positionalWindow, separateByPosition } from './positional-prior.js';
 import { symbolContextSimilarity } from './symbol-context.js';
 import {
@@ -212,32 +221,23 @@ export function contentSimilarity(a, b) {
 
 const SECTION_THRESHOLD = 0.45;
 
-function flattenOutline(outline) {
-  const out = [];
-  const walk = (items, depth) => {
-    for (const item of items || []) {
-      if (item?.title) out.push({ ...item, depth: item.depth ?? depth });
-      if (item?.children?.length) walk(item.children, depth + 1);
-    }
-  };
-  walk(outline?.items, 0);
-  return out;
-}
-
-/** Splits an outline into question bookmarks and section headings. */
-function partitionOutline(flat) {
-  const withIds = flat.map(item => ({ ...item, questionId: idFromOutlineTitle(item.title) }));
-  const examples = withIds.filter(item => /例\s*题/.test(item.title));
-  if (examples.length > 0) {
-    const set = new Set(examples);
-    return { questions: examples, sections: withIds.filter(item => !set.has(item)) };
-  }
-  const depths = withIds.filter(item => item.questionId).map(item => item.depth ?? 0);
-  if (depths.length === 0) return { questions: [], sections: withIds };
-  const deepest = Math.max(...depths);
+/**
+ * Splits an outline into question bookmarks and section headings.
+ *
+ * Delegates to the structural classifier. The rule this replaced — "id-bearing
+ * nodes at the deepest depth are the questions" — is correct only while the
+ * question level is present. On a book whose question bookmarks are absent the
+ * deepest surviving level IS the section level, and every section was promoted
+ * into the question index: 18 sections became 18 questions and produced 479
+ * accepted matches at HIGH confidence, all wrong. See src/outline-classify.js.
+ */
+function partitionOutline(outline, numPages) {
+  const classified = classifyOutline(outline, { numPages });
   return {
-    questions: withIds.filter(item => item.questionId && (item.depth ?? 0) === deepest),
-    sections: withIds.filter(item => !(item.questionId && (item.depth ?? 0) === deepest)),
+    questions: classified.questions,
+    sections: classified.sections,
+    cohorts: classified.cohorts,
+    hasQuestionLevel: classified.hasQuestionLevel,
   };
 }
 
@@ -305,24 +305,27 @@ function alignTitlesMonotonic(exercises, answers, threshold) {
  *
  * @returns {{pairs, unmatched, available, questionIds: Map, questionIdsAvailable: boolean}}
  */
-export function alignOutlines(exerciseOutline, answerOutline, { threshold = SECTION_THRESHOLD } = {}) {
-  const exFlat = flattenOutline(exerciseOutline);
-  const anFlat = flattenOutline(answerOutline);
-
+export function alignOutlines(exerciseOutline, answerOutline, {
+  threshold = SECTION_THRESHOLD,
+  exercisePageCount,
+  answerPageCount,
+} = {}) {
   const empty = {
     pairs: [],
-    unmatched: exFlat,
+    unmatched: [],
     available: false,
     questionIds: new Map(),
     questionIdsAvailable: false,
+    exerciseHasQuestionLevel: false,
+    answerHasQuestionLevel: false,
+    cohorts: { exercise: [], answer: [] },
   };
-  if (!exerciseOutline?.available || !answerOutline?.available
-    || exFlat.length === 0 || anFlat.length === 0) {
-    return empty;
-  }
+  if (!exerciseOutline?.available || !answerOutline?.available) return empty;
 
-  const ex = partitionOutline(exFlat);
-  const an = partitionOutline(anFlat);
+  const ex = partitionOutline(exerciseOutline, exercisePageCount);
+  const an = partitionOutline(answerOutline, answerPageCount);
+  if (ex.questions.length + ex.sections.length === 0) return empty;
+  if (an.questions.length + an.sections.length === 0) return empty;
 
   // ── exact id correspondence, the primary signal ──
   const answersById = new Map();
@@ -359,6 +362,12 @@ export function alignOutlines(exerciseOutline, answerOutline, { threshold = SECT
     available: pairs.length > 0,
     questionIds,
     questionIdsAvailable: questionIds.size > 0,
+    // Whether each book actually carries a question level. A book with sections
+    // only can still anchor a LOCATED region, which is why the section
+    // alignment above is computed even when no question ids exist at all.
+    exerciseHasQuestionLevel: ex.hasQuestionLevel,
+    answerHasQuestionLevel: an.hasQuestionLevel,
+    cohorts: { exercise: ex.cohorts, answer: an.cohorts },
   };
 }
 
@@ -411,27 +420,9 @@ export function answerRangeForPage(alignment, exercisePage, answerPageCount) {
   return range ? { ...range, exact: false } : null;
 }
 
-function sectionRangeForPage(alignment, exercisePage, answerPageCount) {
-  if (!alignment?.available) return null;
-
-  const sorted = [...alignment.pairs]
-    .filter(p => p.exercise.pageNumber && p.answer.pageNumber)
-    .sort((a, b) => a.exercise.pageNumber - b.exercise.pageNumber);
-  if (sorted.length === 0) return null;
-
-  let index = -1;
-  for (let i = 0; i < sorted.length; i++) {
-    if (sorted[i].exercise.pageNumber <= exercisePage) index = i;
-    else break;
-  }
-  if (index < 0) return null;
-
-  const answerStart = sorted[index].answer.pageNumber;
-  const next = sorted.slice(index + 1).find(p => p.answer.pageNumber > answerStart);
-  const answerEnd = next ? next.answer.pageNumber - 1 : (answerPageCount || answerStart);
-
-  return { from: answerStart, to: Math.max(answerStart, answerEnd), section: sorted[index] };
-}
+// sectionRangeForPage now lives in src/region-locator.js and is re-exported
+// below, so a caller that wants a region without wanting a match can ask for one.
+export { locateAnswerRegion, sectionRangeForPage, describeRegion } from './region-locator.js';
 
 // ── stage 2: content matching ───────────────────────────────────────────────
 
@@ -454,6 +445,7 @@ const SIMILARITY_WEAK = 0.3;
 export function matchQuestion(question, candidates, {
   sectionAligned = false,
   exactId = false,
+  exactReason = null,
   textQuality = TEXT_QUALITY.USABLE,
   crossBookComparable = false,
 } = {}) {
@@ -471,10 +463,14 @@ export function matchQuestion(question, candidates, {
     return {
       matched: true,
       confidence: CONFIDENCE.HIGH,
-      reason: '书签题号唯一对应',
+      reason: exactReason ?? '书签题号唯一对应',
       entry: byLabel[0].entry ?? byLabel[0],
       labelMatched: true,
       similarity: null,
+      // Resolved by structure — a bookmark id, or a printed-contents location
+      // corroborated by the body. Recorded so the arbiter can tell this apart
+      // from a match that content had to argue for.
+      structuralId: true,
     };
   }
 
@@ -720,10 +716,130 @@ function applyPositionalSupport(matches) {
  * Where the two bookmark trees agree on a question id, that question is
  * resolved directly and never enters the sequence alignment at all.
  */
+/**
+ * Candidates a reader can reasonably scan themselves.
+ *
+ * Above this the list stops being a shortlist and becomes a second search, so
+ * the result falls back to a bounded region instead — one range to turn to beats
+ * fifteen entries to compare.
+ */
+const MAX_REVIEW_CANDIDATES = 5;
+
+/**
+ * Assigns each result the strongest claim its evidence supports.
+ *
+ * This is the step that stops a failure to IDENTIFY from becoming a failure to
+ * HELP. A refusal with a handful of candidates is a shortlist; a refusal with a
+ * section alignment behind it is a page range; only a refusal with neither is
+ * actually nothing. Measured on the real books, the regime where the answer key
+ * has no bookmarks refuses 858 of 872 attempts while its section alignment is
+ * intact the whole time — every one of those refusals had a region available and
+ * no way to return it.
+ *
+ * The rung is a ceiling. Nothing here promotes a match: an entry that did not
+ * earn HIGH does not become an answer because a region exists. It becomes a
+ * region.
+ */
+function assignRungs(matches, {
+  alignment, exercisePage, answerPageCount, pairStatus,
+  formulaPolicy = FORMULA_POLICY.STRICT,
+}) {
+  return matches.map((match) => {
+    if (!match) return match;
+
+    const region = match.range ?? locateAnswerRegion(alignment, {
+      exercisePage,
+      answerPageCount,
+      question: match.question,
+    });
+
+    let rung = rungForConfidence(match.confidence, match.matched);
+    // A LOW band is one weak signal, and is a review candidate by construction.
+    // Recording that here is what lets a host tell a reader the difference
+    // between "not sure enough to show you this" and "found nothing at all".
+    let cappedBy = (match.matched && match.confidence === 'LOW') ? 'LOW_CONFIDENCE' : null;
+    let formula = null;
+
+    // Mathematics gets a veto over what CONTENT argued for — not over structure.
+    //
+    // The evidence is always computed and always reported. Whether it may cap is
+    // the measured part. On an outline-derived index an entry's text is the whole
+    // page RANGE it spans, so it routinely contains its neighbours' material:
+    // measured on the 2023 pair, question 1.255's extracted expressions belonged
+    // to 1.254, and prose question 2.206's only "expression" was the fragment
+    // 3×3a= scavenged from an adjoining question. Those two, and only those two
+    // of 508, were vetoed — both wrongly, and both because the text attributed to
+    // the question was not the question's.
+    //
+    // So a match resolved by a bookmark id, or by a printed-contents location the
+    // body corroborates, is not overturned by formula evidence drawn from text
+    // that structure itself says belongs to a page rather than to a question.
+    // Everything content argued for still faces the veto, which is where the
+    // decoys and the positional prior's 120 wrong answers are caught.
+    // Evidence is drawn from the question's OWN text where that could be
+    // bounded, and from the page range only as a fallback — an expression
+    // scavenged from a neighbour is not this question's evidence.
+    const qText = match.question?.scopedText || match.question?.text;
+    const aText = match.entry?.scopedText || match.entry?.text;
+
+    if (match.matched && qText && aText) {
+      const verdict = formulaCeiling(qText, aText, { policy: formulaPolicy });
+      formula = verdict.evidence;
+      const exempt = formulaPolicy !== FORMULA_POLICY.STRICT && match.structuralId;
+      if (verdict.ceiling && !exempt) {
+        const capped = capRung(rung, verdict.ceiling, verdict.reason);
+        rung = capped.rung;
+        cappedBy = capped.cappedBy ?? cappedBy;
+      } else if (verdict.ceiling) {
+        formula = { ...verdict.evidence, notApplied: 'STRUCTURAL_ID' };
+      }
+    }
+
+    if (!match.matched) {
+      const candidates = match.candidates ?? [];
+      if (candidates.length >= 1 && candidates.length <= MAX_REVIEW_CANDIDATES) {
+        rung = RUNG.REVIEW;
+        cappedBy = 'AMBIGUOUS_LABEL';
+      } else if (region) {
+        rung = RUNG.LOCATED;
+        cappedBy = 'NO_QUESTION_LEVEL_INDEX';
+      } else {
+        rung = RUNG.REFUSED;
+      }
+    }
+
+    const permitted = applyPairPermissions(rung, pairStatus, { hasRegion: !!region });
+    return {
+      ...match,
+      rung: permitted.rung,
+      cappedBy: permitted.cappedBy ?? cappedBy,
+      region: region ?? null,
+      formula,
+      // matched means "the engine asserts this entry is the answer". Only
+      // AUTO_MATCH asserts that. A REVIEW carrying matched=true is exactly how a
+      // LOW-confidence guess reaches a reader as a final answer.
+      matched: permitted.rung === RUNG.AUTO_MATCH,
+      asserted: permitted.rung === RUNG.AUTO_MATCH,
+    };
+  });
+}
+
 export function matchPage(questions, answerIndex, {
   alignment,
   exercisePage,
   answerPageCount,
+  // Whether the two books have been established to belong together.
+  //
+  // Defaults to VERIFIED_PAIR so this change does not silently alter what the
+  // engine accepts. That default is WRONG for the product and must be flipped
+  // once preparePair exists: an unverified pair reaching AUTO_MATCH is how the
+  // cross-year mismatch produced 872 wrong HIGH acceptances. Tracked as the
+  // Phase 0.5 pair gate.
+  // Fail safe. A caller that has not established the pair may not be handed an
+  // automatic answer, and the engine cannot tell an omission from an assertion.
+  // MatchingEngine.preparePair supplies the real status; nothing else may.
+  pairStatus = PAIR_STATUS.UNKNOWN_PAIR,
+  formulaPolicy = FORMULA_POLICY.STRICT,
   limits = {},
   signal = null,
   // OFF by default, and measured: see src/positional-prior.js. On books that
@@ -745,6 +861,32 @@ export function matchPage(questions, answerIndex, {
 
   questions.forEach((question, index) => {
     const range = answerRangeForQuestion(alignment, { ...question, page: question.page ?? exercisePage }, answerPageCount);
+
+    // A label whose location the answer book's own printed contents confirms is
+    // structurally established, exactly as a bookmark would be — two independent
+    // readings of one document agreeing. It resolves here without any content
+    // comparison, which on a book with no bookmark tree is the only place such a
+    // resolution can come from.
+    const structuralId = normalizeId(question.label);
+    const structuralHits = structuralId
+      ? (byLabel?.get(structuralId) ?? entries.filter(e => sameQuestionId(e.label, structuralId)))
+      : [];
+    if (!range?.exact && structuralHits.length === 1 && structuralHits[0].structural) {
+      resolved.set(index, {
+        question,
+        ...matchQuestion(question, structuralHits, {
+          sectionAligned: false,
+          exactId: true,
+          exactReason: '题号在答案册目录中唯一定位，且与正文一致',
+          textQuality,
+          crossBookComparable,
+        }),
+        range: { from: structuralHits[0].page, to: structuralHits[0].endPage ?? structuralHits[0].page, exact: true, section: null },
+        alignmentScore: 1,
+        section: null,
+      });
+      return;
+    }
 
     if (range?.exact) {
       const id = normalizeId(question.label);
@@ -890,5 +1032,11 @@ export function matchPage(questions, answerIndex, {
   }
 
   const matches = questions.map((_, index) => resolved.get(index));
-  return applyPositionalSupport(matches);
+  return assignRungs(applyPositionalSupport(matches), {
+    alignment,
+    exercisePage,
+    answerPageCount,
+    pairStatus,
+    formulaPolicy,
+  });
 }

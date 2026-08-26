@@ -24,6 +24,7 @@
 // precision measurement, which a sample supports perfectly well.
 
 import assert from 'node:assert/strict';
+import { PAIR_STATUS } from '../src/decision.js';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -139,6 +140,7 @@ async function measure({ questionBookmarks, answerBookmarks, stride = 1 }) {
 
     const started = Date.now();
     const matches = matchPage(questions, answerIndex, {
+      pairStatus: PAIR_STATUS.VERIFIED_PAIR,
       alignment,
       exercisePage: page,
       answerPageCount: aDoc.numPages,
@@ -238,15 +240,36 @@ for (const [name, opts] of REGIMES) {
 // ═══════════════════════════════════════════════════════════════
 group('3. What the bookmarks were carrying');
 
-await check('with bookmarks, all 508 resolve; without, recall collapses', () => {
+await check('with bookmarks, all 508 resolve; without, recall is reduced but not destroyed', () => {
   const a = results.get('A. both books have bookmarks');
   const b = results.get('B. answer key has NO bookmarks');
-  assert.equal(a.distinct.size, 508, 'regime A must still resolve everything');
-  assert.equal(a.refused, 0, 'and refuse nothing');
-  assert.ok(b.distinct.size < 50,
-    `losing the key's bookmarks should cost most of the recall, got ${b.distinct.size}`);
-  assert.ok(b.refused > b.identified * 10,
-    'and the engine should be refusing, not guessing');
+  // 508 under the CALIBRATED formula policy; 470 under the STRICT default,
+  // which is the agreed rule that every complete expression must correspond.
+  // Zero wrong under either. See test_real_pdfs.js for the policy comparison.
+  assert.ok(a.distinct.size >= 470,
+    `regime A resolved ${a.distinct.size}, below the strict-policy floor`);
+  // Under STRICT some correct matches are held at REVIEW rather than refused
+  // outright, so the property is that nothing is WRONG, not that nothing is
+  // withheld.
+  assert.equal(a.wrong, 0, `regime A produced ${a.wrong} wrong`);
+
+  // This assertion used to require b.distinct < 50, and it was true: the engine
+  // resolved 8 of 508 without the key's bookmarks. That was not a property of
+  // the problem, it was two defects. The answer book's own table of contents
+  // listed every id, so every lookup found its label twice and refused a
+  // question it had already located (825 of 872 attempts, the true answer among
+  // the two candidates every time); and running heads inflated similarity
+  // between unrelated entries. With contents rows and boilerplate excluded,
+  // recall is 270 — see src/toc-filter.js and src/boilerplate.js.
+  //
+  // The bound is now stated the way the finding actually reads: losing the
+  // bookmarks still costs real recall, and it must never cost precision.
+  assert.ok(b.distinct.size < a.distinct.size,
+    `losing the key's bookmarks should still cost recall, got ${b.distinct.size}`);
+  assert.equal(b.wrong, 0, 'and it must cost no precision at all');
+  assert.ok(b.refused > 0, 'the engine should still be refusing where it cannot tell');
+  assert.ok(b.distinct.size >= 200,
+    `the contents-row and boilerplate fixes should hold; got ${b.distinct.size}`);
 });
 
 await check('the body parser over-extracts, which is why its ids are not the oracle', () => {

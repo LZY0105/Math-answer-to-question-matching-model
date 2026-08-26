@@ -22,6 +22,7 @@
 // rather than fails, so a fresh clone still runs green.
 
 import assert from 'node:assert/strict';
+import { PAIR_STATUS } from "../src/decision.js";
 import { existsSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -217,7 +218,7 @@ await check('every question id in the book maps to exactly one answer bookmark',
 });
 
 /** Runs the whole book and reports per-question outcomes. */
-function runWholeBook() {
+function runWholeBook(options = {}) {
   const results = [];
   const perPageMs = [];
   for (let page = 1; page <= q2023.numPages; page++) {
@@ -225,9 +226,11 @@ function runWholeBook() {
     if (questions.length === 0) continue;
     const started = performance.now();
     const matches = matchPage(questions, answerIndex, {
+      pairStatus: PAIR_STATUS.VERIFIED_PAIR,
       alignment,
       exercisePage: page,
       answerPageCount: ans2023.numPages,
+      ...options,
     });
     perPageMs.push(performance.now() - started);
     for (const m of matches) {
@@ -248,14 +251,34 @@ function runWholeBook() {
 
 const { results, perPageMs } = runWholeBook();
 
+/** One whole-book run under a given formula policy, summarised. */
+function runPair({ formulaPolicy }) {
+  const { results: rs } = runWholeBook({ formulaPolicy });
+  return {
+    resolved: new Set(rs.filter(r => r.matched).map(r => r.questionId)).size,
+    wrong: rs.filter(r => r.matched && r.answerId !== r.questionId).length,
+  };
+}
+
 /** The report the checklist asks for on failure. */
 const describe = (r) =>
   `id=${r.questionId} qPage=${r.questionPage} aPage=${r.answerPage} `
   + `aId=${r.answerId} conf=${r.confidence} ${r.matched ? '' : '(' + r.reason + ')'}`;
 
-await check('all 508 questions are resolved', () => {
-  const resolved = new Set(results.filter(r => r.matched).map(r => r.questionId));
-  assert.equal(resolved.size, 508, `resolved ${resolved.size} of 508`);
+await check('every question the strict formula rule admits is resolved', () => {
+  // This used to assert 508 of 508, and under the CALIBRATED formula policy it
+  // still is. The default is now STRICT — the agreed product rule that every
+  // complete expression in a question must have a counterpart in its answer —
+  // and that rule deliberately withholds automatic matching where the two texts
+  // do not fully correspond.
+  //
+  // Measured cost of STRICT on this pair: 470 of 508, the shortfall dominated by
+  // FORMULA_CONFLICT on expressions differing only by an extraction artefact.
+  // Zero wrong matches under either policy. The trade-off is a product decision,
+  // and it is recorded here rather than absorbed.
+  const resolved = new Set(results.filter(r => r.matched).map(r => r.questionId)).size;
+  assert.ok(resolved >= 470, `resolved ${resolved} of 508 — below the strict-policy floor`);
+  assert.ok(resolved <= 508);
 });
 
 await check('zero accepted matches are wrong', () => {
@@ -299,7 +322,7 @@ await check('questions sharing a page each get their own answer', () => {
   }
 });
 
-await check('shared-page recall is within 2 points of single-question-page recall', () => {
+await check('shared-page recall is not systematically worse than single-question pages', () => {
   const byPage = new Map();
   for (const r of results) {
     const bucket = byPage.get(r.questionPage) ?? [];
@@ -312,13 +335,39 @@ await check('shared-page recall is within 2 points of single-question-page recal
   };
   const single = rate([...byPage.values()].filter(b => b.length === 1));
   const shared = rate([...byPage.values()].filter(b => b.length > 1));
-  assert.ok(Math.abs(single - shared) <= 0.02,
+  // One-sided on purpose. The defect this guards is the original one: a page
+  // carrying six questions used to compute ONE answer range for all six, so the
+  // last question on the page silently governed the first. Sharing a page must
+  // therefore never DISADVANTAGE a question.
+  //
+  // It must not require the two rates to be equal. Under the strict formula
+  // policy they legitimately diverge — a question that occupies a whole page is
+  // a long one, carrying more expressions, and a rule requiring all of them to
+  // match fails multiplicatively with question size (measured: 76.7% full
+  // coverage at 1-2 expressions, 12.9% at 11+). That is question length, not
+  // page sharing, and asserting equality would report it as this bug.
+  assert.ok(shared >= single - 0.02,
     `single-question pages ${(single * 100).toFixed(1)}%, shared ${(shared * 100).toFixed(1)}%`);
 });
 
-await check('end-to-end recall is at least 98%', () => {
+await check('end-to-end recall meets the strict-policy floor', () => {
+  // 98% under CALIBRATED; 91.1% measured under the STRICT default.
   const recall = results.filter(r => r.matched).length / results.length;
-  assert.ok(recall >= 0.98, `recall ${(recall * 100).toFixed(2)}%`);
+  assert.ok(recall >= 0.90, `recall ${(recall * 100).toFixed(2)}%`);
+});
+
+await check('the calibrated policy restores full recall, and neither is ever wrong', async () => {
+  // The lever, exercised. Both policies run over the same book, so the cost of
+  // the strict rule is a measured number in the suite rather than a claim in a
+  // report — and a future change cannot quietly move it.
+  const { FORMULA_POLICY } = await import('../src/formula-set.js');
+  const calibrated = runPair({ formulaPolicy: FORMULA_POLICY.CALIBRATED });
+  const strict = runPair({ formulaPolicy: FORMULA_POLICY.STRICT });
+  assert.equal(calibrated.wrong, 0);
+  assert.equal(strict.wrong, 0);
+  assert.equal(calibrated.resolved, 508, `calibrated resolved ${calibrated.resolved} of 508`);
+  assert.ok(strict.resolved <= calibrated.resolved);
+  console.log(`      strict ${strict.resolved}/508, calibrated ${calibrated.resolved}/508, wrong 0 under both`);
 });
 
 // ═══════════════════════════════════════════════════════════════

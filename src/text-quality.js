@@ -47,6 +47,22 @@ export const TEXT_QUALITY = Object.freeze({
   OPAQUE: 'OPAQUE',
   /** A text layer exists but does not carry the document's actual characters. */
   CORRUPT: 'CORRUPT',
+  /**
+   * A text layer exists, reads correctly, and covers almost none of the book.
+   *
+   * The state this gate was missing. Every other verdict here is a RATIO — what
+   * share of the characters are Han, are noise, are structured — and a ratio
+   * cannot see how FEW characters there are. Measured on the 2025 exercise book:
+   * 609 characters across 465 pages, 48.9% of them Han, on 3 pages out of 465.
+   * Every ratio looks healthy, and the document assessed as USABLE while being a
+   * scan with a handful of stray text objects on it.
+   *
+   * The corpus separates the two cases by more than two orders of magnitude:
+   * every genuine text layer covers 100% of its pages at 188-1,664 characters
+   * per page, against 0.6% and 1.3. This is a coverage failure, not a decoding
+   * failure, and the remedy is OCR rather than a different reader.
+   */
+  SPARSE_LAYER: 'SPARSE_LAYER',
   /** A text layer exists and is blank — a genuinely empty page range. */
   BLANK: 'BLANK',
   /** No text layer at all. A scanned book; OCR is the only route. */
@@ -86,6 +102,29 @@ const THRESHOLDS = Object.freeze({
   minStructuredForOpaque: 0.25,
   /** Below this many characters the rates are too noisy to judge. */
   minCharsToJudge: 200,
+  /**
+   * Characters per page below which the layer is not carrying the book.
+   *
+   * Measured floor across every genuine text layer in the corpus is 188.5;
+   * the scanned book sits at 1.3. Twenty is an order of magnitude below the
+   * real floor and an order above the scan, so it is not a tuned value.
+   */
+  minCharsPerPage: 20,
+  /**
+   * Share of pages that must carry any text at all.
+   *
+   * Every genuine text layer in the corpus covers 100% of its pages; the
+   * scanned book covers 0.6%. Half sits in the middle of a gap that wide.
+   */
+  minPageCoverage: 0.5,
+  /**
+   * Pages a document needs before coverage means anything.
+   *
+   * The same guard minCharsToJudge provides for the ratios. A one-page extract
+   * has no coverage to speak of, and a short fixture must not be mistaken for a
+   * 465-page scan. Every real book in the corpus is 197 pages or more.
+   */
+  minPagesForCoverage: 8,
 });
 
 /**
@@ -100,7 +139,7 @@ const THRESHOLDS = Object.freeze({
  * @returns {{quality: string, chars: number, controlRatio: number,
  *            oddScriptRatio: number, hanRatio: number, reason: string}}
  */
-export function assessTextQuality(lines, { expectScript = 'auto' } = {}) {
+export function assessTextQuality(lines, { expectScript = 'auto', pagesRead = null } = {}) {
   const list = Array.isArray(lines) ? lines : [];
   if (list.length === 0) {
     return report(TEXT_QUALITY.SCANNED, 0, 0, 0, 0, '没有文本层，可能是扫描件', 0);
@@ -125,14 +164,40 @@ export function assessTextQuality(lines, { expectScript = 'auto' } = {}) {
     return report(TEXT_QUALITY.BLANK, 0, 0, 0, 0, '文本层为空白', 0);
   }
 
+  // Coverage, which no ratio can express. Judged only when the caller says how
+  // many pages were actually read — without that number the denominator is
+  // unknown and the question is unanswerable, so it is left unasked rather than
+  // answered from the pages that happened to have text.
+  const pagesWithText = new Set(
+    list.filter(l => String(l?.text ?? '').trim().length > 0).map(l => l.page),
+  ).size;
+  const denominator = Number.isFinite(pagesRead) && pagesRead > 0 ? pagesRead : null;
+  const charsPerPage = denominator ? chars / denominator : null;
+  const pageCoverage = denominator ? pagesWithText / denominator : null;
+
   const controlRatio = control / chars;
   const oddScriptRatio = odd / chars;
   const hanRatio = han / chars;
   const structuredRatio = structured / chars;
   const judgeable = chars >= THRESHOLDS.minCharsToJudge;
 
-  const done = (quality, reason) =>
-    report(quality, chars, controlRatio, oddScriptRatio, hanRatio, reason, structuredRatio);
+  const done = (quality, reason) => ({
+    ...report(quality, chars, controlRatio, oddScriptRatio, hanRatio, reason, structuredRatio),
+    pagesRead: denominator,
+    pagesWithText,
+    charsPerPage: charsPerPage === null ? null : Number(charsPerPage.toFixed(2)),
+    pageCoverage: pageCoverage === null ? null : Number(pageCoverage.toFixed(4)),
+  });
+
+  // Coverage is checked BEFORE the ratio tests. A scan with a few readable text
+  // objects on it passes every ratio, and "is what I got readable" is the wrong
+  // question when almost nothing was got.
+  if (denominator !== null && denominator >= THRESHOLDS.minPagesForCoverage
+    && (charsPerPage < THRESHOLDS.minCharsPerPage
+      || pageCoverage < THRESHOLDS.minPageCoverage)) {
+    return done(TEXT_QUALITY.SPARSE_LAYER,
+      `文本层仅覆盖 ${(pageCoverage * 100).toFixed(1)}% 的页面、每页 ${charsPerPage.toFixed(1)} 字符，实为扫描件，需 OCR`);
+  }
 
   // A broken CJK mapping destroys the prose and leaves the mathematics alone,
   // because the mathematics is written in Latin and digits. Enough of that
@@ -276,6 +341,19 @@ export function compareAlphabets(a, b, { threshold = 0.9, minAlphabet = MIN_ALPH
  * whether the other book garbles the same way, because that verdict needs both
  * books and an index is built from one.
  */
+/**
+ * Whether this quality requires a recognizer before anything can be matched.
+ *
+ * SPARSE_LAYER joins SCANNED here: a page with no text on it cannot be matched
+ * by reading text, whatever the few characters elsewhere in the book decode to.
+ */
+export function requiresRecognizer(quality) {
+  return quality === TEXT_QUALITY.SCANNED
+    || quality === TEXT_QUALITY.SPARSE_LAYER
+    || quality === TEXT_QUALITY.BLANK
+    || quality === TEXT_QUALITY.CORRUPT;
+}
+
 export function textMayBeComparable(quality) {
   return quality === TEXT_QUALITY.USABLE
     || quality === TEXT_QUALITY.DEGRADED

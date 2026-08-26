@@ -88,9 +88,38 @@ Against the real 2023 pair (368-page exercise book, 372-page key):
 | Indexing the 372-page key | 9 ms |
 
 Stripping the bookmark trees and scoring against an oracle built from them,
-**precision stays at 100% in all four regimes** — zero wrong answers — while
-recall collapses and per-page latency rises to 507 ms.
+**precision stays at 100% in all four regimes** — zero wrong answers. Recall is
+reduced but not destroyed: without the answer key's bookmarks, 270 of the 508
+questions still resolve. Per-page latency rises to a p95 of 328 ms.
 [Ablation methodology and full table](RESEARCH-REPORT.md#5-evaluation).
+
+| Regime | Distinct resolved | Wrong | Per-page p95 |
+|---|---|---|---|
+| Both bookmarked | 508 / 508 | **0** | 0 ms |
+| Answer key not bookmarked | 490 / 508 | **0** | 1 ms |
+| Exercise book not bookmarked † | 77 | **0** | 431–550 ms |
+| Neither bookmarked † | 46 | **0** | 33 ms |
+
+† sampled every 8th and 16th page respectively.
+
+Three structural readings account for most of that recall, and none of them is a
+similarity threshold. The answer key prints its own table of contents, so body
+parsing found every identifier twice and refused 825 of 872 lookups as ambiguous
+when it had already located the answer; running heads made unrelated entries look
+similar; and — once those are out of the way — **the printed contents is itself a
+label-to-location index**, the very thing the missing bookmark tree would have
+provided.
+
+Reading it needs the offset between printed page numbers and PDF page indices,
+which is recovered from the document rather than guessed: every label appearing
+in both the contents and the body parse votes on it, and on the 2023 key 492 of
+508 votes agree on +18. Applying that offset blindly would place 492 correctly
+and 16 wrongly — so a location is emitted only where the two independent readings
+agree, which excludes exactly those 16. The result is 492 locations at 100%
+precision with no ground truth consulted, and it is what takes the
+no-answer-bookmarks regime from 8 resolved questions to 490.
+
+See `src/toc-filter.js`, `src/boilerplate.js` and `src/contents-index.js`.
 
 ![Precision stays at 100% across regimes while the refusal rate climbs](figures/ablation-precision-refusal.svg)
 
@@ -143,7 +172,7 @@ of whichever question is open, never questions in their own right.
 ## Tests
 
 ```bash
-npm test            # all six suites, 138 checks
+npm test            # all seven suites, 170 checks
 npm run test:unit   # synthetic fixtures only
 npm run test:real   # the real books, including the ablation
 ```

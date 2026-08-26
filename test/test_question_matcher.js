@@ -12,6 +12,7 @@
 // ambiguity rather than resolved by guessing.
 
 import assert from 'node:assert/strict';
+import { PAIR_STATUS, RUNG } from "../src/decision.js";
 import { existsSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -338,7 +339,7 @@ check('the aligned chapter narrows the search', () => {
   const matches = matchPage(
     [{ label: '1', text: '求导数' }],
     answerIndex,
-    { alignment, exercisePage: 35, answerPageCount: 300 },  // chapter 2
+    { pairStatus: PAIR_STATUS.VERIFIED_PAIR, alignment, exercisePage: 35, answerPageCount: 300 },  // chapter 2
   );
   assert.equal(matches.length, 1);
   assert.equal(matches[0].matched, true);
@@ -346,11 +347,16 @@ check('the aligned chapter narrows the search', () => {
     'chapter alignment must exclude the chapter-3 entry with the same number');
 });
 
-check('without alignment the whole book is searched, and confidence says so', () => {
+check('without alignment a lone number is a review candidate, not an answer', () => {
   const answerIndex = buildAnswerIndex(lines([220, '1. 答案：2x + 3']));
-  const matches = matchPage([{ label: '1', text: '求导数' }], answerIndex, {});
-  assert.equal(matches[0].matched, true);
+  const matches = matchPage([{ label: '1', text: '求导数' }], answerIndex, { pairStatus: PAIR_STATUS.VERIFIED_PAIR });
+  // A bare number agreeing across an unaligned book is one weak signal. It used
+  // to come back matched=true at LOW, which is how a guess reaches a reader as a
+  // final answer; the rung now carries that judgement and matched follows it.
   assert.equal(matches[0].confidence, CONFIDENCE.LOW);
+  assert.equal(matches[0].rung, RUNG.REVIEW, 'LOW is a review candidate');
+  assert.equal(matches[0].matched, false, 'and is never asserted as the answer');
+  assert.ok(matches[0].entry, 'while still carrying the candidate it found');
   assert.equal(matches[0].section, null);
 });
 
@@ -420,7 +426,7 @@ check('a confident pair on each side lifts an uncertain one between them', () =>
     { label: '6', text: '求 y = x^3 + 2x 的导数' },
   ];
 
-  const matches = matchPage(questions, answerIndex, {});
+  const matches = matchPage(questions, answerIndex, { pairStatus: PAIR_STATUS.VERIFIED_PAIR });
   assert.equal(matches[1].matched, true, 'the middle question should still be matched');
   assert.notEqual(matches[1].confidence, CONFIDENCE.LOW,
     'positional support should raise it above a bare guess');
@@ -439,7 +445,7 @@ check('positional support does not vouch for a whole run of guesses', () => {
     { label: '2', text: '无关内容甲' },
     { label: '3', text: '无关内容乙' },
   ];
-  const matches = matchPage(questions, answerIndex, {});
+  const matches = matchPage(questions, answerIndex, { pairStatus: PAIR_STATUS.VERIFIED_PAIR });
   assert.equal(matches[2].confidence, CONFIDENCE.LOW,
     'the last one has no strong neighbour after it');
 });
@@ -529,7 +535,7 @@ check('a duplicated id with no alignment is refused when content cannot separate
     [9, '1. 求 y=x^2 的导数，答案：2x'],
   ));
   const [m] = matchPage([{ label: '1', text: '求 y=x^2 的导数', page: 1 }], dup,
-    { alignment: null, exercisePage: 1, answerPageCount: 20 });
+    { pairStatus: PAIR_STATUS.VERIFIED_PAIR, alignment: null, exercisePage: 1, answerPageCount: 20 });
   assert.equal(m.matched, false);
   assert.equal(m.confidence, CONFIDENCE.NONE);
   assert.equal(m.candidates.length, 2);
@@ -545,7 +551,7 @@ check('a duplicated id IS settled when the mathematics genuinely differs', () =>
     [9, '1. 求 y=x^3 的导数，答案：3x^2'],
   ));
   const [m] = matchPage([{ label: '1', text: '求 y=x^3 的导数', page: 1 }], dup,
-    { alignment: null, exercisePage: 1, answerPageCount: 20 });
+    { pairStatus: PAIR_STATUS.VERIFIED_PAIR, alignment: null, exercisePage: 1, answerPageCount: 20 });
   assert.equal(m.matched, true);
   assert.equal(m.entry.page, 9, 'must pick the x^3 entry, not the nearer x^2 one');
 });
@@ -553,7 +559,7 @@ check('a duplicated id IS settled when the mathematics genuinely differs', () =>
 check('a corrupt text layer cannot carry a content-only match', () => {
   const idx = { ...buildAnswerIndex(lines([1, '5. 答案：42'])), quality: 'CORRUPT' };
   const [m] = matchPage([{ label: '7', text: '求某个导数', page: 1 }], idx,
-    { alignment: null, exercisePage: 1, answerPageCount: 5 });
+    { pairStatus: PAIR_STATUS.VERIFIED_PAIR, alignment: null, exercisePage: 1, answerPageCount: 5 });
   assert.equal(m.matched, false);
   assert.equal(m.confidence, CONFIDENCE.NONE);
 });
@@ -611,6 +617,7 @@ async function runNoOutline(opts, matchOpts = {}) {
     const onPage = questionsOnPage(qi, p);
     if (onPage.length === 0) continue;
     for (const m of matchPage(onPage, ai, {
+      pairStatus: PAIR_STATUS.VERIFIED_PAIR,
       alignment: al, exercisePage: p, answerPageCount: aDoc.numPages,
       questionCount: qi.entries.length, ...matchOpts,
     })) {
@@ -638,16 +645,28 @@ await checkAsync('precision survives a key that is NOT parallel to the exercise 
     `${r.wrong} wrong — a missing chapter must produce refusals, not neighbours`);
 });
 
-await checkAsync('the positional prior is OFF by default', async () => {
+await checkAsync('the positional prior is OFF by default, and is now intercepted too', async () => {
   // Reversed chapters: position points at the wrong copy every single time.
-  // With the prior enabled this returns 120 confident wrong answers.
   const reversed = { keyChapters: [6, 5, 4, 3, 2, 1] };
   const off = await runNoOutline(reversed);
   assert.equal(off.wrong, 0, `default must not guess: ${off.wrong} wrong`);
 
+  // This assertion used to read `on.wrong > 0`, recording that enabling the
+  // prior returned 120 of 120 wrong answers at MEDIUM confidence. It no longer
+  // does. Measured after the formula veto landed: 0 wrong, 0 accepted, and all
+  // 120 capped at REVIEW, because reversed chapters pair each question with an
+  // answer that shares none of its mathematics.
+  //
+  // That is NOT evidence the prior became safe. It is evidence that one
+  // independent signal happens to catch this fixture, where the wrong partner
+  // differs mathematically. A wrong partner that shared an expression would
+  // pass the veto untouched. The prior still cannot detect its own
+  // inapplicability, which is the property it was disabled for, so it stays
+  // off — and re-measuring on real non-parallel books is still the
+  // precondition for reconsidering that.
   const on = await runNoOutline(reversed, { usePositionalPrior: true });
-  assert.ok(on.wrong > 0,
-    'if this stops failing, re-measure before enabling the prior by default');
+  assert.equal(on.wrong, 0, 'the veto must intercept the prior, not let it answer');
+  assert.equal(on.matched, 0, 'and the prior must not quietly start resolving them');
 });
 
 check('the positional window separates rather than ranks', () => {

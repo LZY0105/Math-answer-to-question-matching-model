@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "description": "Matches exercise-book questions to their answers in a separate answer key",
   "type": "module",
-  "main": "src/question-matcher.js",
+  "main": "src/matching-engine.js",
   "exports": {
     "./matcher": "./src/question-matcher.js",
     "./index": "./src/answer-index.js",
@@ -13,13 +13,24 @@
     "./positional-prior": "./src/positional-prior.js",
     "./symbol-context": "./src/symbol-context.js",
     "./text-source": "./src/text-source.js",
-    "./glyph-map": "./src/glyph-map.js"
+    "./glyph-map": "./src/glyph-map.js",
+    "./decision": "./src/decision.js",
+    "./outline-classify": "./src/outline-classify.js",
+    "./region-locator": "./src/region-locator.js",
+    "./toc-filter": "./src/toc-filter.js",
+    "./boilerplate": "./src/boilerplate.js",
+    "./contents-index": "./src/contents-index.js",
+    "./engine": "./src/matching-engine.js",
+    "./pair-verifier": "./src/pair-verifier.js",
+    "./formula-set": "./src/formula-set.js",
+    "./body-structure": "./src/body-structure.js"
   },
   "scripts": {
-    "test": "node test/test_question_matcher.js && node test/test_answer_index.js && node test/test_text_source.js && node test/test_glyph_map.js && node test/test_real_pdfs.js && node test/test_no_bookmarks.js",
-    "test:unit": "node test/test_question_matcher.js && node test/test_answer_index.js && node test/test_text_source.js && node test/test_glyph_map.js",
-    "test:real": "node test/test_real_pdfs.js && node test/test_no_bookmarks.js",
-    "test:nobookmarks": "node test/test_no_bookmarks.js"
+    "test": "node test/test_question_matcher.js && node test/test_answer_index.js && node test/test_text_source.js && node test/test_glyph_map.js && node test/test_structure.js && node test/test_matching_engine.js && node test/test_real_pdfs.js && node test/test_no_bookmarks.js && node test/test_corpus_regression.js",
+    "test:unit": "node test/test_question_matcher.js && node test/test_answer_index.js && node test/test_text_source.js && node test/test_glyph_map.js && node test/test_structure.js && node test/test_matching_engine.js",
+    "test:real": "node test/test_real_pdfs.js && node test/test_no_bookmarks.js && node test/test_corpus_regression.js",
+    "test:nobookmarks": "node test/test_no_bookmarks.js",
+    "test:scenarios": "node test/test_corpus_regression.js"
   },
   "keywords": [
     "text-alignment",

@@ -7,3 +7,8 @@ find-engine-corpus/
 
 # Device test evidence — screenshots and UI dumps, not source.
 .test-evidence/
+
+# Working corpus, extracted PDFs and measurement scratch. The corpus is
+# extracted text from copyrighted textbooks and must never enter the repo;
+# the measurement scripts beside it are reproducible from tools/.
+tmp/

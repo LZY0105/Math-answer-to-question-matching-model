@@ -23,9 +23,15 @@
 // So: outline first, body text only as a supplement, and never any content
 // comparison at all when the quality gate says the text cannot be trusted.
 
+import { classifyOutline } from './outline-classify.js';
+import { suppressContentsRows } from './toc-filter.js';
+import { boilerplateFilter } from './boilerplate.js';
+import { bodyQuestionFilter } from './body-structure.js';
+import { buildContentsLocations } from './contents-index.js';
+import { createTextSource } from './text-source.js';
+import { createTextCleaner, entryText } from './entry-text.js';
 import {
   compareIds,
-  idFromOutlineTitle,
   normalizeId,
   parseQuestionLine,
   parseSubQuestionLine,
@@ -36,6 +42,7 @@ import {
   alphabetOfLines,
   assessTextQuality,
   compareAlphabets,
+  requiresRecognizer,
   textIsComparable,
   textMayBeComparable,
 } from './text-quality.js';
@@ -48,6 +55,14 @@ export const INDEX_SOURCE = Object.freeze({
   OUTLINE: 'OUTLINE',
   /** Parsed out of the text layer. Ids are only as good as the extraction. */
   BODY: 'BODY',
+  /**
+   * Parsed from the text layer and corroborated by the book's printed contents.
+   *
+   * Two independent readings of the same document agreeing on where a label
+   * lives. Structurally this is what a bookmark tree provides, and it is treated
+   * as one. See src/contents-index.js.
+   */
+  CONTENTS: 'CONTENTS',
   /** Nothing usable. The reason says which of the four failures this is. */
   NONE: 'NONE',
 });
@@ -97,12 +112,19 @@ export function parseLabelledLine(line) {
  * @param {Array<{page:number, text:string}>} lines from document.extractText()
  * @returns {{entries: Array, duplicates: string[], byLabel: Map, source: string}}
  */
-export function buildAnswerIndex(lines) {
+export function buildAnswerIndex(lines, {
+  isBoilerplate = () => false,
+  opensQuestion = null,
+} = {}) {
   const collected = [];
   let current = null;
+  // A labelled line is not automatically a question opener: a section running
+  // head carries a label too, and is printed on every page of its section. See
+  // src/body-structure.js.
+  const opens = opensQuestion ?? bodyQuestionFilter(lines).opensQuestion;
 
   for (const { page, text } of lines ?? []) {
-    const labelled = parseLabelledLine(text);
+    const labelled = opens({ page, text }) ? parseLabelledLine(text) : null;
     if (labelled) {
       if (current) collected.push(current);
       current = {
@@ -117,6 +139,9 @@ export function buildAnswerIndex(lines) {
 
     if (!current) continue;
     current.endPage = page;
+    // Running heads and watermarks bound the entry — the page they sit on is
+    // still part of it — but they are not its content and must not be compared.
+    if (isBoilerplate({ page, text })) continue;
 
     const sub = parseSubQuestionLine(text);
     if (sub) {
@@ -133,11 +158,23 @@ export function buildAnswerIndex(lines) {
   }
   if (current) collected.push(current);
 
-  const entries = collected
+  const parsed = collected
     .map((entry, ordinal) => finalizeEntry(entry, ordinal, INDEX_SOURCE.BODY))
     .filter(entry => entry.text.length > 0);
 
-  return { entries, ...labelStatistics(entries), source: INDEX_SOURCE.BODY };
+  // The book's own table of contents lists every question id, so without this
+  // every label is found twice and a unique id looks ambiguous. Measured on the
+  // 2023 key: 825 of 872 lookups returned two candidates, one of them a contents
+  // row, and refused. See src/toc-filter.js.
+  const { entries, suppressed, pages } = suppressContentsRows(parsed);
+
+  return {
+    entries,
+    ...labelStatistics(entries),
+    source: INDEX_SOURCE.BODY,
+    contentsPages: pages,
+    contentsRowsSuppressed: suppressed.length,
+  };
 }
 
 /**
@@ -152,29 +189,42 @@ export function buildAnswerIndex(lines) {
  * it does not, entries still carry their ids and page ranges — that is enough
  * for an exact-id match, and an exact-id match is what this corpus needs.
  */
-export function buildOutlineIndex(outline, lines, { numPages, quality } = {}) {
-  const flat = flattenOutline(outline);
-  if (flat.length === 0) {
-    return { entries: [], duplicates: [], byLabel: new Map(), source: INDEX_SOURCE.NONE };
+export function buildOutlineIndex(outline, lines, {
+  numPages, quality, isBoilerplate, scopeText = true,
+} = {}) {
+  const none = () => ({
+    entries: [], duplicates: [], byLabel: new Map(), source: INDEX_SOURCE.NONE,
+  });
+
+  // Structural classification, not "deepest id-bearing depth". The old rule
+  // silently turned a section list into a question index whenever the question
+  // level was missing; see src/outline-classify.js for what that cost.
+  const classified = classifyOutline(outline, { numPages });
+  if (!classified.hasQuestionLevel) {
+    return { ...none(), sections: classified.sections, cohorts: classified.cohorts };
   }
 
-  const withIds = flat
-    .map(item => ({ ...item, id: idFromOutlineTitle(item.title) }))
+  const questions = classified.questions
+    .map(item => ({ ...item, id: item.questionId }))
     .filter(item => item.id);
-  if (withIds.length === 0) {
-    return { entries: [], duplicates: [], byLabel: new Map(), source: INDEX_SOURCE.NONE };
+  if (questions.length === 0) {
+    return { ...none(), sections: classified.sections, cohorts: classified.cohorts };
   }
-
-  const examples = withIds.filter(item => /例\s*题/.test(item.title));
-  const deepest = Math.max(...withIds.map(item => item.depth ?? 0));
-  const questions = examples.length > 0
-    ? examples
-    : withIds.filter(item => (item.depth ?? 0) === deepest);
 
   const ordered = [...questions].sort((a, b) =>
     (a.pageNumber - b.pageNumber) || compareIds(a.id, b.id));
 
-  const linesByPage = textMayBeComparable(quality) ? groupByPage(lines) : null;
+  const usable = isBoilerplate ? (lines ?? []).filter(l => !isBoilerplate(l)) : lines;
+  const linesByPage = textMayBeComparable(quality) ? groupByPage(usable) : null;
+  // Text is attributed to the question that OWNS it, bounded by the printed
+  // headings the book itself supplies, and cleaned of structure that the
+  // extractor interleaved into the character stream. See src/entry-text.js.
+  const cleaner = scopeText
+    ? createTextCleaner({
+      sectionTitles: classified.sections.map(s => s.title),
+      lines: usable ?? [],
+    })
+    : null;
   const lastPage = numPages || ordered[ordered.length - 1]?.pageNumber || 0;
 
   const entries = ordered.map((item, i) => {
@@ -182,21 +232,62 @@ export function buildOutlineIndex(outline, lines, { numPages, quality } = {}) {
     // Consecutive questions routinely share a page, so a question's range runs
     // up to and INCLUDING the next one's page rather than stopping before it.
     const endPage = next ? Math.max(item.pageNumber, next.pageNumber) : lastPage;
-    const text = linesByPage
-      ? collectText(linesByPage, item.pageNumber, endPage)
-      : '';
-    return finalizeEntry({
-      label: item.id,
-      page: item.pageNumber,
-      endPage,
-      lines: text ? [text] : [],
-      subQuestions: [],
-      depth: item.depth ?? 0,
-      title: item.title,
-    }, i, INDEX_SOURCE.OUTLINE);
+
+    // Two texts, for two different jobs, and conflating them was a mistake.
+    //
+    // The entry text stays the PAGE RANGE. Every threshold in the engine — role
+    // classification, content similarity, the contents corroboration — was
+    // calibrated against it, and narrowing it silently moved all of them at
+    // once: measured, the 2024 answer keys fell from 3,265 to 587 characters per
+    // entry and stopped reading as answer keys at all, rejecting two valid pairs.
+    //
+    // scopedText is the question's OWN material, bounded by printed headings
+    // and cleaned of interleaved structure. It exists for evidence that must not
+    // be contaminated by neighbours — formula extraction above all, where a page
+    // number glued into an expression reads as a structural conflict.
+    const text = linesByPage ? collectText(linesByPage, item.pageNumber, endPage) : '';
+
+    let scopedText = '';
+    let scoped = false;
+    let geometry = {};
+    if (linesByPage && cleaner) {
+      const own = entryText(
+        usable ?? [],
+        { label: item.id, page: item.pageNumber, endPage },
+        next ? { label: next.id, page: next.pageNumber } : null,
+        cleaner,
+      );
+      scopedText = own.text;
+      scoped = own.scoped;
+      geometry = own.spans.length ? { spans: own.spans } : {};
+    }
+    return {
+      ...finalizeEntry({
+        label: item.id,
+        page: item.pageNumber,
+        endPage,
+        lines: text ? [text] : [],
+        subQuestions: [],
+        depth: item.depth ?? 0,
+        title: item.title,
+      }, i, INDEX_SOURCE.OUTLINE),
+      // The question's own material, and whether it could actually be bounded.
+      // The formula gate needs both: evidence drawn from a page range says
+      // nothing reliable about the question that happens to start on it.
+      scopedText,
+      textScoped: scoped,
+      // Where this question sits on each page it occupies, when the adapter says.
+      ...geometry,
+    };
   });
 
-  return { entries, ...labelStatistics(entries), source: INDEX_SOURCE.OUTLINE };
+  return {
+    entries,
+    ...labelStatistics(entries),
+    source: INDEX_SOURCE.OUTLINE,
+    sections: classified.sections,
+    cohorts: classified.cohorts,
+  };
 }
 
 function finalizeEntry(entry, ordinal, source) {
@@ -224,6 +315,47 @@ function finalizeEntry(entry, ordinal, source) {
 }
 
 /**
+ * Marks entries whose location the printed contents independently confirms, and
+ * resolves duplicates in favour of the confirmed one.
+ *
+ * The duplicate resolution is the point as much as the mark is. Body parsing
+ * finds a label more than once — a restatement inside an answer, a subquestion
+ * marker that survived — and a duplicated label is refused rather than guessed.
+ * When exactly one of those copies sits where the contents says the answer is,
+ * the ambiguity is not a judgement call any more.
+ */
+function applyContentsLocations(entries, locations) {
+  if (!(locations instanceof Map) || locations.size === 0) {
+    return { entries, marked: 0 };
+  }
+  const marked = [];
+  let count = 0;
+  const byLabel = new Map();
+  for (const entry of entries) {
+    const loc = locations.get(entry.label);
+    const structural = !!loc && loc.page === entry.page;
+    if (structural) count++;
+    const next = { ...entry, structural, printedPage: loc?.printedPage ?? null };
+    marked.push(next);
+    if (!byLabel.has(entry.label)) byLabel.set(entry.label, []);
+    byLabel.get(entry.label).push(next);
+  }
+
+  // Where a label has several parses and exactly one is confirmed, the others
+  // are extraction artefacts and are dropped rather than left to create an
+  // ambiguity the engine would have to refuse.
+  const drop = new Set();
+  for (const [, bucket] of byLabel) {
+    if (bucket.length < 2) continue;
+    const confirmed = bucket.filter(e => e.structural);
+    if (confirmed.length !== 1) continue;
+    for (const e of bucket) if (!e.structural) drop.add(e.id);
+  }
+
+  return { entries: marked.filter(e => !drop.has(e.id)), marked: count };
+}
+
+/**
  * The label -> entries map, plus the labels that repeat.
  *
  * Built once at index time so a lookup is O(1). Previously every lookup scanned
@@ -241,6 +373,51 @@ function labelStatistics(entries) {
     .filter(([, bucket]) => bucket.length > 1)
     .map(([label]) => label);
   return { byLabel, duplicates };
+}
+
+/**
+ * Recognises a document page by page through the injected recognizer.
+ *
+ * Failures are contained rather than propagated: a recognizer that throws on one
+ * page must not abort the whole document, and a recognizer that throws on EVERY
+ * page must not look like a document with no text. Both end at the same place —
+ * an unusable result and OCR_REQUIRED still set — but the counts distinguish
+ * them for diagnosis.
+ *
+ * @returns {{lines, assessment, usable, pagesRecognised, pagesFailed, truncated, reason}}
+ */
+async function recogniseDocument(doc, recognizer, { expectScript, budget }) {
+  const source = createTextSource(doc, { recognise: recognizer, expectScript });
+  const total = doc.numPages ?? 0;
+  const limit = Math.min(total, budget);
+  const lines = [];
+  let pagesRecognised = 0;
+  let pagesFailed = 0;
+
+  for (let page = 1; page <= limit; page++) {
+    let got = null;
+    try {
+      got = await source.pageText(page, { needReadable: true });
+    } catch {
+      pagesFailed++;
+      continue;
+    }
+    if (got?.text) { lines.push({ page, text: got.text }); pagesRecognised++; }
+    else pagesFailed++;
+  }
+
+  const assessment = assessTextQuality(lines, { expectScript, pagesRead: limit });
+  const usable = pagesRecognised > 0 && !requiresRecognizer(assessment.quality);
+  return {
+    lines,
+    assessment,
+    usable,
+    pagesRecognised,
+    pagesFailed,
+    truncated: limit < total,
+    reason: usable ? null
+      : (pagesRecognised === 0 ? 'OCR 未返回任何文本' : `OCR 结果仍不可用：${assessment.reason}`),
+  };
 }
 
 /**
@@ -403,6 +580,13 @@ async function indexDocument(doc, {
   to,
   expectScript = 'auto',
   preferOutline = true,
+  // A recognizer is USED, not merely noted. Passing one used to clear
+  // OCR_REQUIRED without a single page ever being recognised, so a host that
+  // supplied a broken or empty recogniser silently lost the fail-closed
+  // behaviour that OCR_REQUIRED exists to provide.
+  recognizer = null,
+  /** Pages to recognise before giving up. Full-book OCR is a prepared job. */
+  ocrPageBudget = 400,
   // Index from the bookmark tree WITHOUT reading the book's text.
   //
   // Ids and page ranges come from the outline, which needs no text at all, so
@@ -413,10 +597,28 @@ async function indexDocument(doc, {
   lazy = false,
   samplePages = 12,
 } = {}) {
-  const lines = lazy && doc.outline?.available && preferOutline
+  let lines = lazy && doc.outline?.available && preferOutline
     ? await sampleText(doc, samplePages, from, to)
     : await doc.extractText({ from, to });
-  const assessment = assessTextQuality(lines, { expectScript });
+  // How many pages were actually read. The quality gate cannot judge coverage
+  // without a denominator, and coverage is the signal that separates a scan with
+  // a few stray text objects from a real text layer — the 2025 exercise book
+  // reads as USABLE on its character ratios alone. See src/text-quality.js.
+  const pagesRead = lazy && doc.outline?.available && preferOutline
+    ? new Set(lines.map(l => l.page)).size
+    : (doc.numPages ?? new Set(lines.map(l => l.page)).size);
+  let assessment = assessTextQuality(lines, { expectScript, pagesRead });
+  // Quality is measured on the text layer AS EXTRACTED — a cleaned copy would
+  // hide the corruption the gate exists to find — so boilerplate is identified
+  // only after the verdict, and it is applied to the text that gets COMPARED,
+  // never to the line stream that decides where one entry ends and the next
+  // begins.
+  // Derived from the text actually being indexed. After a successful
+  // recognition that is the OCR output, whose running heads and question
+  // openers are its own, not the discarded layer's — so these are recomputed
+  // below if recognition replaces the text.
+  let isBoilerplate = boilerplateFilter(lines);
+  let opensQuestion = bodyQuestionFilter(lines).opensQuestion;
   // Kept so two indexes can be checked for identical corruption later without
   // re-reading either book. Cheap: a few hundred characters.
   const alphabet = alphabetOfLines(lines);
@@ -439,7 +641,51 @@ async function indexDocument(doc, {
       };
     }
   }
+  // A document whose text layer does not cover it cannot be matched by reading
+  // text. Without a recognizer this is the end of the road, and it is reported
+  // as such rather than by handing back whatever the few readable pages parsed
+  // into — on the 2025 exercise book that was 18 contents rows, which then
+  // matched real answers.
+  // ── recognition, when the text layer cannot carry the document ──
+  //
+  // The gate is not "was a recognizer supplied" but "did recognition actually
+  // produce text this engine can index". A recognizer that returns nothing,
+  // throws, or yields a layer still too sparse to use leaves OCR_REQUIRED set.
+  const needsRecognizer = requiresRecognizer(assessment.quality);
+  let ocr = null;
+  if (needsRecognizer && recognizer) {
+    ocr = await recogniseDocument(doc, recognizer, {
+      expectScript, budget: ocrPageBudget,
+    });
+  }
+
+  // Recognition succeeded only if what came back is usable in its own right.
+  const recognised = ocr && ocr.usable;
+  const ocrRequired = needsRecognizer && !recognised;
+
+  if (recognised) {
+    // Everything downstream now works from recognised text, and says so. The
+    // structure filters are rebuilt against it: OCR output has its own running
+    // heads and its own question openers, and judging it by the layer it
+    // replaced would apply a vocabulary drawn from 609 characters to a book.
+    lines = ocr.lines;
+    assessment = ocr.assessment;
+    isBoilerplate = boilerplateFilter(lines);
+    opensQuestion = bodyQuestionFilter(lines).opensQuestion;
+  }
+
   const base = {
+    ocrRequired,
+    recognizerAvailable: !!recognizer,
+    textOrigin: recognised ? 'OCR' : 'TEXT_LAYER',
+    ocr: ocr ? {
+      attempted: true,
+      pagesRecognised: ocr.pagesRecognised,
+      pagesFailed: ocr.pagesFailed,
+      truncated: ocr.truncated,
+      usable: ocr.usable,
+      reason: ocr.reason,
+    } : { attempted: false },
     alphabet,
     quality: assessment.quality,
     reason: assessment.reason,
@@ -450,6 +696,7 @@ async function indexDocument(doc, {
   const outlineUsable = preferOutline && doc.outline?.available;
   if (outlineUsable) {
     const built = buildOutlineIndex(doc.outline, lines, {
+      isBoilerplate,
       numPages: doc.numPages,
       quality: assessment.quality,
     });
@@ -460,7 +707,11 @@ async function indexDocument(doc, {
 
   // No outline, or an outline with no question ids in it. Body text is the only
   // remaining route, and it is only worth walking when the text can be trusted.
-  if (!textMayBeComparable(assessment.quality)) {
+  //
+  // A sparse layer fails this test by construction: it is not that the text is
+  // wrong, it is that there is almost none of it, and parsing the little there
+  // is produces entries that look ordinary and match confidently.
+  if (ocrRequired || !textMayBeComparable(assessment.quality)) {
     return {
       ...base,
       entries: [],
@@ -471,8 +722,33 @@ async function indexDocument(doc, {
     };
   }
 
-  const built = buildAnswerIndex(lines);
-  return { ...base, ...built, textAttached: true };
+  const built = buildAnswerIndex(lines, { isBoilerplate, opensQuestion });
+
+  // A book with no bookmark tree still prints its own index. Where the printed
+  // contents and the body parse independently agree on a label's page, that
+  // location is as well established as a bookmark's — measured on the 2023 key,
+  // 492 of 508 labels corroborate and every one of them is correct.
+  const contents = buildContentsLocations(lines, built.entries, {
+    numPages: doc.numPages,
+  });
+  const corroborated = applyContentsLocations(built.entries, contents.locations);
+
+  return {
+    ...base,
+    ...built,
+    entries: corroborated.entries,
+    ...labelStatistics(corroborated.entries),
+    source: contents.corroborated > 0 ? INDEX_SOURCE.CONTENTS : built.source,
+    contents: {
+      offset: contents.offset,
+      agreement: contents.agreement,
+      listed: contents.listed,
+      corroborated: contents.corroborated,
+      conflicted: contents.conflicted,
+      unseen: contents.unseen,
+    },
+    textAttached: true,
+  };
 }
 
 /**
