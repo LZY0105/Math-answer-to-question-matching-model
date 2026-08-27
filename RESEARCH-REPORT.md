@@ -107,7 +107,8 @@ it could not honour the constraint.
    refuses in proportion to complexity rather than to error.
 
 **Figures.** 1 — the stage cascade (§3.1). 2 — precision against refusal rate
-under ablation (§5.4). 3 — the operator window radius sweep (§6.1).
+under ablation (§5.4). 3 — per-page latency by regime (§5.5). 4 — the operator
+window radius sweep (§6.1).
 
 ## 2. Related work
 
@@ -549,7 +550,42 @@ resolves without content comparison.
 refused. Precision is invariant; the cost of preserving it is visible as the
 refusal rate.
 
-### 5.5 A scanned volume
+### 5.5 Latency, and a deadline that becomes load-bearing
+
+![95th-percentile per-page latency by regime](figures/latency-by-regime.svg)
+
+**Figure 3.** 95th-percentile per-page matching latency, as a range across the
+three matched pairs; each dot is one pair. A single bar would hide that the same
+regime costs 61 ms on one pair and 808 ms on another.
+
+| Regime | p95 across the three pairs |
+|---|---:|
+| Both bookmarked | 1–3 ms |
+| Answer key not bookmarked | 61–808 ms |
+| Exercise book not bookmarked | 327–1,573 ms |
+| Neither bookmarked | 51–925 ms |
+
+Bookmarked pages never reach content scoring, which is why the first row is flat
+against the axis. The rest are governed by how much body text each question must
+be compared against, and the 2024 volumes — whose entries carry two to three
+times the text of the 2023 pair — dominate the upper end of every range.
+
+The upper end matters more than the spread. At 1,573 ms the worst regime has
+reached the 1,500 ms alignment deadline, which means results there are produced
+by expiry rather than by decision. The system reports a timeout instead of
+returning the partial table’s answer, so the failure is safe — but a deadline
+that is being *reached* is no longer a backstop, it is the mechanism, and a
+measurement taken at that point describes the deadline rather than the
+algorithm. Bounded candidate retrieval is the outstanding work, and until it
+lands the degraded regimes should be read as "refuses within 1.5 s", not as a
+latency figure.
+
+The figure is generated from `figures/latency-by-regime.data.json`, which
+`tools/measure-regimes.mjs` produces. An earlier revision hardcoded these
+numbers into the drawing script, and they went stale silently: the figure
+claimed 507 ms for a regime then measuring 327.
+
+### 5.6 A scanned volume
 
 The 2025 exercise volume has no usable text layer and no question bookmarks. A
 recognizer built from facilities already present on the host — page rendering

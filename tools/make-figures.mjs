@@ -13,7 +13,7 @@
 // script, so there is no hover layer: every series is directly labelled and the
 // report carries the same data as a table beside each figure.
 
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -269,49 +269,108 @@ function ablation() {
 }
 
 // ── Figure: per-page latency by regime ──────────────────────────────────────
+//
+// Read from figures/latency-by-regime.data.json, which tools/measure-regimes.mjs
+// produces. The values were hardcoded here once and went stale the moment the
+// retrieval path changed — the figure claimed 507 ms for a regime then measuring
+// 327, and nothing flagged it. Deriving them from a committed artifact means a
+// stale figure is a stale file with a date on it rather than a number nobody
+// rechecks.
+//
+// The artifact holds counts only. Refresh it with:
+//   node tools/measure-regimes.mjs <corpus> --json tmp/regimes.json
+//   node tools/make-figures.mjs --from tmp/regimes.json
+function latencyData() {
+  const fromArg = process.argv.indexOf('--from');
+  if (fromArg > 0 && process.argv[fromArg + 1]) {
+    const raw = JSON.parse(readFileSync(process.argv[fromArg + 1], 'utf-8'));
+    const rows = (raw.results ?? []).filter(r => r.pair !== '2025 (scanned Q)');
+    const key = (r) => (r.qBm && r.aBm ? 'both'
+      : r.qBm && !r.aBm ? 'ansNone'
+        : !r.qBm && r.aBm ? 'exNone' : 'neither');
+    const label = {
+      both: 'both bookmarked',
+      ansNone: 'answer key not bookmarked',
+      exNone: 'exercise book not bookmarked',
+      neither: 'neither bookmarked',
+    };
+    const by = new Map();
+    for (const r of rows) {
+      if (!by.has(key(r))) by.set(key(r), []);
+      by.get(key(r)).push({ pair: r.pair, p95: r.p95 });
+    }
+    const regimes = ['both', 'ansNone', 'exNone', 'neither'].map(k => ({
+      key: k,
+      label: label[k],
+      pairs: by.get(k) ?? [],
+      minP95: Math.min(...(by.get(k) ?? [{ p95: 0 }]).map(x => x.p95)),
+      maxP95: Math.max(...(by.get(k) ?? [{ p95: 0 }]).map(x => x.p95)),
+    }));
+    const out = {
+      generatedAt: new Date().toISOString(),
+      source: 'tools/measure-regimes.mjs',
+      note: 'p95 per-page matching latency, full book, no sampling. Derived counts only.',
+      deadlineMs: 1500,
+      targetMs: 150,
+      regimes,
+    };
+    writeFileSync(join(OUT, 'latency-by-regime.data.json'), `${JSON.stringify(out, null, 2)}\n`);
+    return out;
+  }
+  return JSON.parse(readFileSync(join(OUT, 'latency-by-regime.data.json'), 'utf-8'));
+}
+
 function latency() {
-  const W = 760, H = 320;
-  const L = 150, R = 90, T = 58, B = 52;
+  const data = latencyData();
+  const W = 760, H = 340;
+  const L = 190, R = 78, T = 62, B = 54;
   const pw = W - L - R, ph = H - T - B;
 
-  const rows = [
-    { name: 'both bookmarked', ms: 0 },
-    { name: 'neither bookmarked', ms: 45 },
-    { name: 'key not bookmarked', ms: 342 },
-    { name: 'exercise not bookmarked', ms: 507 },
-  ];
-  const xMax = 600;
+  const rows = data.regimes;
+  const xMax = 1800;
   const x = (v) => L + (pw * v) / xMax;
-  const bh = 26, step = ph / rows.length;
+  const step = ph / rows.length;
+  const bh = 12;
 
   let b = '';
-  for (let v = 0; v <= xMax; v += 100) {
+  for (let v = 0; v <= xMax; v += 300) {
     b += `<line x1="${x(v).toFixed(1)}" y1="${T}" x2="${x(v).toFixed(1)}" y2="${T + ph}" class="grid"/>`;
     b += `<text x="${x(v).toFixed(1)}" y="${T + ph + 18}" text-anchor="middle" class="tick muted">${v}</text>`;
   }
-  // The host application's responsiveness target — a threshold, so status red.
-  b += `<line x1="${x(500).toFixed(1)}" y1="${T - 6}" x2="${x(500).toFixed(1)}" y2="${T + ph}"`
+
+  // The alignment deadline. Reaching it means results come from expiry rather
+  // than from a decision, which is why it is drawn as a status threshold.
+  b += `<line x1="${x(data.deadlineMs).toFixed(1)}" y1="${T - 8}" x2="${x(data.deadlineMs).toFixed(1)}" y2="${T + ph}"`
     + ` class="crit" stroke-width="1.5" stroke-dasharray="5 4"/>`;
-  b += `<text x="${(x(500) + 6).toFixed(1)}" y="${T - 10}" class="val crit">500 ms target</text>`;
+  b += `<text x="${(x(data.deadlineMs) - 6).toFixed(1)}" y="${T - 12}" text-anchor="end" class="val crit">${data.deadlineMs} ms alignment deadline</text>`;
+
+  // The single-question responsiveness target.
+  b += `<line x1="${x(data.targetMs).toFixed(1)}" y1="${T}" x2="${x(data.targetMs).toFixed(1)}" y2="${T + ph}"`
+    + ` class="s2s" stroke-width="1.2" stroke-dasharray="3 3"/>`;
+  b += `<text x="${(x(data.targetMs) + 6).toFixed(1)}" y="${(T + ph + 36).toFixed(1)}" class="tick s2f">${data.targetMs} ms target</text>`;
 
   rows.forEach((r, i) => {
-    const cy = T + step * i + step / 2 - bh / 2;
-    const w = Math.max(0, x(r.ms) - L);
-    if (w < 1) {
-      b += `<line x1="${L}" y1="${(cy + bh / 2).toFixed(1)}" x2="${L + 2}" y2="${(cy + bh / 2).toFixed(1)}" class="s1s" stroke-width="2"/>`;
-    } else {
-      b += `<path d="M${L},${cy} L${(L + w - 4).toFixed(1)},${cy} Q${(L + w).toFixed(1)},${cy} ${(L + w).toFixed(1)},${cy + 4}`
-        + ` L${(L + w).toFixed(1)},${cy + bh - 4} Q${(L + w).toFixed(1)},${cy + bh} ${(L + w - 4).toFixed(1)},${cy + bh}`
-        + ` L${L},${cy + bh} Z" class="s1f"/>`;
+    const cy = T + step * i + step / 2;
+    const x0 = x(r.minP95);
+    const x1 = x(r.maxP95);
+    const w = Math.max(2, x1 - x0);
+
+    // The range across the three matched pairs, not a single number: the same
+    // regime costs 61 ms on one pair and 808 on another, and a lone bar would
+    // hide which.
+    b += `<rect x="${x0.toFixed(1)}" y="${(cy - bh / 2).toFixed(1)}" width="${w.toFixed(1)}" height="${bh}" rx="${bh / 2}" class="s1f" opacity="0.32"/>`;
+    for (const pair of r.pairs) {
+      b += `<circle cx="${x(pair.p95).toFixed(1)}" cy="${cy.toFixed(1)}" r="4.5" class="s1f"/>`;
     }
-    b += `<text x="${L - 12}" y="${(cy + bh / 2 + 4).toFixed(1)}" text-anchor="end" class="lab muted">${esc(r.name)}</text>`;
-    b += `<text x="${(L + w + 8).toFixed(1)}" y="${(cy + bh / 2 + 4).toFixed(1)}" class="val ink">${r.ms} ms</text>`;
+    b += `<text x="${L - 12}" y="${(cy + 4).toFixed(1)}" text-anchor="end" class="lab muted">${esc(r.label)}</text>`;
+    const text = r.minP95 === r.maxP95 ? `${r.maxP95} ms` : `${r.minP95}–${r.maxP95} ms`;
+    b += `<text x="${(x1 + 8).toFixed(1)}" y="${(cy + 4).toFixed(1)}" class="val ink">${text}</text>`;
   });
 
   b += `<line x1="${L}" y1="${T}" x2="${L}" y2="${T + ph}" class="grid axis"/>`;
-  b += `<text x="${(L + pw / 2).toFixed(1)}" y="${H - 10}" text-anchor="middle" class="lab muted">95th-percentile per-page matching latency (ms)</text>`;
-  b += `<text x="${20}" y="24" class="title ink">Losing the exercise bookmarks costs four orders of magnitude</text>`;
-  b += `<text x="${20}" y="42" class="sub muted">Bookmarked pages resolve at stage 0 and never reach content scoring</text>`;
+  b += `<text x="${(L + pw / 2).toFixed(1)}" y="${H - 10}" text-anchor="middle" class="lab muted">95th-percentile per-page matching latency (ms), range across the three matched pairs</text>`;
+  b += `<text x="20" y="24" class="title ink">Without bookmarks, the worst pair reaches the deadline</text>`;
+  b += `<text x="20" y="42" class="sub muted">Bookmarked pages resolve at stage 0 and never reach content scoring; each dot is one pair</text>`;
 
   return svg(W, H, b);
 }

@@ -1,0 +1,89 @@
+{
+  "generatedAt": "2026-08-27T14:48:57.296Z",
+  "source": "tools/measure-regimes.mjs",
+  "note": "p95 per-page matching latency, full book, no sampling. Derived counts only.",
+  "deadlineMs": 1500,
+  "targetMs": 150,
+  "regimes": [
+    {
+      "key": "both",
+      "label": "both bookmarked",
+      "pairs": [
+        {
+          "pair": "2023",
+          "p95": 1
+        },
+        {
+          "pair": "2024 Math Analysis",
+          "p95": 3
+        },
+        {
+          "pair": "2024 Adv Algebra",
+          "p95": 1
+        }
+      ],
+      "minP95": 1,
+      "maxP95": 3
+    },
+    {
+      "key": "ansNone",
+      "label": "answer key not bookmarked",
+      "pairs": [
+        {
+          "pair": "2023",
+          "p95": 61
+        },
+        {
+          "pair": "2024 Math Analysis",
+          "p95": 808
+        },
+        {
+          "pair": "2024 Adv Algebra",
+          "p95": 567
+        }
+      ],
+      "minP95": 61,
+      "maxP95": 808
+    },
+    {
+      "key": "exNone",
+      "label": "exercise book not bookmarked",
+      "pairs": [
+        {
+          "pair": "2023",
+          "p95": 327
+        },
+        {
+          "pair": "2024 Math Analysis",
+          "p95": 1573
+        },
+        {
+          "pair": "2024 Adv Algebra",
+          "p95": 842
+        }
+      ],
+      "minP95": 327,
+      "maxP95": 1573
+    },
+    {
+      "key": "neither",
+      "label": "neither bookmarked",
+      "pairs": [
+        {
+          "pair": "2023",
+          "p95": 51
+        },
+        {
+          "pair": "2024 Math Analysis",
+          "p95": 664
+        },
+        {
+          "pair": "2024 Adv Algebra",
+          "p95": 925
+        }
+      ],
+      "minP95": 51,
+      "maxP95": 925
+    }
+  ]
+}
