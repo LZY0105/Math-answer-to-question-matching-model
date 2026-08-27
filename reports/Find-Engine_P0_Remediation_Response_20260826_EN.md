@@ -219,3 +219,71 @@ node tmp/region-binding-probe.mjs     # §9.1 and §9.2 tables
 node tmp/policy-cost.mjs              # STRICT vs CALIBRATED
 node tmp/canonical-probe.mjs          # the non-reproducible §7 item
 ```
+
+---
+
+## 10. Correction — the OCR accuracy claim is withdrawn
+
+Added 2026-08-27, after an independent audit.
+
+An earlier revision of §1 and of the repository README reported the scanned-book
+result as **"178 automatic answers, 178 correct, 0 wrong, 108 / 573 distinct
+questions"**. The correctness half of that is withdrawn. It was measured wrongly.
+
+### What the measurement did
+
+It scored a match as correct when the matched ANSWER page fell inside that
+label's gold answer span, and dropped the two-fact identification test used
+everywhere else in this repository — that the exercise page also falls inside the
+question's gold span, with an unconfirmable accept counted as *wrong*.
+
+Without that second fact the check is very nearly circular: OCR reads label 1.5,
+the engine looks up 1.5 in the answer index, and the result lands in 1.5's answer
+span **by construction**. It could scarcely have failed, and it reported zero
+wrong because it could not see a wrong answer if one existed.
+
+### Why no correct measurement is available
+
+The 2025 exercise book has no question-level bookmarks — the reason OCR is
+involved at all — so there is no independent oracle for *where* a question sits
+in it. The answer side can be checked; the question side cannot.
+
+### What was checked independently instead
+
+| Check | Result |
+|---|---|
+| Automatic match events | 178 |
+| …on a page that prints the label's heading | 100 |
+| …associated from a continuation page | 78 |
+| Labels appearing ONLY on continuation pages | 8 |
+| Distinct real labels, raw | 108 / 573 (18.85%) |
+| Distinct real labels, start-page aligned | 100 / 573 (17.45%) |
+| Order inversions against answer-book order | 0 of 178 |
+
+The eight continuation-only labels are 1.80, 1.290, 2.23, 2.113, 2.212, 2.217,
+2.230 and 2.235. A visual audit of eight sampled pairs found **seven correct and
+one wrong**, so the true error rate is neither zero nor presently known.
+
+Reproduce with `node tools/audit-ocr-matches.mjs`.
+
+### What now stands
+
+- **108 / 573 is a raw unique-label count after binding, not an accuracy figure**,
+  and 100 / 573 is the start-page-aligned subset. Neither has been independently
+  validated as correct.
+- **Automatic OCR matching remains NO-GO.** The pipeline runs end to end; its
+  accuracy is unmeasured.
+- **A binding establishes document-pair identity and nothing more.** It must not
+  raise an individual question to high confidence.
+- Per-question validation is still required before any automatic OCR answer:
+  question-boundary detection, complete formula coverage, bidirectional
+  consistency, global one-to-one assignment, a sufficient top-two margin, and
+  downgrade to review on OCR truncation, missing formulas or page-boundary
+  conflict. None of that is implemented.
+
+### One thing was fixed in response
+
+A region the adapter cannot honour now caps the result at `REVIEW` instead of
+returning every question on the page as an automatic answer. Reporting
+`regionApplied: false` was not enough: a caller who tapped one question was
+still handed confident answers for others on that page.

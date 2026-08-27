@@ -169,30 +169,53 @@ See `src/toc-filter.js`, `src/boilerplate.js`, `src/contents-index.js`.
 A scanned exercise book has no text layer worth the name — the 2025 volume
 here yields 609 characters across 465 pages, on 0.7% of them. The engine
 refuses it by default, and `tools/windows-ocr.mjs` is a working recognizer that
-makes it usable: `pdftoppm` renders a page, `Windows.Media.Ocr` reads it. No
-install, no network, nothing leaves the device.
+makes it readable: `pdftoppm` renders a page, `Windows.Media.Ocr` reads it. No
+install, no network, nothing leaves the device. 465 pages in 6.7 minutes with
+zero page failures — a preparation job, not something done while a reader waits.
 
 | | Before | With OCR | With OCR + a confirmed binding |
 |---|---|---|---|
 | Text quality | `SPARSE_LAYER` | `USABLE` (origin `OCR`) | `USABLE` |
-| Questions indexed | 0 | 607 (306 real) | 607 |
-| Automatic answers | 0 | 0 | **178** |
-| Wrong | — | — | **0** |
-| Distinct questions answered | 0 | 0 | **108 / 573** |
+| Questions indexed | 0 | 607 (306 with real labels) | 607 |
+| Automatic match events | 0 | 0 | 178 |
+| …on a page printing the label | — | — | 100 |
+| …on a continuation page | — | — | 78 |
+| Distinct labels, raw | 0 | 0 | 108 / 573 (18.85%) |
+| Distinct labels, start-page aligned | 0 | 0 | 100 / 573 (17.45%) |
 
-465 pages recognised in 6.7 minutes, zero page failures — a preparation job,
-not something done while a reader waits.
+**None of those is a matching-accuracy figure, and this path is not released.**
 
-The middle column is the point as much as the last. Recognition alone does not
-unlock automatic answers, because the engine still cannot verify that these two
-books belong together: content anchors drawn from OCR are not evidence it will
-trust. It offers review and page locations instead. A binding — the user saying
-"yes, these two" — supplies the missing identity, and only then does it answer.
-That binding is checked against both documents’ fingerprints, so replacing
-either file invalidates it.
+The 2025 exercise book has no question-level bookmarks — that is why OCR is
+involved at all — so there is no independent oracle for *where* a question sits
+in it. Checking that a matched answer falls in that label’s answer span is very
+nearly circular: the label drives the lookup, so it could scarcely fail. An
+earlier version of this table reported "178 correct, 0 wrong" on exactly that
+basis. That claim was withdrawn.
 
-For comparison, the same book before this work produced **479 confident wrong
-answers**, by reading its 18 chapter bookmarks as questions.
+What can be checked independently is whether the label was printed on the page
+it matched from. 78 of the 178 events were associated from a continuation page,
+and 8 labels appear *only* on continuation pages — a page-boundary risk. A
+visual audit of eight sampled pairs found seven correct and one wrong, so the
+true error rate is not zero and is not yet known. Reproduce with
+`tmp/ocr-audit.mjs`.
+
+The middle column matters as much as the last. Recognition alone does not
+unlock automatic answers, and should not: the engine cannot verify from
+OCR-derived anchors that two books belong together, so it offers review and page
+locations and withholds the answer. A binding — the user saying "yes, these two"
+— supplies the identity it cannot establish, and is checked against both
+documents’ fingerprints so replacing either file invalidates it.
+
+**A binding establishes document-pair identity and nothing more.** It must not
+raise an individual question to high confidence. Per-question validation —
+question-boundary detection, complete formula coverage, bidirectional
+consistency, global one-to-one assignment, and a sufficient top-two margin —
+is still required, and is not implemented. Until it is, the honest description
+of this path is: the pipeline runs end to end, and its accuracy is unmeasured.
+
+For scale, the same book before this work produced **479 confident wrong
+answers**, by reading its 18 chapter bookmarks as questions. Refusing is
+already better than that; it is not yet a feature.
 
 ## Usage
 
@@ -271,7 +294,7 @@ of whichever question is open, never questions in their own right.
 ## Tests
 
 ```bash
-npm test              # all nine suites, 217 checks
+npm test              # all nine suites, 219 checks
 npm run test:unit     # synthetic fixtures only, no corpus needed
 npm run test:scenarios  # bookmarks, no bookmarks, and the 60 invalid pairs
 ```

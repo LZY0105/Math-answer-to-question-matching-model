@@ -177,9 +177,31 @@ class PairSession {
       }];
     }
 
-    const annotate = (m) => (region
-      ? { ...m, regionApplied: selection.applied, regionReason: selection.reason }
-      : m);
+    // A region that was asked for and could not be honoured caps the result.
+    //
+    // Reporting regionApplied: false was not enough. The caller pointed at ONE
+    // question; without geometry the engine hands back every question on the
+    // page, and any of them arriving as AUTO_MATCH is a confident answer to a
+    // question nobody asked about. Withholding the automatic answer — while
+    // still returning the candidates — is the difference between "here is your
+    // answer" and "here is what is on this page, you pick".
+    //
+    // Only when a region was actually requested. Batch and whole-book flows pass
+    // none and are unaffected.
+    const regionUnhonoured = !!region && !selection.applied;
+
+    const annotate = (m) => {
+      if (!region) return m;
+      const tagged = { ...m, regionApplied: selection.applied, regionReason: selection.reason };
+      if (!regionUnhonoured || tagged.rung !== RUNG.AUTO_MATCH) return tagged;
+      return {
+        ...tagged,
+        rung: RUNG.REVIEW,
+        matched: false,
+        asserted: false,
+        cappedBy: selection.reason ?? 'REGION_NOT_APPLIED',
+      };
+    };
 
     const matches = matchPage(questions, this.answerIndex, {
       alignment: this.alignment,

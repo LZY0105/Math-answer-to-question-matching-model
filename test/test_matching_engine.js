@@ -285,6 +285,36 @@ await check('recognised pages keep their line structure', async () => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+group('4c. A region that cannot be honoured withholds the answer');
+
+await check('an unhonourable region caps the result at REVIEW', async () => {
+  // Reporting regionApplied: false was not enough. The caller pointed at ONE
+  // question; without geometry the engine returns every question on the page,
+  // and any of them arriving as AUTO_MATCH is a confident answer to a question
+  // nobody asked about.
+  const p = await preparePair({ exerciseDocument: EX(), answerDocument: ANS() });
+  const page = (await p.session.matchAll()).matches.find(m => m.question)?.question.page;
+
+  const plain = await p.session.matchQuestion({ page });
+  assert.ok(plain.some(m => m.rung === RUNG.AUTO_MATCH),
+    'without a region the page should still answer');
+
+  const tapped = await p.session.matchQuestion({ page, region: { top: 0, bottom: 30 } });
+  assert.equal(tapped.some(m => m.rung === RUNG.AUTO_MATCH), false,
+    'a tap the adapter cannot localise must not produce an automatic answer');
+  assert.ok(tapped.every(m => m.regionApplied === false));
+  assert.ok(tapped.every(m => m.cappedBy === 'REGION_UNSUPPORTED_BY_ADAPTER'));
+});
+
+await check('a region is only capped when one was actually requested', async () => {
+  // Batch and whole-book flows pass no region and must be unaffected.
+  const p = await preparePair({ exerciseDocument: EX(), answerDocument: ANS() });
+  const all = await p.session.matchAll();
+  assert.ok(all.matches.some(m => m.rung === RUNG.AUTO_MATCH),
+    'matchAll must still produce automatic answers');
+});
+
+// ═══════════════════════════════════════════════════════════════
 group('5. The rung ladder is honoured end to end');
 
 await check('a verified pair produces automatic answers', async () => {
