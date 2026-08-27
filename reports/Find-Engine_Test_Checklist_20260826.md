@@ -3,7 +3,7 @@
 - Date: 2026-08-26
 - Applies to: the working tree after the orchestration-layer remediation (**uncommitted**)
 - Corpus: `tmp/expanded-corpus-20260825.json`, 8 documents
-- Suites: 9 files, **208 automated checks**, all green
+- Suites: 9 files, **230 automated checks**, all green
 - Companion documents:
   - `reports/Find-Engine_2023_2025_Expanded_Comprehensive_Test_Report_20260826.md` — the evidence baseline this work answers
   - `reports/Find-Engine_Orchestration_Layer_Complete_Remediation_Checklist_20260826.md` — the plan
@@ -19,7 +19,7 @@ number could not be obtained it is marked **not measured**, never estimated.
 ```bash
 cd ~/Documents/ChatGPT/题目答案匹配引擎
 
-npm test                    # all 9 suites, 208 checks
+npm test                    # all 9 suites, 230 checks
 npm run test:unit           # 6 synthetic suites, no corpus needed
 npm run test:scenarios      # the three scenarios below, on the real corpus (~2.5 min)
 
@@ -65,12 +65,12 @@ whose own heading fell outside that range cannot carry it.
 | `test_answer_index.js` | 29 | identifier parsing, indexing, quality states | ✅ |
 | `test_text_source.js` | 12 | lazy text, OCR seam | ✅ |
 | `test_glyph_map.js` | 13 | glyph-table recovery | ✅ |
-| `test_structure.js` | 32 | outline/body classification, contents, boilerplate, rungs, regions | ✅ |
-| `test_matching_engine.js` | 15 | **the public interface only** | ✅ |
+| `test_structure.js` | 40 | outline/body classification, contents, boilerplate, rungs, regions | ✅ |
+| `test_matching_engine.js` | 25 | **the public interface only** | ✅ |
 | `test_corpus_regression.js` | 23 | **the three scenarios, real corpus, both oracles** | ✅ |
 | `test_real_pdfs.js` | 22 | gold sets, end-to-end, latency | ✅ |
 | `test_no_bookmarks.js` | 9 | ablation against the bookmark oracle | ✅ |
-| **Total** | **208** | | **0 failed** |
+| **Total** | **230** | | **0 failed** |
 
 ---
 

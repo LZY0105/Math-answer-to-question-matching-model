@@ -18,6 +18,8 @@ import {
   PAIR_STATUS, RUNG, applyPairPermissions, capRung, permittedRungs,
 } from '../src/decision.js';
 import { locateAnswerRegion, sectionRangeForPage } from '../src/region-locator.js';
+import { auditOcrMatches, headingPagesFrom } from '../src/ocr-audit.js';
+import { parseQuestionLine } from '../src/question-id.js';
 import {
   buildContentsLocations, estimatePageOffset, extractContentsRows,
 } from '../src/contents-index.js';
@@ -366,6 +368,112 @@ check('no contents means no locations, not a guessed offset', () => {
   assert.equal(c.locations.size, 0);
 });
 
+
+// ═══════════════════════════════════════════════════════════════
+group('7. Auditing an OCR match set');
+
+// The corpus these normally run against is extracted text from copyrighted
+// books and is never committed, so the reasoning is exercised on synthetic
+// fixtures here. tools/audit-ocr-matches.mjs is the thin CLI over the same
+// function and skips cleanly when the private inputs are absent.
+
+const goldLabels = ['1.1', '1.2', '1.3', '1.4', '1.5'];
+const headingsOn = (pairs) => new Map(pairs.map(([label, pages]) => [label, new Set(pages)]));
+
+check('a match from a page that printed its label counts as start-aligned', () => {
+  const r = auditOcrMatches({
+    events: [{ page: 10, label: '1.1' }, { page: 11, label: '1.2' }],
+    headingPages: headingsOn([['1.1', [10]], ['1.2', [11]]]),
+    goldLabels,
+  });
+  assert.equal(r.onStartPage, 2);
+  assert.equal(r.onContinuationPage, 0);
+  assert.equal(r.distinctStartAligned, 2);
+});
+
+check('a match from a page that never printed its label is a continuation', () => {
+  const r = auditOcrMatches({
+    events: [{ page: 10, label: '1.1' }, { page: 11, label: '1.1' }],
+    headingPages: headingsOn([['1.1', [10]]]),
+    goldLabels,
+  });
+  assert.equal(r.onStartPage, 1);
+  assert.equal(r.onContinuationPage, 1);
+  // Printed once and continued onto the next page is ordinary, not a risk.
+  assert.deepEqual(r.continuationOnlyLabels, []);
+});
+
+check('a label seen ONLY on pages that never printed it is flagged', () => {
+  // This is the page-boundary risk the audit exists to surface: nothing in the
+  // recognised text ever said this question starts here.
+  const r = auditOcrMatches({
+    events: [{ page: 20, label: '1.3' }, { page: 21, label: '1.3' }],
+    headingPages: headingsOn([['1.3', [19]]]),
+    goldLabels,
+  });
+  assert.equal(r.onStartPage, 0);
+  assert.deepEqual(r.continuationOnlyLabels, ['1.3']);
+  assert.deepEqual(r.continuationOnlyPages['1.3'], [20, 21]);
+});
+
+check('raw and start-aligned distinct counts are reported separately', () => {
+  // Conflating them is exactly how "108/573" was first reported as accuracy.
+  const r = auditOcrMatches({
+    events: [
+      { page: 1, label: '1.1' },   // printed here
+      { page: 5, label: '1.2' },   // never printed anywhere
+    ],
+    headingPages: headingsOn([['1.1', [1]]]),
+    goldLabels,
+  });
+  assert.equal(r.distinctRaw, 2, 'both labels were matched');
+  assert.equal(r.distinctStartAligned, 1, 'only one came from a page that printed it');
+  assert.equal(r.rawShare, 0.4);
+  assert.equal(r.startAlignedShare, 0.2);
+});
+
+check('labels absent from the answer book count toward neither', () => {
+  const r = auditOcrMatches({
+    events: [{ page: 1, label: '9.9' }],
+    headingPages: headingsOn([['9.9', [1]]]),
+    goldLabels,
+  });
+  assert.equal(r.events, 1);
+  assert.equal(r.distinctRaw, 0, 'a label the answer book does not have is not a question');
+});
+
+check('order inversions are counted against the answer book order', () => {
+  const r = auditOcrMatches({
+    events: [
+      { page: 1, label: '1.1' },
+      { page: 2, label: '1.4' },
+      { page: 3, label: '1.2' },   // goes backwards
+    ],
+    headingPages: headingsOn([['1.1', [1]], ['1.4', [2]], ['1.2', [3]]]),
+    goldLabels,
+  });
+  assert.equal(r.orderInversions, 1);
+  assert.equal(r.orderInversionExamples[0].from.label, '1.4');
+  assert.equal(r.orderInversionExamples[0].to.label, '1.2');
+});
+
+check('an empty match set audits to zeroes rather than throwing', () => {
+  const r = auditOcrMatches({ events: [], headingPages: new Map(), goldLabels });
+  assert.equal(r.events, 0);
+  assert.equal(r.distinctRaw, 0);
+  assert.equal(r.orderInversions, 0);
+});
+
+check('headingPagesFrom reads printed labels out of recognised lines', () => {
+  const pages = headingPagesFrom([
+    { page: 7, text: '例题 1.1 (2025. 某大学). 求导数' },
+    { page: 7, text: '其中 极限与连续函数 为本节内容' },
+    { page: 8, text: '例题 1.2 (2025. 某大学). 求积分' },
+  ], parseQuestionLine);
+  assert.deepEqual([...pages.get('1.1')], [7]);
+  assert.deepEqual([...pages.get('1.2')], [8]);
+  assert.equal(pages.has('极限与连续函数'), false);
+});
 
 console.log('\n═══════════════════════════════════════════════════════════════');
 console.log(`  ${PASS} passed, ${FAIL} failed`);

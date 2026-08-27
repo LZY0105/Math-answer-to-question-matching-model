@@ -173,49 +173,58 @@ makes it readable: `pdftoppm` renders a page, `Windows.Media.Ocr` reads it. No
 install, no network, nothing leaves the device. 465 pages in 6.7 minutes with
 zero page failures — a preparation job, not something done while a reader waits.
 
-| | Before | With OCR | With OCR + a confirmed binding |
-|---|---|---|---|
-| Text quality | `SPARSE_LAYER` | `USABLE` (origin `OCR`) | `USABLE` |
-| Questions indexed | 0 | 607 (306 with real labels) | 607 |
-| Automatic match events | 0 | 0 | 178 |
-| …on a page printing the label | — | — | 100 |
-| …on a continuation page | — | — | 78 |
-| Distinct labels, raw | 0 | 0 | 108 / 573 (18.85%) |
-| Distinct labels, start-page aligned | 0 | 0 | 100 / 573 (17.45%) |
+Recognition moves the document from `SPARSE_LAYER` to `USABLE` with
+`textOrigin: OCR`, and indexes 607 questions where there were none.
 
-**None of those is a matching-accuracy figure, and this path is not released.**
+**It does not make the book matchable, and this path is not released.**
 
-The 2025 exercise book has no question-level bookmarks — that is why OCR is
-involved at all — so there is no independent oracle for *where* a question sits
-in it. Checking that a matched answer falls in that label’s answer span is very
-nearly circular: the label drives the lookup, so it could scarcely fail. An
-earlier version of this table reported "178 correct, 0 wrong" on exactly that
-basis. That claim was withdrawn.
-
-What can be checked independently is whether the label was printed on the page
-it matched from. 78 of the 178 events were associated from a continuation page,
-and 8 labels appear *only* on continuation pages — a page-boundary risk. A
-visual audit of eight sampled pairs found seven correct and one wrong, so the
-true error rate is not zero and is not yet known. Reproduce with
-`tmp/ocr-audit.mjs`.
-
-The middle column matters as much as the last. Recognition alone does not
-unlock automatic answers, and should not: the engine cannot verify from
-OCR-derived anchors that two books belong together, so it offers review and page
-locations and withholds the answer. A binding — the user saying "yes, these two"
-— supplies the identity it cannot establish, and is checked against both
-documents’ fingerprints so replacing either file invalidates it.
+Recognition alone unlocks no automatic answers, and should not: the engine
+cannot verify from OCR-derived anchors that two books belong together, so it
+offers review and page locations and withholds the answer. A binding — the user
+saying "yes, these two" — supplies the identity it cannot establish, and is
+checked against both documents’ fingerprints so replacing either file
+invalidates it.
 
 **A binding establishes document-pair identity and nothing more.** It must not
 raise an individual question to high confidence. Per-question validation —
 question-boundary detection, complete formula coverage, bidirectional
-consistency, global one-to-one assignment, and a sufficient top-two margin —
-is still required, and is not implemented. Until it is, the honest description
-of this path is: the pipeline runs end to end, and its accuracy is unmeasured.
+consistency, global one-to-one assignment, a sufficient top-two margin — is
+still required and is not implemented.
+
+### What the numbers are, and are not
+
+After a binding the engine emits automatic matches, and it is tempting to call
+the count an accuracy. It is not one. The 2025 exercise book has no
+question-level bookmarks — the reason OCR is involved at all — so nothing
+independent says *where* a question sits in it. Checking that a matched answer
+falls inside that label’s answer span is very nearly circular: the label drives
+the lookup, so it lands there by construction. An earlier revision of this
+README reported "178 correct, 0 wrong" on exactly that basis. **That claim is
+withdrawn.**
+
+What can be checked is whether the label was printed on the page it matched
+from, and whether the labels run in the book’s order. Those counts are
+generated, not transcribed:
+
+```bash
+node tools/ocr-cache.mjs            # once, ~7 min; needs the PDF at an ASCII path
+node tools/audit-ocr-matches.mjs    # writes reports/ocr-audit-latest.json
+```
+
+**[reports/ocr-audit-20260827.json](reports/ocr-audit-20260827.json) is the
+canonical result.** At the time of writing it records 178 automatic events, 100
+from pages that printed the label and 78 from continuation pages, 8 labels seen
+*only* on continuation pages, and 108/573 raw against 100/573 start-page
+aligned. A visual audit of eight sampled pairs found seven correct and one
+wrong, so the error rate is neither zero nor presently known.
+
+Both scripts exit cleanly on a checkout without the corpus, which is never
+committed. The audit reasoning itself lives in `src/ocr-audit.js` and is unit
+tested, so it can be verified without the private data.
 
 For scale, the same book before this work produced **479 confident wrong
-answers**, by reading its 18 chapter bookmarks as questions. Refusing is
-already better than that; it is not yet a feature.
+answers**, by reading its 18 chapter bookmarks as questions. Refusing is already
+better than that; it is not yet a feature.
 
 ## Usage
 
@@ -294,7 +303,7 @@ of whichever question is open, never questions in their own right.
 ## Tests
 
 ```bash
-npm test              # all nine suites, 219 checks
+npm test              # all nine suites, 230 checks
 npm run test:unit     # synthetic fixtures only, no corpus needed
 npm run test:scenarios  # bookmarks, no bookmarks, and the 60 invalid pairs
 ```

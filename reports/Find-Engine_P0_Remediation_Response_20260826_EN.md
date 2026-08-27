@@ -184,9 +184,14 @@ must not be silently handed a different one.**
 
 ## 6. What remains — unchanged from your report
 
-1. **A real recognizer.** The seam is now exercised end-to-end with a
-   deterministic fake; no OCR engine is connected, so 2025 recognition accuracy
-   remains unmeasurable.
+1. **Per-question validation for the OCR path.** *(Superseded 2026-08-27 — this
+   item previously read "a real recognizer; no OCR engine is connected". A
+   recognizer is now connected and the pipeline runs end to end; see §10.)*
+   What blocks the OCR path is no longer recognition but validation: question
+   boundaries, complete formula coverage, bidirectional consistency, global
+   one-to-one assignment, a sufficient top-two margin, and downgrade to review on
+   truncation or page-boundary conflict. None of it is implemented, and until it
+   is, matching accuracy on a scanned book is unmeasured rather than acceptable.
 2. **Bidirectional consistency (H02)** — not implemented.
 3. **Global non-monotonic assignment (H03)** — not implemented; reordered books
    still lose recall safely rather than answering wrongly.
@@ -198,10 +203,18 @@ must not be silently handed a different one.**
    (matrix ~10 min → 21 s); nothing survives a restart.
 
 **Release recommendation: unchanged — NO-GO for a general scanned/tablet
-release**, on item 1 alone. The four P0 orchestration blockers are closed and the
-verified-bookmark path is intact, but a scanned book still cannot be served
-without a recognizer, and that is a capability gap no amount of gate work
-removes.
+release.** The reason has moved, and it is worth being exact about where.
+
+At the time this was written the blocker was that no recognizer existed. One
+exists now: Windows OCR reads the scanned 2025 book end to end, 465 pages with
+zero page failures, and the document moves from `SPARSE_LAYER` to `USABLE`.
+
+The blocker is now that **nothing validates an individual question**. A binding
+establishes that two books belong together and must not be read as establishing
+anything about a single match. The counts the OCR path produces are label counts,
+not accuracy — see §10 — and the per-question checks that would make them
+accuracy are unimplemented. The four P0 orchestration blockers are closed and the
+verified-bookmark path is intact; the scanned path runs and is unmeasured.
 
 ---
 
@@ -210,7 +223,7 @@ removes.
 ```bash
 cd ~/Documents/ChatGPT/题目答案匹配引擎
 
-npm test                              # 9 suites, 212 checks
+npm test                              # 9 suites, 230 checks
 node tools/measure-pair-matrix.mjs    # 60 invalid combinations (~21 s)
 node tools/measure-regimes.mjs tmp/expanded-corpus-20260825.json
 

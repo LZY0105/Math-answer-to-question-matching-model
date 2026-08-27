@@ -164,16 +164,31 @@ class PairSession {
     const questions = selection.questions;
 
     if (questions.length === 0) {
-      const region = locateAnswerRegion(this.alignment, {
+      const located = locateAnswerRegion(this.alignment, {
         exercisePage: page, answerPageCount: this.answer.numPages,
       });
+
+      // "This page has no questions" and "your tap selected none of the
+      // questions that are here" are different answers, and the caller needs to
+      // tell them apart: the first means look elsewhere, the second means tap
+      // again. An earlier version returned NO_QUESTION_LEVEL_INDEX for both,
+      // discarding the region outcome entirely — and did it via an inner
+      // const region declaration that shadowed the parameter, which is how the evidence
+      // went missing without anyone noticing.
+      const emptyTap = onPage.length > 0 && selection.applied;
+      const reason = emptyTap
+        ? (selection.reason ?? 'REGION_EMPTY')
+        : (this.ocrRequired ? 'OCR_REQUIRED' : 'NO_QUESTION_LEVEL_INDEX');
+
       return [{
-        rung: region ? RUNG.LOCATED : RUNG.REFUSED,
+        rung: located ? RUNG.LOCATED : RUNG.REFUSED,
         matched: false,
-        region: region ?? null,
-        cappedBy: this.ocrRequired ? 'OCR_REQUIRED' : 'NO_QUESTION_LEVEL_INDEX',
-        reasonCodes: this.ocrRequired ? ['OCR_REQUIRED'] : ['NO_QUESTION_LEVEL_INDEX'],
+        asserted: false,
+        region: located ?? null,
+        cappedBy: reason,
+        reasonCodes: [reason],
         question: null,
+        ...(region ? { regionApplied: selection.applied, regionReason: selection.reason } : {}),
       }];
     }
 

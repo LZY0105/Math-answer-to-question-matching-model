@@ -285,25 +285,121 @@ await check('recognised pages keep their line structure', async () => {
 });
 
 // ═══════════════════════════════════════════════════════════════
-group('4c. A region that cannot be honoured withholds the answer');
+group('4c. A region the adapter cannot honour withholds the answer');
 
-await check('an unhonourable region caps the result at REVIEW', async () => {
-  // Reporting regionApplied: false was not enough. The caller pointed at ONE
-  // question; without geometry the engine returns every question on the page,
-  // and any of them arriving as AUTO_MATCH is a confident answer to a question
-  // nobody asked about.
-  const p = await preparePair({ exerciseDocument: EX(), answerDocument: ANS() });
-  const page = (await p.session.matchAll()).matches.find(m => m.question)?.question.page;
+/**
+ * Two questions on ONE page, with line geometry.
+ *
+ * The failure this guards is specifically a multi-question page: a caller taps
+ * one of two questions, the adapter cannot localise the tap, and the engine
+ * hands back confident answers for both. One question per page cannot express
+ * that, so the fixture puts 1.1 and 1.2 on the same page.
+ */
+/**
+ * A whole book where questions 1.1 and 1.2 share ONE page.
+ *
+ * The failure this guards is specifically a multi-question page: a caller taps
+ * one of two questions, the adapter cannot localise the tap, and the engine
+ * hands back confident answers for both.
+ *
+ * It has to be a whole book, not a two-question stub. A stub cannot reach this
+ * code at all — the role classifier withholds a verdict below 20 entries, and
+ * four lines across ten pages is a sparse layer that returns OCR_REQUIRED. Both
+ * gates fire before matching, and a fixture that trips them tests them instead
+ * of the region.
+ */
+function sharedPageBook({ geometry }) {
+  const lines = [];
+  const items = [];
+  const push = (page, text, y) => lines.push(
+    geometry ? { page, text, y, height: 18 } : { page, text },
+  );
 
-  const plain = await p.session.matchQuestion({ page });
+  for (let i = 1; i <= N; i++) {
+    // 1.1 and 1.2 both sit on page 3, one near the top and one far below it.
+    const page = i <= 2 ? 3 : i + 2;
+    const base = i === 2 ? 400 : 0;
+    items.push({ title: `例题 1.${i}`, pageNumber: page, children: [] });
+    push(page, `例题 1.${i} (2024. 某大学). 求导数，f(x)=x^${i}+${i}`, base);
+    push(page, `其中 极限与连续函数 为本节内容，f(x)=x^${i}+${i} 为待求函数`, base + 20);
+  }
+
+  return {
+    numPages: 40,
+    outline: {
+      available: true,
+      items: [{ title: '第1章 2024 年极限与连续函数', pageNumber: 1, children: items }],
+    },
+    async extractText({ from, to } = {}) {
+      if (from == null && to == null) return lines;
+      return lines.filter(l => (from == null || l.page >= from) && (to == null || l.page <= to));
+    },
+  };
+}
+
+
+await check('two questions on one page: an unlocalisable tap downgrades BOTH', async () => {
+  const p = await preparePair({
+    exerciseDocument: sharedPageBook({ geometry: false }),
+    answerDocument: ANS(),
+  });
+  const plain = await p.session.matchQuestion({ page: 3 });
+  assert.equal(plain.length, 2, `expected two questions, got ${plain.length}`);
   assert.ok(plain.some(m => m.rung === RUNG.AUTO_MATCH),
-    'without a region the page should still answer');
+    'without a region the page must still answer');
 
-  const tapped = await p.session.matchQuestion({ page, region: { top: 0, bottom: 30 } });
-  assert.equal(tapped.some(m => m.rung === RUNG.AUTO_MATCH), false,
-    'a tap the adapter cannot localise must not produce an automatic answer');
-  assert.ok(tapped.every(m => m.regionApplied === false));
-  assert.ok(tapped.every(m => m.cappedBy === 'REGION_UNSUPPORTED_BY_ADAPTER'));
+  const tapped = await p.session.matchQuestion({ page: 3, region: { top: 0, bottom: 30 } });
+  assert.equal(tapped.length, 2, 'the candidates are still returned');
+  for (const m of tapped) {
+    assert.equal(m.rung, RUNG.REVIEW, `${m.question?.label} kept rung ${m.rung}`);
+    assert.equal(m.matched, false, `${m.question?.label} still reports matched`);
+    assert.equal(m.asserted, false, `${m.question?.label} still reports asserted`);
+    assert.equal(m.cappedBy, 'REGION_UNSUPPORTED_BY_ADAPTER',
+      `${m.question?.label} cappedBy was ${m.cappedBy}`);
+    assert.equal(m.regionApplied, false);
+  }
+});
+
+await check('with geometry, a tap selects one of the two and still answers', async () => {
+  const p = await preparePair({
+    exerciseDocument: sharedPageBook({ geometry: true }),
+    answerDocument: ANS(),
+  });
+  const top = await p.session.matchQuestion({ page: 3, region: { top: 0, bottom: 40 } });
+  assert.equal(top.length, 1, `a localised tap must select one question, got ${top.length}`);
+  assert.equal(top[0].question.label, '1.1');
+  assert.equal(top[0].regionApplied, true);
+
+  const bottom = await p.session.matchQuestion({ page: 3, region: { top: 395, bottom: 450 } });
+  assert.equal(bottom.length, 1);
+  assert.equal(bottom[0].question.label, '1.2');
+});
+
+await check('a tap that selects nothing says REGION_EMPTY, not "no questions here"', async () => {
+  // These mean different things to a caller: tap again, versus look elsewhere.
+  const p = await preparePair({
+    exerciseDocument: sharedPageBook({ geometry: true }),
+    answerDocument: ANS(),
+  });
+  const empty = await p.session.matchQuestion({ page: 3, region: { top: 900, bottom: 1000 } });
+  assert.equal(empty.length, 1);
+  assert.equal(empty[0].cappedBy, 'REGION_EMPTY',
+    `empty tap reported ${empty[0].cappedBy}`);
+  assert.equal(empty[0].regionApplied, true, 'the region WAS applied; it simply hit nothing');
+  assert.equal(empty[0].matched, false);
+});
+
+await check('a page with no questions still reports NO_QUESTION_LEVEL_INDEX', async () => {
+  // Page 1, ahead of the first question. A late page will not do: the final
+  // entry's span runs to the end of the book, so every trailing page still
+  // carries a question and is correctly reported as such.
+  const p = await preparePair({
+    exerciseDocument: sharedPageBook({ geometry: true }),
+    answerDocument: ANS(),
+  });
+  const none = await p.session.matchQuestion({ page: 1, region: { top: 0, bottom: 50 } });
+  assert.equal(none[0].cappedBy, 'NO_QUESTION_LEVEL_INDEX',
+    `page without questions reported ${none[0].cappedBy}`);
 });
 
 await check('a region is only capped when one was actually requested', async () => {
@@ -313,6 +409,7 @@ await check('a region is only capped when one was actually requested', async () 
   assert.ok(all.matches.some(m => m.rung === RUNG.AUTO_MATCH),
     'matchAll must still produce automatic answers');
 });
+
 
 // ═══════════════════════════════════════════════════════════════
 group('5. The rung ladder is honoured end to end');
