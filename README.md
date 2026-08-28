@@ -12,8 +12,35 @@ Pure JavaScript, no dependencies, no network. Extracted from an Android maths
 study tablet app, where it runs entirely on-device.
 
 > **📄 [Research report](RESEARCH-REPORT.md)** — full design rationale,
-> evaluation methodology, ablation study, parameter sweeps, and two documented
+> evaluation methodology, ablation study, parameter sweeps, and five documented
 > negative results. Everything below is a summary; the report is the detail.
+
+## At a glance
+
+| | | |
+|---|---|---|
+| Questions resolved, three real textbook pairs | **996 / 996**, zero wrong | [Capability](#capability) |
+| Invalid document pairings that produce an automatic answer | **0 of 60** — 52 before the gates were derived rather than trusted | [Safety](#safety) |
+| Negative results documented with their measurements | **5** | [report §7](RESEARCH-REPORT.md#7-negative-results) |
+| Checks in the suite / on a clean clone with no corpus | **278 / 220**, 0 failed | [Tests](#tests) |
+
+And, because a matching engine that only advertises its wins is the exact
+failure this one is built against:
+
+- **The scanned-book path is not released.** Recognition reads all 465 pages
+  with zero failures and unlocks no automatic answers. Per-question validation
+  is not implemented, so accuracy there is *unmeasured*, not good
+  — [including a published figure that was withdrawn](#what-the-numbers-are-and-are-not).
+- **Losing the exercise book's bookmark tree costs most of the recall**: 2
+  distinct questions in that ablation regime, against 470 with both trees
+  intact. Precision does not fall; the answers move to lower rungs or are
+  refused.
+- **The worst regime has reached its own deadline** — 1,573 ms against a
+  1,500 ms alignment budget, so results there are produced by expiry rather
+  than by decision.
+- Figures from the real books cannot be reproduced from a clone: the corpus is
+  extracted from copyrighted textbooks and is not committed. A clean clone runs
+  the 220 synthetic checks and skips the rest, saying which are skipped and why.
 
 ## The problem
 

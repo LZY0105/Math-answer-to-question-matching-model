@@ -31,7 +31,7 @@ latencies of 1–2 ms. Across all sixty invalid combinations — wrong year, wro
 subject, two answer keys, two exercise books, reversed roles — the system emits
 no automatic answer at all.
 
-We report an architectural finding and four negative results. The finding is
+We report an architectural finding and five negative results. The finding is
 that most of what looked like a precision/recall frontier was defect: three
 faults each cost both axes simultaneously, and repairing them raised recall
 without moving precision. The negative results are a positional prior that
@@ -41,7 +41,9 @@ missing reader configuration; a correctness measurement that was very nearly
 circular and therefore could not have failed; and the observation that requiring
 all of N structural agreements from noisy input fails multiplicatively with N,
 so a rule that is correct in principle refuses correct answers in proportion to
-question complexity rather than to error.
+question complexity rather than to error; and three false rejections of valid
+pairs traced to one mistake made three times, in which a threshold calibrated
+against one representation of a document was applied to another.
 
 ## 1. Introduction
 
@@ -102,9 +104,10 @@ it could not honour the constraint.
 7. **An ablation methodology** scored against an oracle independent of the text
    layer under test, cross-checked by a second oracle sharing no failure mode
    with the first.
-8. **Four documented negative results with their measurements**, including a
-   correctness metric that could not have failed and a conjunctive rule that
-   refuses in proportion to complexity rather than to error.
+8. **Five documented negative results with their measurements**, including a
+   correctness metric that could not have failed, a conjunctive rule that
+   refuses in proportion to complexity rather than to error, and a threshold
+   that did not survive a change in how the document was represented.
 
 **Figures.** 1 — the stage cascade (§3.1). 2 — precision against refusal rate
 under ablation (§5.4). 3 — per-page latency by regime (§5.5). 4 — the operator
