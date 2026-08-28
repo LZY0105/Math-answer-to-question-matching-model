@@ -1,0 +1,95 @@
+{
+  "generatedAt": "2026-08-28T09:45:59.617Z",
+  "commit": "d3a8be7329afa21c057a3ef8f286778b7ccb3136",
+  "pair": "2025 scanned exercise book against its answer key",
+  "pairStatus": "VERIFIED_PAIR",
+  "reasonCodes": [
+    "PAIR_BOUND_MANUALLY"
+  ],
+  "ocrCache": {
+    "path": "tmp/ocr/q2025-ocr-lines.json",
+    "complete": true,
+    "provenance": "recorded",
+    "builtAtCommit": "d3a8be7329afa21c057a3ef8f286778b7ccb3136",
+    "source": {
+      "path": "tmp/ocr/q2025.pdf",
+      "bytes": 90904871,
+      "sha256": "91e666f62b940df05f5dae95ad8c02a62c79a56bf8d52a87d0d674e28ea57f4f",
+      "pages": 465,
+      "pagesFrom": "pdfinfo"
+    },
+    "recognizer": {
+      "engine": "Windows.Media.Ocr",
+      "language": "zh-Hans-CN",
+      "dpi": 200,
+      "pages": 465,
+      "failures": 0,
+      "renderMs": 204913,
+      "ocrMs": 221253,
+      "chars": 76135
+    },
+    "coverage": {
+      "pagesWithText": 465,
+      "pageCoverage": 1,
+      "medianCharsPerPage": 141,
+      "emptyPages": [],
+      "thinPages": [
+        221,
+        299,
+        441
+      ],
+      "lines": 4352
+    }
+  },
+  "note": "Counts only. None of these is a matching-accuracy figure: the exercise book has no question-level bookmarks, so nothing independent says where a question sits in it. See src/ocr-audit.js.",
+  "events": 178,
+  "onStartPage": 100,
+  "onContinuationPage": 78,
+  "continuationOnlyLabels": [
+    "1.290",
+    "1.80",
+    "2.113",
+    "2.212",
+    "2.217",
+    "2.23",
+    "2.230",
+    "2.235"
+  ],
+  "continuationOnlyPages": {
+    "1.80": [
+      66
+    ],
+    "1.290": [
+      237
+    ],
+    "2.23": [
+      266
+    ],
+    "2.113": [
+      344
+    ],
+    "2.212": [
+      430
+    ],
+    "2.217": [
+      443
+    ],
+    "2.230": [
+      445
+    ],
+    "2.235": [
+      454
+    ]
+  },
+  "goldLabels": 573,
+  "distinctRaw": 108,
+  "distinctStartAligned": 100,
+  "rawShare": 0.1885,
+  "startAlignedShare": 0.1745,
+  "comparableForOrder": 178,
+  "orderBreaks": 0,
+  "orderBreakExamples": [],
+  "orderInversions": 0,
+  "maxOrderInversions": 15753,
+  "orderInversionRate": 0
+}

@@ -223,7 +223,7 @@ verified-bookmark path is intact; the scanned path runs and is unmeasured.
 ```bash
 cd ~/Documents/ChatGPT/题目答案匹配引擎
 
-npm test                              # 9 suites, 230 checks
+npm test                              # 10 suites, 278 checks
 node tools/measure-pair-matrix.mjs    # 60 invalid combinations (~21 s)
 node tools/measure-regimes.mjs tmp/expanded-corpus-20260825.json
 
@@ -271,13 +271,16 @@ in it. The answer side can be checked; the question side cannot.
 | Labels appearing ONLY on continuation pages | 8 |
 | Distinct real labels, raw | 108 / 573 (18.85%) |
 | Distinct real labels, start-page aligned | 100 / 573 (17.45%) |
-| Order inversions against answer-book order | 0 of 178 |
+| Order breaks (backward steps) | 0 of 178 |
+| Order inversions (pairs out of order) | 0 of 15,753 |
 
 The eight continuation-only labels are 1.80, 1.290, 2.23, 2.113, 2.212, 2.217,
 2.230 and 2.235. A visual audit of eight sampled pairs found **seven correct and
 one wrong**, so the true error rate is neither zero nor presently known.
 
-Reproduce with `node tools/audit-ocr-matches.mjs`.
+Reproduce with `node tools/audit-ocr-matches.mjs`, which writes
+`reports/ocr-audit.json`. It fails rather than passing if the corpus is absent;
+add `--allow-skip` when a skip is the intended outcome.
 
 ### What now stands
 

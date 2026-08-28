@@ -614,7 +614,17 @@ printed on the page the match came from:
 | Identifiers seen *only* on continuation pages | 8 |
 | Distinct identifiers, raw | 108 / 573 (18.85%) |
 | Distinct identifiers, start-page aligned | 100 / 573 (17.45%) |
-| Order inversions against the answer key | 0 of 178 |
+| Order breaks (backward steps) | 0 of 178 |
+| Order inversions (pairs out of order) | 0 of 15,753 |
+
+The order figures are two measurements, not one. A *break* is a place where the
+recognised sequence steps backwards; an *inversion* is any pair of matches
+reading in the opposite order to the answer book. An earlier revision reported
+the first under the second's name, which understates what a single misplaced
+label costs: one label read far too early is a single break but as many
+inversions as there are matches it jumped over. Both are zero here, so the
+distinction changes nothing about this result — it changes what the number
+would have said had it not been.
 
 A visual audit of eight sampled pairs found seven correct and one wrong, so the
 error rate is neither zero nor presently known. For comparison, the same volume
@@ -943,12 +953,23 @@ npm run test:scenarios              # bookmarks, no bookmarks, invalid pairs
 node tools/measure-regimes.mjs      # full-book regimes, strict metrics
 node tools/measure-pair-matrix.mjs  # the sixty invalid combinations
 node tools/ocr-cache.mjs            # recognise the scanned volume (~7 min)
-node tools/audit-ocr-matches.mjs    # writes the canonical audit artifact
+node tools/audit-ocr-matches.mjs    # writes reports/ocr-audit.json
 ```
 
 The corpus is extracted text from copyrighted textbooks and is not distributed.
-`tools/extract-corpus.mjs` rebuilds it from local PDFs; every corpus-dependent
-script exits cleanly in its absence, so a fresh checkout runs green.
+`tools/extract-corpus.mjs` rebuilds it from local PDFs, and every
+corpus-dependent script says plainly when it is absent, so a fresh checkout runs
+green on `npm test`.
+
+The audit is the exception, and deliberately so. It **fails** when its inputs
+are missing, because a release gate that returns success for a run that did not
+happen is not a gate; `--allow-skip` is the explicit way to ask for the green on
+a checkout without the corpus. The same reasoning governs the recognition step:
+`tools/ocr-cache.mjs` takes the page count from the PDF rather than from a
+constant, refuses to write a cache if any page failed or came back empty, and
+stamps what it does write with the source hash, the recognizer statistics and
+the generating commit — so a cache cannot silently be of the wrong book,
+or of part of the right one.
 
 The audit reasoning of §5.5 and §7.3 lives in `src/ocr-audit.js` as a pure
 function with unit tests over synthetic fixtures, so it can be verified without
@@ -958,6 +979,7 @@ figures by hand in two documents and they drifted.
 
 | Suite | Covers |
 |---|---|
+| `test_tools.js` | every shipped script parses; the two release gates fail closed |
 | `test_question_matcher.js` | similarity, alignment, refusal, operator context |
 | `test_answer_index.js` | identifier parsing, indexing, quality states |
 | `test_text_source.js` | lazy text, recognizer seam |

@@ -69,10 +69,31 @@ key. The 2024 volumes index at 271 and 217, all ids distinct.
 
 Stages 1–3 are measured too, by stripping the bookmark trees and scoring what
 remains against an oracle built *from* those trees — see
-`test/test_no_bookmarks.js`. Precision holds at 100% in all four regimes; recall
-collapses (8 distinct questions of 508 when the answer key has no bookmarks) and
-per-page cost rises from p95 0 ms to p95 507 ms. That the engine refuses rather
-than guesses is the whole point, and it is now demonstrated rather than asserted.
+`test/test_no_bookmarks.js`. Precision holds at 100% in all four regimes, with
+zero wrong matches in each. Recall is another matter:
+
+| Regime | Correct | Wrong | Distinct questions |
+|---|---:|---:|---:|
+| A. both books bookmarked | 794 | 0 | 470 |
+| B. answer key not bookmarked | 717 | 0 | 429 |
+| C. exercise book not bookmarked | 2 | 0 | 2 |
+| D. neither bookmarked | 44 | 0 | 44 |
+
+Regime B was 8 distinct questions before the printed-contents work; reading the
+table of contents as a label-to-location index is what moved it. Regime C is
+still all but dead, and saying so is more useful than averaging it away.
+
+Per-page cost rises with the same loss of structure, and the range across the
+three matched pairs matters more than any single figure: 1–3 ms in regime A,
+61–808 ms in B, 327–1,573 ms in C, 51–925 ms in D. The top of regime C has
+reached the 1,500 ms alignment deadline, so results there are produced by expiry
+rather than by decision — read them as "refuses within 1.5 s" until bounded
+retrieval lands. The figures come from `figures/latency-by-regime.data.json`,
+which `tools/measure-regimes.mjs` writes; an earlier revision hardcoded 507 ms
+into the drawing script and it went stale silently.
+
+That the engine refuses rather than guesses is the whole point, and it is now
+demonstrated rather than asserted.
 
 Not measured: Android on-device performance and memory. The `SIMILARITY_STRONG`
 and `SIMILARITY_WEAK` thresholds were inherited rather than swept, and they only
@@ -81,3 +102,31 @@ bind once stages 2–3 run, which on a bookmarked corpus they never do.
 The test corpus is extracted text from copyrighted textbooks and is not
 committed; `tools/extract-corpus.mjs` rebuilds it, and the real-PDF suite skips
 cleanly without it.
+
+## A third finding: the tests did not cover the tools
+
+`tools/ocr-cache.mjs` shipped with an unterminated character class — a regular
+expression doing a job `path.dirname` does — and a full green test run said
+nothing. Every suite imported from `src/`; none imported from or executed
+anything in `tools/`. A file Node could not even parse was therefore "covered".
+
+Two things came out of it. `test/test_tools.js` now runs `node --check` over
+every shipped script, which is the cheapest test that could have caught this,
+and it asserts the exit status of the two scripts that act as release gates.
+Reintroducing the original defect turns the suite red, which is how the guard
+was verified rather than assumed.
+
+The second is a rule about gates. `tools/audit-ocr-matches.mjs` used to exit 0
+when its inputs were absent, on the reasoning that a clean checkout should run
+green. But an audit that returns success for a run that did not happen is not a
+gate, and CI would have passed for the wrong reason indefinitely. It now fails
+by default, and `--allow-skip` is how the clean checkout asks for the green in
+the open. `tools/ocr-cache.mjs` fails closed the same way: it takes the page
+count from the PDF instead of a constant, refuses to write a cache if any page
+failed or came back empty, and stamps what it writes with the source hash,
+recognizer statistics and generating commit.
+
+A smaller correction alongside them: what the audit called `orderInversions` was
+counting adjacent backward steps, not inversions. One label read far too early
+is a single backward step but as many inversions as there are matches it jumped
+over, so the name overstated the evidence. Both are now reported, separately.

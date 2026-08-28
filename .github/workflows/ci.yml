@@ -18,6 +18,11 @@ jobs:
           node-version: ${{ matrix.node }}
 
       # No dependencies by design — there is nothing to install.
+      #
+      # test:unit leads with test_tools.js, which parses every shipped script.
+      # It is there because a released tool once did not parse at all: the other
+      # suites import from src/ and never from tools/, so a file Node could not
+      # read was still covered by a green run.
       - name: Unit suites
         run: npm run test:unit
 
@@ -26,3 +31,11 @@ jobs:
       # green CI run never implies the real books were exercised.
       - name: Real-PDF suite (skips without the corpus)
         run: npm run test:real
+
+      # The OCR audit fails by default when its inputs are missing, because a
+      # release gate that returns success for a run that did not happen is not a
+      # gate. CI has no corpus and never will, so it asks for the skip in the
+      # open rather than inheriting it silently — and a release check run on a
+      # machine that DOES have the corpus must omit the flag.
+      - name: OCR audit (explicitly skipped in CI)
+        run: node tools/audit-ocr-matches.mjs --allow-skip

@@ -442,7 +442,7 @@ check('labels absent from the answer book count toward neither', () => {
   assert.equal(r.distinctRaw, 0, 'a label the answer book does not have is not a question');
 });
 
-check('order inversions are counted against the answer book order', () => {
+check('a backward step is counted as an order break', () => {
   const r = auditOcrMatches({
     events: [
       { page: 1, label: '1.1' },
@@ -452,16 +452,54 @@ check('order inversions are counted against the answer book order', () => {
     headingPages: headingsOn([['1.1', [1]], ['1.4', [2]], ['1.2', [3]]]),
     goldLabels,
   });
-  assert.equal(r.orderInversions, 1);
-  assert.equal(r.orderInversionExamples[0].from.label, '1.4');
-  assert.equal(r.orderInversionExamples[0].to.label, '1.2');
+  assert.equal(r.orderBreaks, 1);
+  assert.equal(r.orderBreakExamples[0].from.label, '1.4');
+  assert.equal(r.orderBreakExamples[0].to.label, '1.2');
+});
+
+check('breaks and inversions are different measurements', () => {
+  // One label read far too early: the sequence steps backwards exactly once,
+  // but it reads in the wrong order against each of the three that follow.
+  // Reporting the first number under the second's name overstated the order
+  // evidence, which is why they are now separate fields.
+  const r = auditOcrMatches({
+    events: [
+      { page: 1, label: '1.4' },
+      { page: 2, label: '1.1' },
+      { page: 3, label: '1.2' },
+      { page: 4, label: '1.3' },
+    ],
+    headingPages: headingsOn([['1.4', [1]], ['1.1', [2]], ['1.2', [3]], ['1.3', [4]]]),
+    goldLabels,
+  });
+  assert.equal(r.orderBreaks, 1, 'the reading order is interrupted once');
+  assert.equal(r.orderInversions, 3, '1.4 precedes 1.1, 1.2 and 1.3');
+  assert.equal(r.maxOrderInversions, 6);
+  assert.equal(r.orderInversionRate, 0.5);
+});
+
+check('a sequence in book order has no inversions at all', () => {
+  const r = auditOcrMatches({
+    events: [
+      { page: 1, label: '1.1' },
+      { page: 2, label: '1.2' },
+      { page: 3, label: '1.3' },
+    ],
+    headingPages: headingsOn([['1.1', [1]], ['1.2', [2]], ['1.3', [3]]]),
+    goldLabels,
+  });
+  assert.equal(r.orderBreaks, 0);
+  assert.equal(r.orderInversions, 0);
+  assert.equal(r.orderInversionRate, 0);
 });
 
 check('an empty match set audits to zeroes rather than throwing', () => {
   const r = auditOcrMatches({ events: [], headingPages: new Map(), goldLabels });
   assert.equal(r.events, 0);
   assert.equal(r.distinctRaw, 0);
+  assert.equal(r.orderBreaks, 0);
   assert.equal(r.orderInversions, 0);
+  assert.equal(r.orderInversionRate, null, 'no pairs to compare is not a rate of zero');
 });
 
 check('headingPagesFrom reads printed labels out of recognised lines', () => {

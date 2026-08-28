@@ -16,8 +16,16 @@
 //   cp "<the 2025 exercise PDF>" tmp/ocr/q2025.pdf     # ASCII path required
 //   node tools/ocr-cache.mjs                            # ~7 minutes, 465 pages
 //
-// Absent either input this exits 0 and says what is missing, so it is safe in CI.
+// Absent either input this FAILS, because a release gate that passes when it did
+// not run is not a gate. `--allow-skip` is the explicit way to say that a green
+// run on a checkout without the corpus is what was wanted — that is the form
+// the README documents, and the form a fresh clone should use.
+//
+// The OCR cache carries its own provenance (see tools/ocr-cache.mjs). A cache
+// that reports itself incomplete, or one with no provenance at all, is recorded
+// as such in the artifact rather than being quietly averaged into the counts.
 
+import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 
@@ -31,21 +39,44 @@ import { TEXT_QUALITY } from '../src/text-quality.js';
 
 const CORPUS = process.env.FIND_ENGINE_EXPANDED_CORPUS || 'tmp/expanded-corpus-20260825.json';
 const OCR = process.env.FIND_ENGINE_OCR_CACHE || 'tmp/ocr/q2025-ocr-lines.json';
-const OUT = process.argv[2] || 'reports/ocr-audit-latest.json';
+const ALLOW_SKIP = process.argv.includes('--allow-skip');
+const OUT = process.argv.slice(2).find(a => !a.startsWith('--')) || 'reports/ocr-audit.json';
 
 const missing = [CORPUS, OCR].filter(p => !existsSync(p));
 if (missing.length > 0) {
-  console.log('OCR audit skipped — inputs not present in this checkout:');
-  for (const p of missing) console.log(`  ${p}`);
-  console.log('\nBoth derive from copyrighted books and are never committed.');
-  console.log('See the header of this file for how to rebuild them.');
-  console.log('\nThe audit logic itself is covered by test/test_structure.js and');
-  console.log('runs on a clean checkout without either file.');
+  const say = ALLOW_SKIP ? console.log : console.error;
+  say('OCR audit did not run — inputs not present in this checkout:');
+  for (const p of missing) say(`  ${p}`);
+  say('\nBoth derive from copyrighted books and are never committed.');
+  say('See the header of this file for how to rebuild them.');
+  say('\nThe audit logic itself is covered by test/test_structure.js and');
+  say('runs on a clean checkout without either file.');
+  if (!ALLOW_SKIP) {
+    console.error('\nFailing rather than reporting success for an audit that did');
+    console.error('not happen. Pass --allow-skip if a skip is the intended outcome.');
+    process.exit(1);
+  }
   process.exit(0);
 }
 
 const raw = JSON.parse(readFileSync(CORPUS, 'utf-8'));
-const ocrLines = JSON.parse(readFileSync(OCR, 'utf-8'));
+
+// Caches written before tools/ocr-cache.mjs recorded provenance are a bare
+// array. They still work; they simply cannot say which book they came from, and
+// the artifact says so rather than implying a completeness nobody checked.
+const cache = JSON.parse(readFileSync(OCR, 'utf-8'));
+const ocrLines = Array.isArray(cache) ? cache : cache.lines ?? [];
+const cacheMeta = Array.isArray(cache)
+  ? { complete: null, provenance: 'unknown — cache predates provenance recording' }
+  : { ...cache.meta, provenance: 'recorded' };
+if (cacheMeta.complete === false) {
+  console.warn('WARNING: the OCR cache reports itself incomplete. Counts below understate');
+  console.warn('coverage and are not comparable with a complete run.');
+  for (const problem of cacheMeta.problems ?? []) console.warn(`  ${problem}`);
+} else if (cacheMeta.complete === null) {
+  console.warn('WARNING: the OCR cache carries no provenance; rebuild it with');
+  console.warn('tools/ocr-cache.mjs to record the source PDF and coverage.');
+}
 
 const asDoc = (numPages, outline, lines) => ({
   numPages,
@@ -89,11 +120,31 @@ const result = auditOcrMatches({
   goldLabels: gold.entries.map(e => e.label),
 });
 
+// Which working tree produced these counts. A number without a commit is a
+// number nobody can go back to.
+const commit = (() => {
+  try {
+    return execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf-8' }).trim();
+  } catch {
+    return null;
+  }
+})();
+
 const artifact = {
   generatedAt: new Date().toISOString(),
+  commit,
   pair: '2025 scanned exercise book against its answer key',
   pairStatus: prepared.status,
   reasonCodes: prepared.decision.reasonCodes,
+  ocrCache: {
+    path: OCR,
+    complete: cacheMeta.complete ?? null,
+    provenance: cacheMeta.provenance,
+    builtAtCommit: cacheMeta.commit ?? null,
+    source: cacheMeta.source ?? null,
+    recognizer: cacheMeta.recognizer ?? null,
+    coverage: cacheMeta.coverage ?? null,
+  },
   note: 'Counts only. None of these is a matching-accuracy figure: the exercise '
     + 'book has no question-level bookmarks, so nothing independent says where a '
     + 'question sits in it. See src/ocr-audit.js.',
@@ -114,5 +165,7 @@ console.log(`distinct labels, raw              ${result.distinctRaw} / ${result.
   + `  (${pct(result.rawShare)})`);
 console.log(`distinct labels, start-aligned    ${result.distinctStartAligned} / ${result.goldLabels}`
   + `  (${pct(result.startAlignedShare)})`);
-console.log(`order inversions                  ${result.orderInversions} of ${result.comparableForOrder}`);
+console.log(`order breaks (backward steps)     ${result.orderBreaks} of ${result.comparableForOrder}`);
+console.log(`order inversions (pairs)          ${result.orderInversions} of ${result.maxOrderInversions}`
+  + `  (${pct(result.orderInversionRate)})`);
 console.log(`\nartifact -> ${OUT}`);

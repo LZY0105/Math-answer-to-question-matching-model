@@ -207,20 +207,34 @@ from, and whether the labels run in the book’s order. Those counts are
 generated, not transcribed:
 
 ```bash
-node tools/ocr-cache.mjs            # once, ~7 min; needs the PDF at an ASCII path
-node tools/audit-ocr-matches.mjs    # writes reports/ocr-audit-latest.json
+node tools/ocr-cache.mjs                        # once, ~7 min; PDF at an ASCII path
+node tools/audit-ocr-matches.mjs                # writes reports/ocr-audit.json
+node tools/audit-ocr-matches.mjs --allow-skip   # on a checkout without the corpus
 ```
 
-**[reports/ocr-audit-20260827.json](reports/ocr-audit-20260827.json) is the
-canonical result.** At the time of writing it records 178 automatic events, 100
-from pages that printed the label and 78 from continuation pages, 8 labels seen
-*only* on continuation pages, and 108/573 raw against 100/573 start-page
-aligned. A visual audit of eight sampled pairs found seven correct and one
-wrong, so the error rate is neither zero nor presently known.
+**[reports/ocr-audit.json](reports/ocr-audit.json) is the canonical result**, and
+it is the file the audit writes by default — there is no second name to keep in
+step. At the time of writing it records 178 automatic events, 100 from pages
+that printed the label and 78 from continuation pages, 8 labels seen *only* on
+continuation pages, and 108/573 raw against 100/573 start-page aligned. A visual
+audit of eight sampled pairs found seven correct and one wrong, so the error
+rate is neither zero nor presently known.
 
-Both scripts exit cleanly on a checkout without the corpus, which is never
-committed. The audit reasoning itself lives in `src/ocr-audit.js` and is unit
-tested, so it can be verified without the private data.
+Neither script will pretend. The cache builder refuses to write a cache it
+cannot vouch for — it takes the page count from the PDF rather than from a
+constant, and rejects the run if any page failed, if any page came back empty,
+or if the median page yielded too little text to be a real recognition. What it
+does write carries the source PDF's hash and page count, the recognizer's
+settings and statistics, and the commit that produced it. The audit reads that
+provenance through to its own artifact, and warns on the console when a cache
+reports itself incomplete or carries no provenance at all — so a number that
+came from a partial recognition cannot be read as though it came from a whole
+one.
+
+The audit also **fails** when its inputs are missing, rather than reporting
+success for a run that did not happen; `--allow-skip` is how a clean checkout
+asks for the green. The audit reasoning itself lives in `src/ocr-audit.js` and
+is unit tested, so it can be verified without the private data.
 
 For scale, the same book before this work produced **479 confident wrong
 answers**, by reading its 18 chapter bookmarks as questions. Refusing is already
@@ -303,7 +317,7 @@ of whichever question is open, never questions in their own right.
 ## Tests
 
 ```bash
-npm test              # all nine suites, 230 checks
+npm test              # all ten suites, 278 checks
 npm run test:unit     # synthetic fixtures only, no corpus needed
 npm run test:scenarios  # bookmarks, no bookmarks, and the 60 invalid pairs
 ```

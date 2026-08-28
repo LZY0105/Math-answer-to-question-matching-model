@@ -19,7 +19,7 @@ number could not be obtained it is marked **not measured**, never estimated.
 ```bash
 cd ~/Documents/ChatGPT/题目答案匹配引擎
 
-npm test                    # all 9 suites, 230 checks
+npm test                    # all 10 suites, 278 checks
 npm run test:unit           # 6 synthetic suites, no corpus needed
 npm run test:scenarios      # the three scenarios below, on the real corpus (~2.5 min)
 
@@ -61,16 +61,23 @@ whose own heading fell outside that range cannot carry it.
 
 | Suite | Checks | Covers | Status |
 |---|---:|---|---|
+| `test_tools.js` | 46 | every shipped script parses; both release gates fail closed | ✅ |
 | `test_question_matcher.js` | 53 | similarity, alignment, refusal, operator context | ✅ |
 | `test_answer_index.js` | 29 | identifier parsing, indexing, quality states | ✅ |
 | `test_text_source.js` | 12 | lazy text, OCR seam | ✅ |
 | `test_glyph_map.js` | 13 | glyph-table recovery | ✅ |
-| `test_structure.js` | 40 | outline/body classification, contents, boilerplate, rungs, regions | ✅ |
+| `test_structure.js` | 42 | outline/body classification, contents, boilerplate, rungs, regions, audit logic | ✅ |
 | `test_matching_engine.js` | 25 | **the public interface only** | ✅ |
-| `test_corpus_regression.js` | 23 | **the three scenarios, real corpus, both oracles** | ✅ |
-| `test_real_pdfs.js` | 22 | gold sets, end-to-end, latency | ✅ |
+| `test_real_pdfs.js` | 23 | gold sets, end-to-end, latency, formula policy | ✅ |
 | `test_no_bookmarks.js` | 9 | ablation against the bookmark oracle | ✅ |
-| **Total** | **230** | | **0 failed** |
+| `test_corpus_regression.js` | 26 | **the three scenarios, real corpus, both oracles** | ✅ |
+| **Total** | **278** | | **0 failed** |
+
+The rows are listed in the order `npm test` runs them and they sum to the total.
+An earlier revision of this table carried 23 and 22 for the last two suites
+against a measured 26 and 23, so the rows summed to 226 while the total said
+230 — four checks that existed but were not credited anywhere. Every figure here
+is now read from the run rather than carried forward.
 
 ---
 

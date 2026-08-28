@@ -288,19 +288,12 @@ await check('recognised pages keep their line structure', async () => {
 group('4c. A region the adapter cannot honour withholds the answer');
 
 /**
- * Two questions on ONE page, with line geometry.
+ * A whole book where questions 1.1 and 1.2 share ONE page.
  *
  * The failure this guards is specifically a multi-question page: a caller taps
  * one of two questions, the adapter cannot localise the tap, and the engine
  * hands back confident answers for both. One question per page cannot express
  * that, so the fixture puts 1.1 and 1.2 on the same page.
- */
-/**
- * A whole book where questions 1.1 and 1.2 share ONE page.
- *
- * The failure this guards is specifically a multi-question page: a caller taps
- * one of two questions, the adapter cannot localise the tap, and the engine
- * hands back confident answers for both.
  *
  * It has to be a whole book, not a two-question stub. A stub cannot reach this
  * code at all — the role classifier withholds a verdict below 20 entries, and

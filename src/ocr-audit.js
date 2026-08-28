@@ -14,6 +14,14 @@
 //   ORDER     do the labels run in the same order as the answer book prints
 //             them? A crossing is evidence of a misread label.
 //
+// The order check reports two different things, because they answer different
+// questions and an earlier revision conflated them under one name. A *break* is
+// a place where the sequence steps backwards — how many times the reading order
+// is interrupted. An *inversion* is any pair of matches that appear in the
+// opposite order to the answer book — the standard measure, and the one that
+// says how badly scrambled the sequence is. One backward step at the very front
+// of a long run is a single break but a great many inversions.
+//
 // Neither establishes correctness. They bound the claim: a match from a page
 // that never printed its label is suspect, and a set with no order inversions
 // has at least not scrambled the book. Deciding a match is CORRECT still needs
@@ -69,12 +77,24 @@ export function auditOcrMatches({ events = [], headingPages = new Map(), goldLab
     .sort((a, b) => a.page - b.page)
     .map(e => ({ page: e.page, label: e.label, rank: goldRank.get(e.label) }));
 
-  const inversions = [];
+  // Adjacent backward steps: how often the sequence is interrupted.
+  const breaks = [];
   for (let i = 1; i < ordered.length; i++) {
     if (ordered[i].rank < ordered[i - 1].rank) {
-      inversions.push({ from: ordered[i - 1], to: ordered[i] });
+      breaks.push({ from: ordered[i - 1], to: ordered[i] });
     }
   }
+
+  // Genuine inversions: every pair reading in the wrong order. Quadratic, on a
+  // few hundred matches, and worth the honesty of the name.
+  let inversions = 0;
+  for (let i = 0; i < ordered.length; i++) {
+    for (let j = i + 1; j < ordered.length; j++) {
+      if (ordered[j].rank < ordered[i].rank) inversions++;
+    }
+  }
+  const n = ordered.length;
+  const maxInversions = (n * (n - 1)) / 2;
 
   const gold = goldLabels.length;
   return {
@@ -89,8 +109,11 @@ export function auditOcrMatches({ events = [], headingPages = new Map(), goldLab
     rawShare: gold ? Number((distinctAny.size / gold).toFixed(4)) : null,
     startAlignedShare: gold ? Number((distinctStartAligned.size / gold).toFixed(4)) : null,
     comparableForOrder: ordered.length,
-    orderInversions: inversions.length,
-    orderInversionExamples: inversions.slice(0, 5),
+    orderBreaks: breaks.length,
+    orderBreakExamples: breaks.slice(0, 5),
+    orderInversions: inversions,
+    maxOrderInversions: maxInversions,
+    orderInversionRate: maxInversions ? Number((inversions / maxInversions).toFixed(4)) : null,
   };
 }
 
