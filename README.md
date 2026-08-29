@@ -38,6 +38,12 @@ and **insufficient-evidence downgrade to REVIEW**. See
 [`demo/fixtures`](demo/fixtures) for the public-domain source and regeneration
 instructions.
 
+Prefer a quick portfolio walkthrough? Watch the
+[75.83-second English demo](demo/video/find-engine-demo.mp4). It shows those
+same three outcomes using verified browser captures from the workbench. The
+video can be rebuilt with `tools/build-demo-video.py` when Pillow and FFmpeg are
+available; neither is a runtime dependency of the matching engine.
+
 ## At a glance
 
 | | | |

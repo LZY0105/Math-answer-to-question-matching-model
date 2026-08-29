@@ -26,6 +26,8 @@ npm run demo:web
 
 随后打开 <http://127.0.0.1:4173>。工作台会对屏幕上显示的两份 PDF 运行真实引擎，依次展示：**24 道精确自动匹配**、**错书拒绝**和**证据不足降级为 REVIEW**。公共领域样本源及重新生成说明位于 [`demo/fixtures`](demo/fixtures)。
 
+如果只想快速了解项目，可观看这段[75.83 秒英文演示视频](demo/video/find-engine-demo.mp4)。视频使用工作台的真实浏览器检查画面展示相同的三种结果；安装 Pillow 和 FFmpeg 后可通过 `tools/build-demo-video.py` 重新生成，它们都不是匹配引擎的运行时依赖。
+
 ## 一览
 
 | | | |
