@@ -8,12 +8,35 @@ student reading a textbook sees the answer for the question in front of them.
 Given two PDFs with no shared identifiers beyond what is printed in them, it
 decides which answer entry belongs to which question — or refuses.
 
-Pure JavaScript, no dependencies, no network. Extracted from an Android maths
-study tablet app, where it runs entirely on-device.
+Pure JavaScript, zero runtime dependencies, no network. Extracted from an
+Android maths study tablet app, where it runs entirely on-device. The public
+PDF demo uses PDF.js as a development-only adapter; the core under `src/`
+remains dependency-free.
 
 > **📄 [Research report](RESEARCH-REPORT.md)** — full design rationale,
 > evaluation methodology, ablation study, parameter sweeps, and five documented
 > negative results. Everything below is a summary; the report is the detail.
+
+## Public demo
+
+The repository includes a CC0 synthetic exercise book, its matching answer key,
+and a wrong-year answer key. Run all three safety paths from a clean clone:
+
+```bash
+npm install && npm run demo
+```
+
+Or open the local evidence workbench:
+
+```bash
+npm run demo:web
+```
+
+Then visit <http://127.0.0.1:4173>. The workbench runs the real engine over the
+two PDFs shown on screen: **24 exact automatic matches**, **wrong-book refusal**,
+and **insufficient-evidence downgrade to REVIEW**. See
+[`demo/fixtures`](demo/fixtures) for the public-domain source and regeneration
+instructions.
 
 ## At a glance
 
@@ -22,7 +45,7 @@ study tablet app, where it runs entirely on-device.
 | Questions resolved, three real textbook pairs | **996 / 996**, zero wrong | [Capability](#capability) |
 | Invalid document pairings that produce an automatic answer | **0 of 60** — 52 before the gates were derived rather than trusted | [Safety](#safety) |
 | Negative results documented with their measurements | **5** | [report §7](RESEARCH-REPORT.md#7-negative-results) |
-| Checks in the suite / on a clean clone with no corpus | **278 / 220**, 0 failed | [Tests](#tests) |
+| Checks in the suite / on a clean clone with no corpus | **292 / 234**, 0 failed | [Tests](#tests) |
 
 And, because a matching engine that only advertises its wins is the exact
 failure this one is built against:
@@ -40,7 +63,7 @@ failure this one is built against:
   than by decision.
 - Figures from the real books cannot be reproduced from a clone: the corpus is
   extracted from copyrighted textbooks and is not committed. A clean clone runs
-  the 220 synthetic checks and skips the rest, saying which are skipped and why.
+  the 234 synthetic checks and skips the rest, saying which are skipped and why.
 
 ## The problem
 
@@ -344,8 +367,9 @@ of whichever question is open, never questions in their own right.
 ## Tests
 
 ```bash
-npm test              # all ten suites, 278 checks
+npm test              # all eleven suites, 292 checks
 npm run test:unit     # synthetic fixtures only, no corpus needed
+npm run test:demo     # public PDFs, CLI/HTTP adapter, and safety paths
 npm run test:scenarios  # bookmarks, no bookmarks, and the 60 invalid pairs
 ```
 

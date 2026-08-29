@@ -1,0 +1,12 @@
+{
+  "fixture": "Find-Engine public synthetic corpus",
+  "language": "zh-CN",
+  "year": "2026",
+  "wrongYear": "2025",
+  "subject": "数学分析",
+  "chapter": "第1章 导数与函数",
+  "institution": "示例大学",
+  "questionCount": 24,
+  "license": "CC0-1.0",
+  "notice": "All names, questions, and answers in this fixture are synthetic."
+}

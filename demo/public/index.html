@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A local, reproducible Find-Engine demo using public synthetic PDFs.">
+  <title>Find-Engine · Evidence Workbench</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <!--
+  THESIS: A calm evidence workbench where every answer is earned, reviewed, or refused.
+  OWN-WORLD: Editorial paper, ink rules, mathematical notation, and a decision ledger—not SaaS chrome.
+  STORY: Choose a scenario, inspect both source documents, follow the matching trace, verify the evidence.
+  FIRST VIEWPORT: Identity strip, three scenario controls, paired PDFs, and the current decision are visible together.
+  FORM: A split-document desk joined by a narrow decision spine and one continuous evidence ledger.
+  FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+  -->
+  <header class="topbar">
+    <a class="brand" href="#workbench" aria-label="Find-Engine demo home">
+      <svg aria-hidden="true" viewBox="0 0 32 32" width="28" height="28">
+        <path d="M5 7.5h9.5c3.6 0 6.5 2.9 6.5 6.5v11H11.5A6.5 6.5 0 0 1 5 18.5Z"/>
+        <path d="M21 9.5h6v15.5H17.5"/>
+        <path d="m12 16 2.8 2.8L20 13.6"/>
+      </svg>
+      <span>Find-Engine</span>
+    </a>
+    <div class="topbar-meta">
+      <span class="local-mark"><span aria-hidden="true"></span>Local demo</span>
+      <span class="core-mark"><span class="desktop-core">Zero-dependency core</span><span class="mobile-core">0 runtime deps</span></span>
+      <a href="https://github.com/LZY0105/Math-answer-to-question-matching-model">GitHub</a>
+    </div>
+  </header>
+
+  <main id="workbench">
+    <section class="intro" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">Public synthetic fixture · 24 questions</p>
+        <h1 id="page-title">Evidence before answers.</h1>
+        <p class="lede">Run three safety-critical paths against real PDFs and the real matching engine. The interface never upgrades uncertain evidence into an automatic answer.</p>
+      </div>
+      <dl class="proof-strip" aria-label="Repository evidence">
+        <div><dt>Validated corpus</dt><dd>996</dd><span>paired questions</span></div>
+        <div><dt>Invalid pairings</dt><dd>0 / 60</dd><span>auto-answered</span></div>
+        <div><dt>Public fixture</dt><dd>24 / 24</dd><span>expected matches</span></div>
+      </dl>
+    </section>
+
+    <section class="scenario-bar" aria-labelledby="scenario-title">
+      <div class="scenario-copy">
+        <span class="section-index">01</span>
+        <div>
+          <h2 id="scenario-title">Choose a decision path</h2>
+          <p>Each control reruns the engine from the two PDFs shown below.</p>
+        </div>
+      </div>
+      <div class="scenario-tabs" role="group" aria-label="Demo scenarios">
+        <button class="scenario-tab is-active" type="button" data-scenario="correct" aria-pressed="true">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>
+          <span><strong>Correct pair</strong><small>Automatic match</small></span>
+        </button>
+        <button class="scenario-tab" type="button" data-scenario="wrong" aria-pressed="false">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3 3 20h18Z"/><path d="M12 9v5m0 3h.01"/></svg>
+          <span><strong>Wrong book</strong><small>Identity refusal</small></span>
+        </button>
+        <button class="scenario-tab" type="button" data-scenario="insufficient" aria-pressed="false">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5m0 3h.01"/></svg>
+          <span><strong>Insufficient evidence</strong><small>Review cap</small></span>
+        </button>
+      </div>
+    </section>
+
+    <section class="workbench" id="decision-workbench" aria-label="Document matching workbench" data-state="loading">
+      <article class="document-pane exercise-pane">
+        <header class="pane-header">
+          <div><span class="pane-kicker">Source A</span><h2>Exercise book</h2></div>
+          <span class="page-count" id="exercise-pages">25 pages</span>
+        </header>
+        <div class="file-row">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 2h8l4 4v16H6Z"/><path d="M14 2v5h5"/></svg>
+          <span id="exercise-name">find-engine-exercise-book.pdf</span>
+        </div>
+        <div class="pdf-frame">
+          <iframe id="exercise-pdf" title="Synthetic exercise book PDF" src="/fixtures/find-engine-exercise-book.pdf#page=2&toolbar=0&navpanes=0&view=FitH"></iframe>
+          <a id="exercise-open" class="open-file" href="/fixtures/find-engine-exercise-book.pdf" target="_blank" rel="noreferrer">Open PDF <span aria-hidden="true">↗</span></a>
+        </div>
+      </article>
+
+      <aside class="decision-spine" aria-labelledby="decision-title">
+        <div class="spine-rule" aria-hidden="true"><span></span></div>
+        <div class="mobile-source-strip" aria-label="Selected document pair">
+          <div>
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 2h8l4 4v16H6Z"/><path d="M14 2v5h5"/></svg>
+            <p><small>Source A · Exercise</small><strong id="mobile-exercise-name">find-engine-exercise-book.pdf</strong></p>
+          </div>
+          <span aria-hidden="true">→</span>
+          <div>
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 2h8l4 4v16H6Z"/><path d="M14 2v5h5"/></svg>
+            <p><small>Source B · Answer</small><strong id="mobile-answer-name">find-engine-answer-key.pdf</strong></p>
+          </div>
+        </div>
+        <div class="decision-state" id="decision-state">
+          <span class="state-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>
+          </span>
+          <p class="state-label" id="state-label">Running engine</p>
+          <h2 id="decision-title">Checking the evidence…</h2>
+          <p id="decision-description">Reading both document structures and establishing pair identity.</p>
+        </div>
+        <div class="trace" aria-label="Decision trace">
+          <div class="trace-step" data-trace="identity"><span>1</span><p><strong>Pair identity</strong><small id="trace-identity">Year · subject · role</small></p></div>
+          <div class="trace-step" data-trace="question"><span>2</span><p><strong>Question evidence</strong><small id="trace-question">Bookmarks · label · formula</small></p></div>
+          <div class="trace-step" data-trace="verdict"><span>3</span><p><strong>Safety verdict</strong><small id="trace-verdict">Awaiting result</small></p></div>
+        </div>
+        <dl class="run-stats">
+          <div><dt>Results</dt><dd id="result-count">—</dd></div>
+          <div><dt>Elapsed</dt><dd id="elapsed">—</dd></div>
+        </dl>
+        <button class="rerun-button" id="rerun" type="button">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+          Run this path again
+        </button>
+      </aside>
+
+      <article class="document-pane answer-pane">
+        <header class="pane-header">
+          <div><span class="pane-kicker">Source B</span><h2>Answer key</h2></div>
+          <span class="page-count" id="answer-pages">25 pages</span>
+        </header>
+        <div class="file-row">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 2h8l4 4v16H6Z"/><path d="M14 2v5h5"/></svg>
+          <span id="answer-name">find-engine-answer-key.pdf</span>
+        </div>
+        <div class="pdf-frame">
+          <iframe id="answer-pdf" title="Synthetic answer key PDF" src="/fixtures/find-engine-answer-key.pdf#page=2&toolbar=0&navpanes=0&view=FitH"></iframe>
+          <a id="answer-open" class="open-file" href="/fixtures/find-engine-answer-key.pdf" target="_blank" rel="noreferrer">Open PDF <span aria-hidden="true">↗</span></a>
+        </div>
+      </article>
+    </section>
+
+    <section class="ledger" aria-labelledby="ledger-title">
+      <header class="ledger-heading">
+        <div class="scenario-copy">
+          <span class="section-index">02</span>
+          <div><h2 id="ledger-title">Evidence ledger</h2><p>The facts behind the current verdict, not a decorative confidence score.</p></div>
+        </div>
+        <p class="run-note" id="run-note" aria-live="polite">Running the correct-pair path…</p>
+      </header>
+      <div class="ledger-grid">
+        <article class="ledger-entry">
+          <span class="ledger-number">A</span>
+          <div><h3>Document identity</h3><p id="identity-evidence">Reading years, subjects, and document roles.</p></div>
+          <strong class="evidence-verdict" id="identity-verdict">Pending</strong>
+        </article>
+        <article class="ledger-entry">
+          <span class="ledger-number">B</span>
+          <div><h3>Question evidence</h3><p id="question-evidence">Waiting for a verified document pair.</p></div>
+          <strong class="evidence-verdict" id="question-verdict">Pending</strong>
+        </article>
+        <article class="ledger-entry">
+          <span class="ledger-number">C</span>
+          <div><h3>Safety action</h3><p id="safety-evidence">No answer is shown until the gates finish.</p></div>
+          <strong class="evidence-verdict" id="safety-verdict">Pending</strong>
+        </article>
+      </div>
+      <div class="match-excerpt">
+        <div><span>Selected question</span><p id="question-excerpt">—</p></div>
+        <svg aria-hidden="true" viewBox="0 0 48 24"><path d="M2 12h40"/><path d="m36 6 6 6-6 6"/></svg>
+        <div><span>Proposed answer</span><p id="answer-excerpt">—</p></div>
+      </div>
+    </section>
+
+    <section class="scope-note" aria-labelledby="scope-title">
+      <span class="section-index">03</span>
+      <div><h2 id="scope-title">What this demo proves</h2><p>It is a reproducible product path over public synthetic PDFs: exact structural matches, document-pair refusal, and evidence-based downgrade. It does not claim OCR accuracy or generalise the private corpus results to every PDF.</p></div>
+      <code>npm install &amp;&amp; npm run demo:web</code>
+    </section>
+  </main>
+
+  <footer>
+    <span>Find-Engine public demo</span>
+    <span>Runs locally · No uploads · Synthetic fixture</span>
+  </footer>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

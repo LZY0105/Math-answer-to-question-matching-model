@@ -26,8 +26,11 @@
     "./body-structure": "./src/body-structure.js"
   },
   "scripts": {
-    "test": "node test/test_tools.js && node test/test_question_matcher.js && node test/test_answer_index.js && node test/test_text_source.js && node test/test_glyph_map.js && node test/test_structure.js && node test/test_matching_engine.js && node test/test_real_pdfs.js && node test/test_no_bookmarks.js && node test/test_corpus_regression.js",
-    "test:unit": "node test/test_tools.js && node test/test_question_matcher.js && node test/test_answer_index.js && node test/test_text_source.js && node test/test_glyph_map.js && node test/test_structure.js && node test/test_matching_engine.js",
+    "demo": "node demo/cli.mjs",
+    "demo:web": "node demo/server.mjs",
+    "test": "node test/test_tools.js && node test/test_question_matcher.js && node test/test_answer_index.js && node test/test_text_source.js && node test/test_glyph_map.js && node test/test_structure.js && node test/test_matching_engine.js && node test/test_demo.js && node test/test_real_pdfs.js && node test/test_no_bookmarks.js && node test/test_corpus_regression.js",
+    "test:unit": "node test/test_tools.js && node test/test_question_matcher.js && node test/test_answer_index.js && node test/test_text_source.js && node test/test_glyph_map.js && node test/test_structure.js && node test/test_matching_engine.js && node test/test_demo.js",
+    "test:demo": "node test/test_demo.js",
     "test:real": "node test/test_real_pdfs.js && node test/test_no_bookmarks.js && node test/test_corpus_regression.js",
     "test:nobookmarks": "node test/test_no_bookmarks.js",
     "test:scenarios": "node test/test_corpus_regression.js",
@@ -41,5 +44,7 @@
     "ocr"
   ],
   "license": "MIT",
-  "dependencies": {}
+  "devDependencies": {
+    "pdfjs-dist": "4.10.38"
+  }
 }

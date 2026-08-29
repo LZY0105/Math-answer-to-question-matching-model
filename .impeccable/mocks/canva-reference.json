@@ -1,0 +1,10 @@
+{
+  "provider": "Canva",
+  "designId": "DAHTlaPNzs8",
+  "title": "Refined Find-Engine Developer Dashboard",
+  "viewUrl": "https://www.canva.com/d/feYOB7C3gcTYrsr",
+  "editUrl": "https://www.canva.com/d/syz5wko6sYLEfKX",
+  "approved": true,
+  "approval": "Delegated selection: retained the split-document topology, paper-and-ink palette, central trace, and evidence ledger; rejected the generated placeholder copy and excessive empty space.",
+  "prompt": "Create a clean, elegant desktop web dashboard visual concept for an open-source developer portfolio project called Find-Engine. The product matches math exercise questions in one PDF to answers in another PDF and can safely refuse. This should look like a serious local developer tool, not a marketing poster. 1440x900 composition. Use a refined ink-navy background or off-white paper background, restrained sage-green for AUTO_MATCH, muted amber for REVIEW, and soft red only for BLOCKED. Show a slim top bar with 'Find-Engine' and 'Local · Zero-dependency core'. Main area: two document panels titled Exercise book and Answer key with understated PDF page previews, a central connection trace, and a right-side decision panel. Include three compact scenario tabs: Correct pair, Wrong book, Insufficient evidence. Show honest metrics: 996 validated questions / zero wrong on three paired corpora, 0 of 60 invalid pairings auto-answered, 278 checks passed. Include a small label 'Synthetic public fixture'. Typography should feel editorial and technical, generous whitespace, hairline dividers, subtle grid, no gradients, no glassmorphism, no oversized hero headline, no stock photos, no fake testimonials, no 3D icons. Prioritize usability, hierarchy, and a calm high-trust feel."
+}

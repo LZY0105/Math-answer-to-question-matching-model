@@ -38,6 +38,8 @@ group('1. every shipped script parses');
 // Node's --check is the cheapest possible test and the one that was missing.
 const scripts = [
   ...readdirSync(join(ROOT, 'tools')).filter(f => f.endsWith('.mjs')).map(f => join('tools', f)),
+  ...readdirSync(join(ROOT, 'demo')).filter(f => f.endsWith('.mjs')).map(f => join('demo', f)),
+  ...readdirSync(join(ROOT, 'demo', 'public')).filter(f => f.endsWith('.js')).map(f => join('demo', 'public', f)),
   ...readdirSync(join(ROOT, 'src')).filter(f => f.endsWith('.js')).map(f => join('src', f)),
   ...readdirSync(join(ROOT, 'test')).filter(f => f.endsWith('.js')).map(f => join('test', f)),
 ];

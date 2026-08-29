@@ -17,8 +17,12 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
-      # No dependencies by design — there is nothing to install.
-      #
+      # The published core keeps zero runtime dependencies. The public PDF demo
+      # uses PDF.js as a development-only adapter, so CI installs the locked
+      # development dependency before exercising that integration path.
+      - name: Install development dependencies
+        run: npm ci
+
       # test:unit leads with test_tools.js, which parses every shipped script.
       # It is there because a released tool once did not parse at all: the other
       # suites import from src/ and never from tools/, so a file Node could not

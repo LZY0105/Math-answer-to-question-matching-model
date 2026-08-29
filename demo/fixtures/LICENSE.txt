@@ -1,0 +1,12 @@
+Find-Engine public synthetic PDF fixture
+
+To the extent possible under law, the author has waived all copyright and
+related or neighboring rights to demo/fixtures/source.json and the three PDFs
+generated from it under output/pdf/demo.
+
+This work is published from China under the Creative Commons CC0 1.0 Universal
+Public Domain Dedication. See the full legal code at:
+https://creativecommons.org/publicdomain/zero/1.0/legalcode
+
+This dedication does not change the MIT license that applies to the Find-Engine
+software source code.
