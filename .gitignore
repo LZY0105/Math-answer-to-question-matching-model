@@ -12,3 +12,8 @@ find-engine-corpus/
 # extracted text from copyrighted textbooks and must never enter the repo;
 # the measurement scripts beside it are reproducible from tools/.
 tmp/
+
+# Page renders used to proofread the Chinese paper before release. Output, not
+# source: regenerate from the PDF. Kept out because `git add -A` swept the
+# neighbouring figures/ directory in once already.
+qa_chinese_report/

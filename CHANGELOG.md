@@ -63,9 +63,12 @@ rather than the engine quietly matching noise at ordinary confidence.
 
 ## What is measured, and what is not
 
-Against the real 2023 pair: 508/508 questions resolved, zero wrong matches, 100%
-`HIGH`-confidence precision, per-page p95 0.01 ms, 9 ms to index the 372-page
-key. The 2024 volumes index at 271 and 217, all ids distinct.
+Against the real 2023 pair, the current default strict policy resolves 470/508
+distinct questions and the calibrated policy resolves 508/508; both produce
+zero wrong matches. On the 29 August 2026 run, per-page p95 was 3.17 ms and the
+372-page answer key indexed in 308 ms. The 2024 volumes index at 271 and 217,
+all ids distinct; strict-policy recall is 159/271 and 175/217, while the
+calibrated policy restores full recall with zero observed wrong answers.
 
 Stages 1–3 are measured too, by stripping the bookmark trees and scoring what
 remains against an oracle built *from* those trees — see
@@ -84,11 +87,12 @@ table of contents as a label-to-location index is what moved it. Regime C is
 still all but dead, and saying so is more useful than averaging it away.
 
 Per-page cost rises with the same loss of structure, and the range across the
-three matched pairs matters more than any single figure: 1–3 ms in regime A,
-61–808 ms in B, 327–1,573 ms in C, 51–925 ms in D. The top of regime C has
-reached the 1,500 ms alignment deadline, so results there are produced by expiry
-rather than by decision — read them as "refuses within 1.5 s" until bounded
-retrieval lands. The figures come from `figures/latency-by-regime.data.json`,
+three matched pairs matters more than any single figure: 3–7 ms in regime A,
+181–2,165 ms in B, 978–2,003 ms in C, and 144–1,874 ms in D on the 29 August
+2026 full-book run. Most degraded pairs now fall to `UNKNOWN_PAIR` and emit no
+automatic answer, so these are safe-degradation costs rather than ordinary
+matching latencies. Several values exceed the 1,500 ms alignment deadline;
+bounded retrieval remains outstanding. The figures come from `figures/latency-by-regime.data.json`,
 which `tools/measure-regimes.mjs` writes; an earlier revision hardcoded 507 ms
 into the drawing script and it went stale silently.
 

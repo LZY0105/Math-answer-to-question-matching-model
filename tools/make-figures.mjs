@@ -218,10 +218,10 @@ function ablation() {
   const pw = W - L - R, ph = H - T - B;
 
   const regimes = [
-    { name: 'both\nbookmarked', precision: 100, refused: 0, n: '872 accepted' },
-    { name: 'key not\nbookmarked', precision: 100, refused: 98.4, n: '14 accepted' },
-    { name: 'exercise not\nbookmarked', precision: 100, refused: 21.6, n: '77 accepted †' },
-    { name: 'neither\nbookmarked', precision: 100, refused: 82.0, n: '8 accepted †' },
+    { name: 'both\nbookmarked', precision: 100, refused: 8.9, n: '794 accepted' },
+    { name: 'key not\nbookmarked', precision: 100, refused: 17.8, n: '717 accepted' },
+    { name: 'exercise not\nbookmarked', precision: 100, refused: 98.0, n: '2 accepted †' },
+    { name: 'neither\nbookmarked', precision: 100, refused: 10.2, n: '44 accepted †' },
   ];
 
   const y = (v) => T + ph - (ph * v) / 100;

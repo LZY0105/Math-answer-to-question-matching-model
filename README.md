@@ -17,6 +17,10 @@ remains dependency-free.
 > evaluation methodology, ablation study, parameter sweeps, and five documented
 > negative results. Everything below is a summary; the report is the detail.
 
+> **Chinese publication:** [Markdown](Find-Engine_%E4%B8%AD%E6%96%87%E7%A0%94%E7%A9%B6%E6%8A%A5%E5%91%8A.md) ·
+> [PDF](Find-Engine_%E4%B8%AD%E6%96%87%E7%A0%94%E7%A9%B6%E6%8A%A5%E5%91%8A_%E8%AE%BA%E6%96%87%E7%89%88.pdf) ·
+> [DOCX](Find-Engine_%E4%B8%AD%E6%96%87%E7%A0%94%E7%A9%B6%E6%8A%A5%E5%91%8A_%E8%AE%BA%E6%96%87%E7%89%88.docx)
+
 ## Public demo
 
 The repository includes a CC0 synthetic exercise book, its matching answer key,
@@ -48,7 +52,8 @@ available; neither is a runtime dependency of the matching engine.
 
 | | | |
 |---|---|---|
-| Questions resolved, three real textbook pairs | **996 / 996**, zero wrong | [Capability](#capability) |
+| Default strict-policy automatic recall, three real textbook pairs | **804 / 996**, zero wrong | [Capability](#capability) |
+| Calibrated-policy alignment capability | **996 / 996**, zero wrong | [Capability](#capability) |
 | Invalid document pairings that produce an automatic answer | **0 of 60** — 52 before the gates were derived rather than trusted | [Safety](#safety) |
 | Negative results documented with their measurements | **5** | [report §7](RESEARCH-REPORT.md#7-negative-results) |
 | Checks in the suite / on a clean clone with no corpus | **292 / 234**, 0 failed | [Tests](#tests) |

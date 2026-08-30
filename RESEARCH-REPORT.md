@@ -2,7 +2,7 @@
 
 **A technical report**
 
-*Version 1.0 — 25 August 2026*
+*Version 2.1 — 30 August 2026*
 
 ---
 
@@ -25,11 +25,14 @@ return, and *how much to trust it*.
 
 The evaluation corpus is eight published 考研数学 volumes forming three matched
 pairs with bookmark trees on both sides, one scanned pair, and sixty invalid
-combinations. On the three matched pairs the identifier stage alone resolves
-508, 271 and 217 questions with zero errors at 95th-percentile per-page
-latencies of 1–2 ms. Across all sixty invalid combinations — wrong year, wrong
-subject, two answer keys, two exercise books, reversed roles — the system emits
-no automatic answer at all.
+combinations. The three matched pairs contain 996 question-answer
+correspondences. Under the default strict formula policy, 804 of 996 are
+automatically resolved (470/508, 159/271 and 175/217), with zero observed wrong
+answers; the switchable calibrated policy resolves 996 of 996, also with zero
+observed wrong answers. Full-book 95th-percentile per-page latency is 3–7 ms
+when both bookmark trees are present. Across all sixty invalid combinations —
+wrong year, wrong subject, two answer keys, two exercise books, reversed roles —
+the system emits no automatic answer at all.
 
 We report an architectural finding and five negative results. The finding is
 that most of what looked like a precision/recall frontier was defect: three
@@ -453,8 +456,9 @@ them. Every character-ratio test a quality gate might apply passes on it,
 because the handful of characters recovered are perfectly good Chinese. It is
 the case that motivates §3.6.
 
-The three matched pairs give 1,992 questions with independent ground truth on
-both sides. Sixty further combinations are formed by pairing documents that do
+The three matched pairs give 996 question-answer correspondences with
+independent ground truth on both sides (1,992 indexed entries in total). Sixty
+further combinations are formed by pairing documents that do
 not belong together — wrong year, wrong subject, answer against answer, exercise
 against exercise, and the reversed orientation — and are used in §5.1.
 
@@ -498,14 +502,18 @@ has entirely correct roles and is still the wrong pair.
 
 ### 5.2 Capability, with structure intact
 
-| Pair | Resolved | Wrong | p95 per page |
-|---|---:|---:|---:|
-| 2023 | 508 / 508 | **0** | 1 ms |
-| 2024 Mathematical Analysis | 271 / 271 | **0** | 2 ms |
-| 2024 Advanced Algebra | 217 / 217 | **0** | 1 ms |
+| Pair | Default strict policy | Calibrated capability | Wrong under either | p95 per page |
+|---|---:|---:|---:|---:|
+| 2023 | 470 / 508 (92.5%) | 508 / 508 | **0** | 3 ms |
+| 2024 Mathematical Analysis | 159 / 271 (58.7%) | 271 / 271 | **0** | 7 ms |
+| 2024 Advanced Algebra | 175 / 217 (80.6%) | 217 / 217 | **0** | 3 ms |
+| **Total** | **804 / 996 (80.7%)** | **996 / 996** | **0** | **3–7 ms** |
 
-All resolve at stage 0. The result is unrepresentative by construction — it
-measures one stage — and the remaining stages are evaluated by ablation.
+The identifier stage finds all 996 correspondences, but the default product
+policy applies an additional formula-coverage gate before an answer may reach
+`AUTO_MATCH`. The calibrated policy shows the alignment capability when that
+gate is relaxed; it is not the shipped default. Both policies produced zero
+wrong answers in this corpus. The remaining stages are evaluated by ablation.
 
 ### 5.3 Ablation methodology
 
@@ -533,19 +541,23 @@ own heading — is tolerated at its measured rate.
 
 ### 5.4 Degraded structure
 
-Precision never falls, and no valid pair is ever rejected for missing a bookmark
-tree. What changes is which rung carries the recall.
+Precision of the accepted matches remains 100%, but the public interface is now
+more conservative than the internal ablation harness. Missing structural
+evidence is not a hard rejection: it lowers the pair to `UNKNOWN_PAIR`, which
+permits `REVIEW` and `LOCATED` but forbids `AUTO_MATCH`. In the current public
+full-book measurement, removing the answer-key bookmarks yields zero automatic
+answers for all three pairs; removing the exercise-book bookmarks preserves 17
+distinct automatic answers only for the 2023 pair and zero for the two 2024
+pairs. No accepted answer is wrong.
 
-Two repairs account for most of the recall that a naive ablation loses. The
-2023 answer key prints its own table of contents, so body parsing found every
-identifier twice and refused 825 of 872 lookups as ambiguous — with the true
-answer among the two candidates every time. And running heads inflated
-similarity between unrelated entries. Excluding both is not a precision/recall
-trade: the surplus entries were never right, and their presence suppressed the
-entries that were. With the printed contents additionally read as an index
-(§3.10), unique recall in the no-answer-bookmarks regime moves from 8 of 508 to
-490, and per-page p95 from 204 ms to 1 ms, because a corroborated location
-resolves without content comparison.
+The internal 2023 ablation, scored against the independent bookmark oracle,
+shows what evidence still exists below that public ceiling. With both trees it
+identifies 470 distinct questions under the strict policy; without answer-key
+bookmarks it identifies 429; without exercise-book bookmarks, 2; and without
+either tree, 44. The printed contents and running-head suppression recover
+candidate identity and location, but they do not manufacture document-pair
+identity. This is a transfer of recall to safer rungs, not proof that the missing
+bookmarks are irrelevant.
 
 ![Precision stays at 100% across regimes while the refusal rate climbs](figures/ablation-precision-refusal.svg)
 
@@ -558,30 +570,27 @@ refusal rate.
 ![95th-percentile per-page latency by regime](figures/latency-by-regime.svg)
 
 **Figure 3.** 95th-percentile per-page matching latency, as a range across the
-three matched pairs; each dot is one pair. A single bar would hide that the same
-regime costs 61 ms on one pair and 808 ms on another.
+three matched pairs; each dot is one pair. The measurement was rerun on 29
+August 2026 from the committed generator rather than transcribed into the paper.
 
-| Regime | p95 across the three pairs |
-|---|---:|
-| Both bookmarked | 1–3 ms |
-| Answer key not bookmarked | 61–808 ms |
-| Exercise book not bookmarked | 327–1,573 ms |
-| Neither bookmarked | 51–925 ms |
+| Regime | p95 across the three pairs | Public-interface outcome |
+|---|---:|---|
+| Both bookmarked | 3–7 ms | `VERIFIED_PAIR`; strict automatic recall 58.7–92.5% |
+| Answer key not bookmarked | 181–2,165 ms | `UNKNOWN_PAIR`; 0 automatic answers |
+| Exercise book not bookmarked | 978–2,003 ms | 2023 retains 17 distinct; both 2024 pairs are `UNKNOWN_PAIR` |
+| Neither bookmarked | 144–1,874 ms | `UNKNOWN_PAIR`; 0 automatic answers |
 
-Bookmarked pages never reach content scoring, which is why the first row is flat
-against the axis. The rest are governed by how much body text each question must
-be compared against, and the 2024 volumes — whose entries carry two to three
-times the text of the 2023 pair — dominate the upper end of every range.
+Bookmarked pages never reach the expensive body-text comparison path, which is
+why the first row remains in single-digit milliseconds. The degraded rows are
+not directly comparable capability figures: most now terminate under the pair
+identity gate, and their latency includes the work needed to establish that the
+evidence is insufficient.
 
-The upper end matters more than the spread. At 1,573 ms the worst regime has
-reached the 1,500 ms alignment deadline, which means results there are produced
-by expiry rather than by decision. The system reports a timeout instead of
-returning the partial table’s answer, so the failure is safe — but a deadline
-that is being *reached* is no longer a backstop, it is the mechanism, and a
-measurement taken at that point describes the deadline rather than the
-algorithm. Bounded candidate retrieval is the outstanding work, and until it
-lands the degraded regimes should be read as "refuses within 1.5 s", not as a
-latency figure.
+Several degraded p95 values exceed the 1,500 ms alignment deadline. The system
+reports timeout or a lower rung instead of returning a partial dynamic-program
+answer, so the failure remains safe. These numbers should be read as the cost of
+safe degradation on the measured desktop, not as an interactive latency target.
+Bounded candidate retrieval remains outstanding work.
 
 The figure is generated from `figures/latency-by-regime.data.json`, which
 `tools/measure-regimes.mjs` produces. An earlier revision hardcoded these
@@ -801,7 +810,7 @@ one is most tempted to trust it.
 A product rule was specified: an automatic match must have a counterpart in the
 answer for *every* complete mathematical expression in the question, with no
 structural conflict. The rule is defensible in principle — partial agreement is
-weak evidence — and it was measured against 1,992 known-correct pairs.
+weak evidence — and it was measured against 996 known-correct correspondences.
 
 As originally specified it would have refused 218 of 400 correct 2023 pairs and
 **every** correct pair in both 2024 volumes. Median coverage on true pairs was
@@ -835,7 +844,8 @@ often than a short one, which is the opposite of what the rule intends.
 
 Enforced as specified it costs 7.5%, 41.3% and 19.4% of recall across the three
 pairs and buys, on this corpus, no precision at all: both policies produce zero
-wrong matches, because the identifier is already correct on all 1,992 questions.
+wrong matches, because the identifier is already correct on all 996
+correspondences (1,992 indexed entries across the two sides).
 The rule ships enforced by default with the cost measured and a documented
 switch, and both branches are exercised in the test suite so neither can drift.
 Whether the trade is worth making is a product decision, and stating it as such
@@ -909,11 +919,13 @@ performance and memory are unmeasured.
 
 ## 9. Conclusion
 
-The system meets its central objective. On the three matched pairs it resolves
-every question correctly; across sixty invalid document combinations it emits no
-automatic answer at all; and under ablation it produces no wrong answer in any
-regime. That property is preserved by refusing, and the cost of refusing is
-reported rather than absorbed.
+The system meets its central safety objective. Under the default strict policy,
+it automatically resolves 804 of 996 known correspondences with zero observed
+wrong answers; the calibrated policy resolves 996 of 996, also with zero
+observed wrong answers. Across sixty invalid document combinations it emits no
+automatic answer at all, and every ablation regime preserves zero observed wrong
+answers by lowering or refusing claims when evidence disappears. The cost of
+that refusal is reported rather than absorbed.
 
 Four observations generalise beyond this corpus.
 

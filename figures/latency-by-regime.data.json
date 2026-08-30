@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-27T14:48:57.296Z",
+  "generatedAt": "2026-08-29T14:48:53.469Z",
   "source": "tools/measure-regimes.mjs",
   "note": "p95 per-page matching latency, full book, no sampling. Derived counts only.",
   "deadlineMs": 1500,
@@ -11,19 +11,19 @@
       "pairs": [
         {
           "pair": "2023",
-          "p95": 1
-        },
-        {
-          "pair": "2024 Math Analysis",
           "p95": 3
         },
         {
+          "pair": "2024 Math Analysis",
+          "p95": 7
+        },
+        {
           "pair": "2024 Adv Algebra",
-          "p95": 1
+          "p95": 3
         }
       ],
-      "minP95": 1,
-      "maxP95": 3
+      "minP95": 3,
+      "maxP95": 7
     },
     {
       "key": "ansNone",
@@ -31,19 +31,19 @@
       "pairs": [
         {
           "pair": "2023",
-          "p95": 61
+          "p95": 181
         },
         {
           "pair": "2024 Math Analysis",
-          "p95": 808
+          "p95": 2165
         },
         {
           "pair": "2024 Adv Algebra",
-          "p95": 567
+          "p95": 1632
         }
       ],
-      "minP95": 61,
-      "maxP95": 808
+      "minP95": 181,
+      "maxP95": 2165
     },
     {
       "key": "exNone",
@@ -51,19 +51,19 @@
       "pairs": [
         {
           "pair": "2023",
-          "p95": 327
+          "p95": 978
         },
         {
           "pair": "2024 Math Analysis",
-          "p95": 1573
+          "p95": 2003
         },
         {
           "pair": "2024 Adv Algebra",
-          "p95": 842
+          "p95": 1830
         }
       ],
-      "minP95": 327,
-      "maxP95": 1573
+      "minP95": 978,
+      "maxP95": 2003
     },
     {
       "key": "neither",
@@ -71,19 +71,19 @@
       "pairs": [
         {
           "pair": "2023",
-          "p95": 51
+          "p95": 144
         },
         {
           "pair": "2024 Math Analysis",
-          "p95": 664
+          "p95": 1874
         },
         {
           "pair": "2024 Adv Algebra",
-          "p95": 925
+          "p95": 895
         }
       ],
-      "minP95": 51,
-      "maxP95": 925
+      "minP95": 144,
+      "maxP95": 1874
     }
   ]
 }
