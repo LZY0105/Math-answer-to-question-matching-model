@@ -11,7 +11,7 @@ from docx import Document
 from docx.enum.section import WD_SECTION
 from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
-from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK, WD_LINE_SPACING
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Inches, Pt, RGBColor
@@ -399,49 +399,30 @@ def read_version(markdown_path: Path):
             return m.group(1).strip(), m.group(2).strip()
     raise SystemExit("no '*版本 X｜日期*' line found in %s" % markdown_path)
 
-def add_cover(doc: Document, version: str, date: str):
-    for _ in range(4):
-        p = doc.add_paragraph()
-        p.paragraph_format.space_after = Pt(12)
-
+def add_title_block(doc: Document, version: str, date: str):
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p.paragraph_format.space_after = Pt(16)
-    run = p.add_run("技术研究报告")
-    set_run_font(run, cjk=HEAD_CJK, size=11, bold=True, color=GOLD)
+    p.paragraph_format.space_after = Pt(6)
+    p.paragraph_format.keep_together = True
+    p.paragraph_format.keep_with_next = True
+    run = p.add_run("Find-Engine：面向成对数学 PDF 的")
+    set_run_font(run, cjk=HEAD_CJK, size=20, bold=True, color=NAVY)
 
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p.paragraph_format.space_after = Pt(8)
     p.paragraph_format.keep_together = True
-    run = p.add_run("Find-Engine")
-    set_run_font(run, cjk=HEAD_CJK, size=30, bold=True, color=NAVY)
-
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p.paragraph_format.space_after = Pt(18)
-    p.paragraph_format.keep_together = True
-    run = p.add_run("面向成对数学 PDF 的\n确定性题目-答案对齐")
+    p.paragraph_format.keep_with_next = True
+    run = p.add_run("确定性题目-答案对齐")
     set_run_font(run, cjk=HEAD_CJK, size=18, bold=True, color=TEAL)
-    set_paragraph_border_bottom(p, color=GOLD, size="12", space="12")
 
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p.paragraph_format.space_before = Pt(24)
-    p.paragraph_format.space_after = Pt(5)
-    run = p.add_run(version)
-    set_run_font(run, cjk=HEAD_CJK, size=10.5, color=MUTED)
-
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p.paragraph_format.space_after = Pt(5)
-    run = p.add_run(date)
-    set_run_font(run, cjk=HEAD_CJK, size=10.5, color=MUTED)
-
-    for _ in range(5):
-        p = doc.add_paragraph()
-        p.paragraph_format.space_after = Pt(13)
-    p.add_run().add_break(WD_BREAK.PAGE)
+    p.paragraph_format.space_after = Pt(12)
+    p.paragraph_format.keep_with_next = True
+    set_paragraph_border_bottom(p, color=GOLD, size="8", space="8")
+    run = p.add_run(f"{version}　{date}")
+    set_run_font(run, cjk=HEAD_CJK, size=9.5, color=MUTED)
 
 
 def choose_widths(rows: list[list[str]]) -> list[int]:
@@ -738,7 +719,8 @@ def build(markdown_path: Path, output_path: Path, figures_dir: Path):
     configure_section(section)
     configure_styles(doc)
     add_running_furniture(section)
-    add_cover(doc, *read_version(markdown_path))
+    section.different_first_page_header_footer = False
+    add_title_block(doc, *read_version(markdown_path))
     num_id = add_numbering_definition(doc)
 
     doc.core_properties.title = "Find-Engine：面向成对数学 PDF 的确定性题目-答案对齐"
@@ -770,7 +752,7 @@ def build(markdown_path: Path, output_path: Path, figures_dir: Path):
                 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 p.paragraph_format.space_before = Pt(0)
                 p.paragraph_format.space_after = Pt(10)
-            elif title.startswith("附录 A"):
+            elif title.startswith("附录 "):
                 p.paragraph_format.page_break_before = True
             add_inline(p, title, size=15, color=NAVY, cjk=HEAD_CJK)
             for run in p.runs:

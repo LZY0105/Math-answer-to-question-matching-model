@@ -285,18 +285,6 @@ def make_styles():
     }
 
 
-def draw_first_page(canvas, doc):
-    canvas.saveState()
-    width, height = A4
-    canvas.setStrokeColor(GOLD)
-    canvas.setLineWidth(2)
-    canvas.line(30 * mm, 25 * mm, 30 * mm, height - 25 * mm)
-    canvas.setStrokeColor(colors.HexColor("#E5E9EC"))
-    canvas.setLineWidth(0.6)
-    canvas.rect(18 * mm, 18 * mm, width - 36 * mm, height - 36 * mm)
-    canvas.restoreState()
-
-
 def draw_later_pages(canvas, doc):
     canvas.saveState()
     width, height = A4
@@ -325,25 +313,31 @@ def read_version(markdown_path: Path):
             return m.group(1).strip(), m.group(2).strip()
     raise SystemExit("no '*版本 X｜日期*' line found in %s" % markdown_path)
 
-def cover_story(styles, version, date):
-    story = [Spacer(1, 43 * mm)]
-    kicker = ParagraphStyle("Kicker", fontName="MSYH-Bold", fontSize=11, leading=16, textColor=GOLD, alignment=TA_CENTER)
-    title = ParagraphStyle("Title", fontName="MSYH-Bold", fontSize=30, leading=37, textColor=NAVY, alignment=TA_CENTER)
-    subtitle = ParagraphStyle("Subtitle", fontName="MSYH-Bold", fontSize=18, leading=28, textColor=TEAL, alignment=TA_CENTER)
-    meta = ParagraphStyle("Meta", fontName="MSYH", fontSize=10.5, leading=18, textColor=MUTED, alignment=TA_CENTER)
-    story.append(Paragraph("技术研究报告", kicker))
-    story.append(Spacer(1, 8 * mm))
-    story.append(Paragraph("Find-Engine", title))
-    story.append(Spacer(1, 3 * mm))
-    story.append(Paragraph("面向成对数学 PDF 的<br/>确定性题目-答案对齐", subtitle))
-    story.append(Spacer(1, 7 * mm))
-    story.append(HRFlowable(width="70%", thickness=1.5, color=GOLD, hAlign="CENTER"))
-    story.append(Spacer(1, 14 * mm))
-    story.append(Paragraph(version, meta))
-    story.append(Paragraph(date, meta))
-    story.append(Spacer(1, 40 * mm))
-    story.append(PageBreak())
-    return story
+def title_story(version, date):
+    title = ParagraphStyle(
+        "PaperTitle",
+        fontName="MSYH-Bold",
+        fontSize=20,
+        leading=28,
+        textColor=NAVY,
+        alignment=TA_CENTER,
+        spaceAfter=7,
+    )
+    meta = ParagraphStyle(
+        "PaperMeta",
+        fontName="MSYH",
+        fontSize=9.5,
+        leading=15,
+        textColor=MUTED,
+        alignment=TA_CENTER,
+    )
+    return [
+        Paragraph("Find-Engine：面向成对数学 PDF 的<br/>确定性题目-答案对齐", title),
+        Paragraph(f"{version}　{date}", meta),
+        Spacer(1, 2 * mm),
+        HRFlowable(width="100%", thickness=0.8, color=GOLD, hAlign="CENTER"),
+        Spacer(1, 4 * mm),
+    ]
 
 
 def choose_col_widths(rows):
@@ -417,7 +411,7 @@ def build(markdown_path: Path, output_path: Path, figures_dir: Path):
     register_fonts()
     styles = make_styles()
     lines = markdown_path.read_text(encoding="utf-8").splitlines()
-    story = cover_story(styles, *read_version(markdown_path))
+    story = title_story(*read_version(markdown_path))
     start = next(i for i, line in enumerate(lines) if line.startswith("## 摘要"))
     i = start
     table_no = 0
@@ -433,7 +427,7 @@ def build(markdown_path: Path, output_path: Path, figures_dir: Path):
         if line.startswith("## "):
             title = line[3:].strip()
             in_abstract = title == "摘要"
-            if title.startswith("附录 A"):
+            if title.startswith("附录 "):
                 story.append(PageBreak())
             story.append(Paragraph(markup(title), styles["h1"]))
             i += 1
@@ -519,7 +513,7 @@ def build(markdown_path: Path, output_path: Path, figures_dir: Path):
         subject="确定性题目-答案对齐技术研究报告",
         author="",
     )
-    doc.build(story, onFirstPage=draw_first_page, onLaterPages=draw_later_pages)
+    doc.build(story, onFirstPage=draw_later_pages, onLaterPages=draw_later_pages)
 
 
 def main():
