@@ -1,5 +1,8 @@
 # Find-Engine
 
+> Find-Engine is the question-to-answer matching model used by the
+> [duiye](https://github.com/LZY0105/duiye) application.
+
 [English](README.md) | [简体中文](README.zh-CN.md)
 
 Matches exercise-book questions to their answers in a separate answer key, so a

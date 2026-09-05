@@ -1,5 +1,7 @@
 # Find-Engine
 
+> Find-Engine 是 [duiye](https://github.com/LZY0105/duiye) 软件使用的题目与答案匹配模型。
+
 [English](README.md) | [简体中文](README.zh-CN.md)
 
 把习题册中的题目与另一本答案册里的答案对应起来，让正在阅读教材的学生能直接看到眼前题目的答案。
