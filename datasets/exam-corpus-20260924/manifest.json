@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "corpusId": "exam-corpus-20260924",
+  "date": "2026-09-24",
+  "repository": "LZY0105/Math-answer-to-question-matching-model",
+  "releaseTag": "exam-corpus-20260924",
+  "releaseUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/tag/exam-corpus-20260924",
+  "fileCount": 8,
+  "pdfCount": 8,
+  "totalBytes": 246109076,
+  "scope": "User-provided 2023-2025 mathematics postgraduate entrance-exam PDFs for future development and testing; not a new accuracy claim.",
+  "files": [
+    {"id":"exam-001","originalName":"2025年数学专业考研真题分类_573题完整答案解析.pdf","bytes":1215215,"sha256":"d27af445ea11b04afd4b7e188482f230371eb93e316a7ea2091c608749917141","assetName":"exam-001-d27af445ea11.pdf","downloadUrl":"https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/exam-corpus-20260924/exam-001-d27af445ea11.pdf","kind":"pdf"},
+    {"id":"exam-002","originalName":"2024年名校数学专业考研真题分类_数学分析完整答案.pdf","bytes":65906506,"sha256":"ab9d30db5197b01db54194667b4ea1cd71079e9d11dbe0469d1d15c3b6e76787","assetName":"exam-002-ab9d30db5197.pdf","downloadUrl":"https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/exam-corpus-20260924/exam-002-ab9d30db5197.pdf","kind":"pdf"},
+    {"id":"exam-003","originalName":"2024年名校数学专业考研真题分类_高等代数完整答案.pdf","bytes":52257676,"sha256":"388db34cd7678c9b9a36cd186b63c639381a6d8c892c32c8cc8aa6d2b71fb3c4","assetName":"exam-003-388db34cd767.pdf","downloadUrl":"https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/exam-corpus-20260924/exam-003-388db34cd767.pdf","kind":"pdf"},
+    {"id":"exam-004","originalName":"2024年名校数学专业考研真题分类_数学分析留白作答版.pdf","bytes":69250428,"sha256":"04bdc1d03d655e018daa94b91eb28bc52f12715d0effcd3af17922f883cbcc72","assetName":"exam-004-04bdc1d03d65.pdf","downloadUrl":"https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/exam-corpus-20260924/exam-004-04bdc1d03d65.pdf","kind":"pdf"},
+    {"id":"exam-005","originalName":"2024年名校数学专业考研真题分类_高等代数留白作答版.pdf","bytes":54785738,"sha256":"7cfa19b27ea83faff0daf120bb79ecde2a60ce0f8b34976caaeb1a2aa8e95eba","assetName":"exam-005-7cfa19b27ea8.pdf","downloadUrl":"https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/exam-corpus-20260924/exam-005-7cfa19b27ea8.pdf","kind":"pdf"},
+    {"id":"exam-006","originalName":"2023年名校数学专业考研真题分类.pdf","bytes":558230,"sha256":"e3a502ae39928e1d5764d6292f66ceea5fa9723c7d69ac7b40a7c0aa4f20bd93","assetName":"exam-006-e3a502ae3992.pdf","downloadUrl":"https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/exam-corpus-20260924/exam-006-e3a502ae3992.pdf","kind":"pdf"},
+    {"id":"exam-007","originalName":"2023年名校数学专业考研真题分类_完整答案解析.pdf","bytes":1437590,"sha256":"dd15188b3e48d180f7259241ba26e21ceb71dda98fe31d68550408baa40d24ff","assetName":"exam-007-dd15188b3e48.pdf","downloadUrl":"https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/exam-corpus-20260924/exam-007-dd15188b3e48.pdf","kind":"pdf"},
+    {"id":"exam-008","originalName":"2025年数学专业考研真题.pdf","bytes":697693,"sha256":"24352c2fa9c4ca508a0321511c613a984a4c4ef3441d98097dd17ef79de5f5d6","assetName":"exam-008-24352c2fa9c4.pdf","downloadUrl":"https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/exam-corpus-20260924/exam-008-24352c2fa9c4.pdf","kind":"pdf"}
+  ]
+}
