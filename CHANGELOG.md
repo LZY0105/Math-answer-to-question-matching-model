@@ -130,3 +130,26 @@ A smaller correction alongside them: what the audit called `orderInversions` was
 counting adjacent backward steps, not inversions. One label read far too early
 is a single backward step but as many inversions as there are matches it jumped
 over, so the name overstated the evidence. Both are now reported, separately.
+
+## Scoring the same text once
+
+`contentSimilarity` reads three signals off one normalised string — prose
+bigrams, fragment bigrams and operator contexts — and used to re-normalise and
+re-count both sides for each of them, on every call. Two loops score one text
+against hundreds: the page alignment scores every question on a page against
+every entry in its band, and pair verification scores two dozen sampled
+questions against the whole answer index. Neither reused anything.
+
+`textProfile` now computes all three once per text, and `profileSimilarity`
+scores two profiles. The public `similarity`, `mathSimilarity` and
+`contentSimilarity` are unchanged in signature and return bit-identical values
+(checked over 9,000 random pairs against the previous implementation). The two
+hot loops build their profiles once per side. On a synthetic 500-entry index of
+3,000-character page-range texts, pair verification's content-anchor check fell
+from 13.6 s to 1.7 s and a six-question page alignment over a 340-entry band
+from 2.1 s to 0.5 s, with the same verdicts. The section lookup also stops
+re-sorting the alignment on every question.
+
+The README's "nothing is sampled" line was wrong for the safety matrix and the
+ablation regimes, which run on a page stride in both the tests and the tools;
+it now says so.

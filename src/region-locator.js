@@ -28,6 +28,23 @@ export const REGION_BASIS = Object.freeze({
 });
 
 /**
+ * The alignment's usable pairs in exercise-page order, computed once per
+ * alignment. This is asked for once per question on every page turn, and the
+ * alignment does not change between calls.
+ */
+const sortedPairsCache = new WeakMap();
+function sortedPairs(alignment) {
+  let sorted = sortedPairsCache.get(alignment);
+  if (!sorted) {
+    sorted = [...(alignment.pairs ?? [])]
+      .filter(p => p.exercise?.pageNumber && p.answer?.pageNumber)
+      .sort((a, b) => a.exercise.pageNumber - b.exercise.pageNumber);
+    sortedPairsCache.set(alignment, sorted);
+  }
+  return sorted;
+}
+
+/**
  * The answer-book page range for one exercise page, from the section alignment.
  *
  * The aligned pairs are sorted by exercise page and the last pair at or before
@@ -42,9 +59,7 @@ export function sectionRangeForPage(alignment, exercisePage, answerPageCount) {
   if (!alignment?.available) return null;
   if (!Number.isFinite(exercisePage)) return null;
 
-  const sorted = [...(alignment.pairs ?? [])]
-    .filter(p => p.exercise?.pageNumber && p.answer?.pageNumber)
-    .sort((a, b) => a.exercise.pageNumber - b.exercise.pageNumber);
+  const sorted = sortedPairs(alignment);
   if (sorted.length === 0) return null;
 
   let index = -1;

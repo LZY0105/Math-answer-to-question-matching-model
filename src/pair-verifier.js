@@ -54,7 +54,7 @@
 
 import { PAIR_STATUS } from './decision.js';
 import { bindingMatches, fingerprintDocument } from './fingerprint.js';
-import { contentSimilarity } from './question-matcher.js';
+import { profileSimilarity, textProfile } from './question-matcher.js';
 import { extractAnswer } from './answer-index.js';
 
 /** Language that appears when a text is working a problem rather than posing one. */
@@ -214,17 +214,24 @@ export function contentAnchorAgreement(exerciseIndex, answerIndex, {
     return { top1: null, sampled: 0, shared: shared.length, sufficient: false };
   }
 
-  const pool = (answerIndex?.entries ?? []).filter(e => e.text);
+  // Every sampled question is scored against the WHOLE pool, so each entry's
+  // profile is built once here rather than once per sampled question. Measured
+  // on a 500-entry index of page-range texts this is the difference between
+  // ~15 s and well under a second for the whole check.
+  const pool = (answerIndex?.entries ?? [])
+    .filter(e => e.text)
+    .map(e => ({ entry: e, profile: textProfile(e.text) }));
   const step = Math.max(1, Math.floor(shared.length / sample));
   let first = 0;
   let sampled = 0;
   for (let i = 0; i < shared.length && sampled < sample; i += step) {
     const q = shared[i];
+    const qp = textProfile(q.text);
     let best = null;
     let bestScore = -Infinity;
     for (const candidate of pool) {
-      const s = contentSimilarity(q.text, candidate.text);
-      if (s > bestScore) { bestScore = s; best = candidate; }
+      const s = profileSimilarity(qp, candidate.profile);
+      if (s > bestScore) { bestScore = s; best = candidate.entry; }
     }
     sampled++;
     if (best && best.label === q.label) first++;

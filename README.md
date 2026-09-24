@@ -168,7 +168,10 @@ turn genuine ambiguity into a confident wrong answer.
 ## Results
 
 Eight documents: three matched exercise/answer pairs with bookmarks on both
-sides, and one scanned pair. Every figure is full-book; nothing is sampled.
+sides, and one scanned pair. The capability figures are full-book. The safety
+matrix and the degraded-structure regimes are run on a page stride (about 25
+pages per invalid combination, every eighth page in the ablation), because
+their question is whether *any* automatic answer escapes, not how many.
 
 ### Safety
 
