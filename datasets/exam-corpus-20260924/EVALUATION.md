@@ -75,19 +75,51 @@ from the previous section that happened to overlap the right chapter. The
 answer range now uses the answer node's own span, or the next aligned section
 at the same or a shallower depth.
 
-## The 2024 pairs
+## The 2024 pairs, and what the algebra shortfall was
 
-| Pair | Strict-policy recall | Floor in the suite | Wrong |
+On the first run the algebra pair resolved 173 under the strict policy against
+a floor of 175, identically on both branches, and the analysis pair 161
+against 159. The 44 algebra questions withheld were 36 formula conflicts, 6
+missing sets and 2 incomplete extractions, and the conflicts read like
+`2x-5x2+x-1` against `2x3-x2+4x-1`: the same polynomial with digits missing
+on each side. Two causes, found in that order.
+
+**The entry-text cleaner deleted digits.** To remove a page number the
+extractor had glued onto an expression, `createTextCleaner` deleted every
+isolated occurrence of the entry's page numbers from its text. Question 2.3
+sits on pages 3 and 4, so every lone 3 and 4 in it vanished: `2x^3 − 5x^2 + 4x
+− 1` lost its cube and its 4, and `例题 2.3` lost the 3 of its own label
+(extracting as `例题 2. .`). The raw pdf.js items had every digit. The cleaner
+now drops only a line that is nothing but the page number. `src/entry-text.js`
+
+**The adapter lost superscripts.** Rows were grouped by a 2.5-point baseline
+tolerance. Body text at 10.5 pt puts subscripts 1.6 pt below the baseline,
+inside that, and superscripts 4.4 pt above it, outside — so a line's exponents
+assembled into a row of their own and the line read `x + x + 1` for
+`x^3 + 3x + 1`. The adapter now attaches a smaller item to a larger row when it
+sits within 0.7 of the row's font size and starts where one of the row's items
+ends, in that item's whitespace. Bounds of ∫, ∑, ∏ and lim are excluded: they
+sit beside their operator exactly as a script would, and the two books typeset
+them differently enough that attaching them agreed on neither side.
+`demo/pdfjs-document-adapter.mjs`
+
+Strict-policy recall under each rule, with the cleaner fix in place. The floors
+are the suite's, measured on the host app's reader.
+
+| Row grouping | 2024 Algebra (175) | 2024 Analysis (159) | 2023 (470) |
 |---|---|---|---|
-| 2024 Mathematical Analysis | 161 / 271 | 159 | 0 |
-| 2024 Advanced Algebra | 173 / 217 | 175 | 0 |
+| Baseline only, as before | 176 | 162 | 471 |
+| Nearest baseline within reach | 175 | 154 | 481 |
+| Adjacent to a base item | 176 | 154 | 475 |
+| Adjacent, in the line's whitespace | 176 | 157 | 474 |
+| **…and not after a large operator** | **176** | **159** | **474** |
 
-Identical on both branches. The algebra pair sits two below its floor, and the
-floor was measured on text extracted through the host app's own reader with
-its own line grouping; this extraction groups lines by a 2.5-point baseline
-tolerance in the demo adapter. A two-question difference in strict formula
-coverage between two extractors of the same PDF is within what §7.5 of the
-report describes.
+Zero wrong under every rule and every policy. The cleaner fix alone clears
+every floor. Script attachment is a fidelity gain for inline exponents, worth
+three questions on the 2023 pair, and a wash on the analysis pair, whose
+questions are display mathematics — fractions, limits, integrals — that no
+row rule reads consistently across two typesettings. The final rule is kept
+because it reads what is printed; the row it replaced read `x` for `x^3`.
 
 ## Reproducing
 

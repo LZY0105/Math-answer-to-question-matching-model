@@ -67,9 +67,21 @@ pages per pairing.
 |---|---|
 | Ordered pairings | 552 |
 | Producing any automatic answer | **0** |
-| Blocked at document level (role or subject conflict) | 32 |
-| Held at OCR_REQUIRED | 488 |
-| Held at UNKNOWN_PAIR with a text layer both sides | 32 |
+| Blocked at document level (role or subject conflict) | 0 |
+| Held at OCR_REQUIRED | 510 |
+| Held at UNKNOWN_PAIR with a text layer both sides | 42 |
+
+An earlier extraction of the same volumes blocked 33 pairings. Every one of
+them involved the 谷超豪 answer book (book-049, 44 pages, 35 entries), which
+scored 1.00 on answer language and 1.00 on explicit answers and so read as a
+confirmed ANSWER; on its left it was rejected as a wrong role, on its right a
+subject conflict could be checked. Under the adapter's final row grouping it
+scores 0.97 and 0.94, two entries fewer with a recognisable answer marker, and
+the 0.97 explicit-answer threshold turns it UNKNOWN. UNKNOWN still forbids an
+automatic answer, so the safety count is unchanged; what moved is the role
+threshold, by two entries out of thirty-five, on a change in how text lines
+are assembled. That is the transfer problem noted below, measured a second
+way.
 
 No pairing was verified, which is correct: none is a matched pair with text
 on both sides.

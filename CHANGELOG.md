@@ -202,3 +202,17 @@ of 508 strict, 508 of 508 calibrated, zero wrong, the ablation regimes at
 against 175) that the demo adapter's line grouping accounts for. Getting there fixed the answer-side range as well: it stopped at a
 chapter's first aligned section, and now uses the answer node's own span.
 `datasets/exam-corpus-20260924/EVALUATION.md` has the account.
+
+## The algebra shortfall, root-caused
+
+Two findings from asking why the algebra pair sat two questions below its
+strict floor. The entry-text cleaner deleted every isolated occurrence of an
+entry's page numbers from its text, so a question on pages 3 and 4 lost every
+lone 3 and 4 — its cubes, its coefficients, the 3 of its own label. It now
+drops only a line that is nothing but the page number. And the demo adapter
+grouped rows by a 2.5-point baseline tolerance that kept subscripts and lost
+every superscript into a row of its own; it now attaches a smaller item that
+starts where a row's item ends, in that item's whitespace, and leaves the
+bounds of ∫, ∑, ∏ and lim alone. Measured on the three pairs, the cleaner fix
+alone clears every floor; the row rule adds three questions on 2023 and is
+neutral on the display-heavy analysis pair. All floors met, zero wrong.
