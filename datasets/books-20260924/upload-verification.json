@@ -1,0 +1,520 @@
+{
+  "verifiedAt": "2026-09-24T10:38:44.975Z",
+  "releaseId": 395548848,
+  "releaseTag": "test-corpus-20260924",
+  "method": "GitHub asset state, byte size, and server SHA-256 digest compared to local source SHA-256",
+  "files": [
+    {
+      "id": "book-001",
+      "assetName": "book-001-6eb9c449f9d8.pdf",
+      "assetId": 585681952,
+      "size": 299612858,
+      "digest": "sha256:6eb9c449f9d883b1782f7898bbfdf83e86865b23ca924f8458a4bf31b6cf016e",
+      "verified": true
+    },
+    {
+      "id": "book-002",
+      "assetName": "book-002-a6f5e48d2254.pdf",
+      "assetId": 585683631,
+      "size": 412262630,
+      "digest": "sha256:a6f5e48d22547b93edeb93556acfa0389392f4b2870da51e42db294b3a0cdbe5",
+      "verified": true
+    },
+    {
+      "id": "book-003",
+      "assetName": "book-003-f6652654505d.pdf",
+      "assetId": 585685851,
+      "size": 21189421,
+      "digest": "sha256:f6652654505d0b1d4ca5fa1dcebb562f288693e7304f0c8eae23c78fc51d8eb7",
+      "verified": true
+    },
+    {
+      "id": "book-004",
+      "assetName": "book-004-f5a8c9184b61.pdf",
+      "assetId": 585685965,
+      "size": 163759341,
+      "digest": "sha256:f5a8c9184b61bc989a5c4f0955692cc679eada43677ce33ae0ac97be4532e2ae",
+      "verified": true
+    },
+    {
+      "id": "book-005",
+      "assetName": "book-005-30864d14ec1b.pdf",
+      "assetId": 585686877,
+      "size": 347914766,
+      "digest": "sha256:30864d14ec1b1fb684aa30c234434593e5af79c4d93f80e2c774fb0985f58142",
+      "verified": true
+    },
+    {
+      "id": "book-006",
+      "assetName": "book-006-14de0a7a37d8.pdf",
+      "assetId": 585688611,
+      "size": 75902179,
+      "digest": "sha256:14de0a7a37d8113326baf4d378a893e41766b062facb0b5c732245f4a706306f",
+      "verified": true
+    },
+    {
+      "id": "book-007",
+      "assetName": "book-007-693c497a8476.pdf",
+      "assetId": 585689058,
+      "size": 153126629,
+      "digest": "sha256:693c497a84763540b607f191872484fac8212d9d80961d0670fa2f17ae3876c2",
+      "verified": true
+    },
+    {
+      "id": "book-008",
+      "assetName": "book-008-064b72a54ef9.pdf",
+      "assetId": 585689819,
+      "size": 119698830,
+      "digest": "sha256:064b72a54ef9236f43708dc1cfb47d704252124f3726c912da43d3cab026e56f",
+      "verified": true
+    },
+    {
+      "id": "book-009",
+      "assetName": "book-009-230556c54067.pdf",
+      "assetId": 585690537,
+      "size": 110120950,
+      "digest": "sha256:230556c54067a1c184f1782830a738f88036390810aa019a10660b177db94cf1",
+      "verified": true
+    },
+    {
+      "id": "book-010",
+      "assetName": "book-010-de8b95e5da0a.pdf",
+      "assetId": 585691185,
+      "size": 113032592,
+      "digest": "sha256:de8b95e5da0ab867cae7c8c2c372cc387b8c61294af1f1891c971ab7868d3302",
+      "verified": true
+    },
+    {
+      "id": "book-011",
+      "assetName": "book-011-7c7a2137ee4e.pdf",
+      "assetId": 585691859,
+      "size": 281449899,
+      "digest": "sha256:7c7a2137ee4e6a65a4b0b698850a718bf2f0bea15d622f65a4c4a90fff00bf94",
+      "verified": true
+    },
+    {
+      "id": "book-012",
+      "assetName": "book-012-6bdaca5299ed.pdf",
+      "assetId": 585693671,
+      "size": 249375160,
+      "digest": "sha256:6bdaca5299edc337a07f8b6f3b9090839cfde3a4e3eabbcce636f516697d4c9f",
+      "verified": true
+    },
+    {
+      "id": "book-013",
+      "assetName": "book-013-34d0f1bab6d6.pdf",
+      "assetId": 585695208,
+      "size": 481837720,
+      "digest": "sha256:34d0f1bab6d6dce848d2fb2ad5025e87579e31d666f19f7297a1962946232520",
+      "verified": true
+    },
+    {
+      "id": "book-014",
+      "assetName": "book-014-2234a9593d36.pdf",
+      "assetId": 585697656,
+      "size": 435318774,
+      "digest": "sha256:2234a9593d360e7a42d3e79a0ec4124c0774fed84ac4c1fbb8e23b1f21efd399",
+      "verified": true
+    },
+    {
+      "id": "book-015",
+      "assetName": "book-015-dfc226cf7ff4.pdf",
+      "assetId": 585699977,
+      "size": 98181383,
+      "digest": "sha256:dfc226cf7ff45553c5ea88cda1564d3cbf055d55acf0aa4e65a95cea05bdace4",
+      "verified": true
+    },
+    {
+      "id": "book-016",
+      "assetName": "book-016-6dda7c126ac3.pdf",
+      "assetId": 585700545,
+      "size": 116335811,
+      "digest": "sha256:6dda7c126ac3ef408e5cf620a03b4dcfbec357a6b0d12eb7c640bff45ac3c11c",
+      "verified": true
+    },
+    {
+      "id": "book-017",
+      "assetName": "book-017-a00db4bc05af.pdf",
+      "assetId": 585701193,
+      "size": 44798956,
+      "digest": "sha256:a00db4bc05af45431db5280f6770c9a7e4ef17b96e17db6bd7a99d51a64bf06a",
+      "verified": true
+    },
+    {
+      "id": "book-018",
+      "assetName": "book-018-119f31217a7e.pdf",
+      "assetId": 585701451,
+      "size": 118018621,
+      "digest": "sha256:119f31217a7e31f2e97e2c31378157e21c5be3552d8d758842683968f7c464eb",
+      "verified": true
+    },
+    {
+      "id": "book-019",
+      "assetName": "book-019-5129ea577911.pdf",
+      "assetId": 585702025,
+      "size": 121959694,
+      "digest": "sha256:5129ea577911d6caac3fbb10e4fbb10efc339057e1a7e9fe9c2d57a66365ab11",
+      "verified": true
+    },
+    {
+      "id": "book-020",
+      "assetName": "book-020-9caea68bcbdd.pdf",
+      "assetId": 585702719,
+      "size": 141849950,
+      "digest": "sha256:9caea68bcbddd8a65f8d81f00715854bb618c251d69c1f218d84325c2c109a84",
+      "verified": true
+    },
+    {
+      "id": "book-021",
+      "assetName": "book-021-ce854f3b4d8f.pdf",
+      "assetId": 585703552,
+      "size": 87589413,
+      "digest": "sha256:ce854f3b4d8fdec76d2cff7d135af864a1d46529a98fb8831448130ffd9d76f7",
+      "verified": true
+    },
+    {
+      "id": "book-022",
+      "assetName": "book-022-1934a0367ba6.pdf",
+      "assetId": 585704099,
+      "size": 5763680,
+      "digest": "sha256:1934a0367ba616bbaedaddbd6f740e7fa9b15d1d5646efbc2d6d17b694188428",
+      "verified": true
+    },
+    {
+      "id": "book-023",
+      "assetName": "book-023-376dbc3aafa7.pdf",
+      "assetId": 585704173,
+      "size": 60051370,
+      "digest": "sha256:376dbc3aafa7921b3fa7d213c2a32f6514621df6388952eddeb7cb2a7cbed6ea",
+      "verified": true
+    },
+    {
+      "id": "book-024",
+      "assetName": "book-024-bdcb975edad0.pdf",
+      "assetId": 585704577,
+      "size": 353313436,
+      "digest": "sha256:bdcb975edad041a77b9d040032c9fdbbf610f77c8020aac61639d98dee76371e",
+      "verified": true
+    },
+    {
+      "id": "book-025",
+      "assetName": "book-025-da99c87657ad.pdf",
+      "assetId": 585706520,
+      "size": 46997908,
+      "digest": "sha256:da99c87657ad86972439202e09c71b1e2d85afd93ba0197207c8f0dd5e66753e",
+      "verified": true
+    },
+    {
+      "id": "book-026",
+      "assetName": "book-026-6144c336d080.pdf",
+      "assetId": 585706783,
+      "size": 18469466,
+      "digest": "sha256:6144c336d080859d6c49a09a653342239af7dd71d38b15d58425a43308015f2d",
+      "verified": true
+    },
+    {
+      "id": "book-027",
+      "assetName": "book-027-149994e42d5a.pdf",
+      "assetId": 585706884,
+      "size": 10235975,
+      "digest": "sha256:149994e42d5adb53b9742526a2933e0ab9a52ef2bc78c023e4dffb388442d62c",
+      "verified": true
+    },
+    {
+      "id": "book-028",
+      "assetName": "book-028-b0c1583eb65b.pdf",
+      "assetId": 585706935,
+      "size": 68768408,
+      "digest": "sha256:b0c1583eb65b2d0bc7f51149d9277d8e709121eb445fa86ca2ca3ede91dd70b7",
+      "verified": true
+    },
+    {
+      "id": "book-029",
+      "assetName": "book-029-fa516fdb6e95.pdf",
+      "assetId": 585707381,
+      "size": 409831071,
+      "digest": "sha256:fa516fdb6e9557272a6aaba4b51a2ca7453c41e48b347170e930fe3075055c70",
+      "verified": true
+    },
+    {
+      "id": "book-030",
+      "assetName": "book-030-caa24f265e64.pdf",
+      "assetId": 585709532,
+      "size": 91797083,
+      "digest": "sha256:caa24f265e644a89d318c156660fe20b4b9eb2c529ec96b908f9cb0beade2696",
+      "verified": true
+    },
+    {
+      "id": "book-031",
+      "assetName": "book-031-423dda1552ab.pdf",
+      "assetId": 585710162,
+      "size": 22486964,
+      "digest": "sha256:423dda1552ab4709f387f968f92828f494064ac1f4feff1b4380192b3e612a18",
+      "verified": true
+    },
+    {
+      "id": "book-032",
+      "assetName": "book-032-1a056f2850f4.pdf",
+      "assetId": 585710305,
+      "size": 316556640,
+      "digest": "sha256:1a056f2850f45b8f6894d5afb8cae869ef3908b00dc56909cf2194f11f3a4fc4",
+      "verified": true
+    },
+    {
+      "id": "book-033",
+      "assetName": "book-033-639220abc519.pdf",
+      "assetId": 585711972,
+      "size": 435226918,
+      "digest": "sha256:639220abc51960fc6f72687dddc860334bb472a8a6ea9e4b3c61ed60e97f3a68",
+      "verified": true
+    },
+    {
+      "id": "book-034",
+      "assetName": "book-034-80a7dab9b0b0.pdf",
+      "assetId": 585714044,
+      "size": 139195079,
+      "digest": "sha256:80a7dab9b0b01b541b57aed890399628cf7635c47a5db949b3b02ac69865130e",
+      "verified": true
+    },
+    {
+      "id": "book-035",
+      "assetName": "book-035-b0f799d03aa5.pdf",
+      "assetId": 585714882,
+      "size": 135372552,
+      "digest": "sha256:b0f799d03aa587b5b75921ebc40d999283547b8a5ea478271bccd1d1a81bfeb7",
+      "verified": true
+    },
+    {
+      "id": "book-036",
+      "assetName": "book-036-d21a61290369.pdf",
+      "assetId": 585715521,
+      "size": 360002980,
+      "digest": "sha256:d21a6129036916f03447b02b4e9a68bc142bd902e9bdc1903b0fe30f1b208245",
+      "verified": true
+    },
+    {
+      "id": "book-037",
+      "assetName": "book-037-9beee58c1fb4.pdf",
+      "assetId": 585717444,
+      "size": 28577426,
+      "digest": "sha256:9beee58c1fb453ff2a32c228e09975e2678f773c31ab19119cdecc33bdacbdcf",
+      "verified": true
+    },
+    {
+      "id": "book-038",
+      "assetName": "book-038-24dc045e4dfd.pdf",
+      "assetId": 585717604,
+      "size": 3266390,
+      "digest": "sha256:24dc045e4dfd6a3942ae877f16db5da1ee50e0c8b252f876fd342655e9ad2bce",
+      "verified": true
+    },
+    {
+      "id": "book-039",
+      "assetName": "book-039-e50c892fcf94.pdf",
+      "assetId": 585717667,
+      "size": 46117020,
+      "digest": "sha256:e50c892fcf94a0c5d1fe6a2bae83e86934a28eaa46ca053a9aaa6feed198b611",
+      "verified": true
+    },
+    {
+      "id": "book-040",
+      "assetName": "book-040-b73d8d32c736.pdf",
+      "assetId": 585717947,
+      "size": 6802401,
+      "digest": "sha256:b73d8d32c7365b308fe600d59def69d1d70264a63c9f14cfefae9d269c8c2a51",
+      "verified": true
+    },
+    {
+      "id": "book-041",
+      "assetName": "book-041-432f7bd0db44.pdf",
+      "assetId": 585717997,
+      "size": 39822617,
+      "digest": "sha256:432f7bd0db44d994f20c386d226b9248401bcb3b9ea2fc09e919fbb50259502f",
+      "verified": true
+    },
+    {
+      "id": "book-042",
+      "assetName": "book-042-c84d85ed3f71.pdf",
+      "assetId": 585718197,
+      "size": 220008811,
+      "digest": "sha256:c84d85ed3f71cdcbf0ff5aa1818c87a71d7e55e440440aa5c57c191c743c3c26",
+      "verified": true
+    },
+    {
+      "id": "book-043",
+      "assetName": "book-043-c31cc05f71f6.pdf",
+      "assetId": 585719230,
+      "size": 891993,
+      "digest": "sha256:c31cc05f71f640c1dfea618ae2593a1231e1a6ff76c10c2348535b1ee1f3c3d8",
+      "verified": true
+    },
+    {
+      "id": "book-044",
+      "assetName": "book-044-d6314771c38b.pdf",
+      "assetId": 585719277,
+      "size": 2574884,
+      "digest": "sha256:d6314771c38bc2177526c4b5d83049709368937acc84dd0bee1e529f2be77cfe",
+      "verified": true
+    },
+    {
+      "id": "book-045",
+      "assetName": "book-045-de75d9048eb4.pdf",
+      "assetId": 585719343,
+      "size": 330566394,
+      "digest": "sha256:de75d9048eb41db9b075a649268f9a69479fd760dae2209b22d927ad66ed6d28",
+      "verified": true
+    },
+    {
+      "id": "book-046",
+      "assetName": "book-046-b71300eb8405.pdf",
+      "assetId": 585721233,
+      "size": 24017926,
+      "digest": "sha256:b71300eb84052d7c00e4da063bb6394a995d26ef57b927c29b10fba58fee2b28",
+      "verified": true
+    },
+    {
+      "id": "book-047",
+      "assetName": "book-047-65e9791cb43b.pdf",
+      "assetId": 585721347,
+      "size": 242591866,
+      "digest": "sha256:65e9791cb43b60c04ba0a49e518182a4dee8e509cd1c9a7bb566c1b7e2076c7a",
+      "verified": true
+    },
+    {
+      "id": "book-048",
+      "assetName": "book-048-b60d524acbd2.pdf",
+      "assetId": 585722784,
+      "size": 144357591,
+      "digest": "sha256:b60d524acbd20e4df5f382fa836f5a60756045585504afbc2fd7b2ce300c77ce",
+      "verified": true
+    },
+    {
+      "id": "book-049",
+      "assetName": "book-049-2c0914d90546.pdf",
+      "assetId": 585723537,
+      "size": 912612,
+      "digest": "sha256:2c0914d90546e9f3876b08d70b5365e12e7f6c976e197877c0da0c9cca8b9316",
+      "verified": true
+    },
+    {
+      "id": "book-050",
+      "assetName": "book-050-45d927e947d0.pdf",
+      "assetId": 585723573,
+      "size": 1912356,
+      "digest": "sha256:45d927e947d06efcdfd74667792d9faa7c5c7fb61880080eb935ab2159cf56aa",
+      "verified": true
+    },
+    {
+      "id": "book-051",
+      "assetName": "book-051-4531d2cd4d70.pdf",
+      "assetId": 585723626,
+      "size": 16455123,
+      "digest": "sha256:4531d2cd4d7042c4ca244015112e42cb03df0c8743ad537080d4096b31db8434",
+      "verified": true
+    },
+    {
+      "id": "book-052",
+      "assetName": "book-052-e8be2a6a6650.pdf",
+      "assetId": 585723736,
+      "size": 96907853,
+      "digest": "sha256:e8be2a6a6650ca51e19098cad997ad34d4ac5d0f0a011df5173fca7c88b9b07b",
+      "verified": true
+    },
+    {
+      "id": "book-053",
+      "assetName": "book-053-bab8a49f0e91.pdf",
+      "assetId": 585724283,
+      "size": 330699791,
+      "digest": "sha256:bab8a49f0e91352bf71f01ca8dc1bedb7ddf5b0966a46a0f0355c1b4ac99b83e",
+      "verified": true
+    },
+    {
+      "id": "book-054",
+      "assetName": "book-054-4ce80b842996.pdf",
+      "assetId": 585726535,
+      "size": 348902503,
+      "digest": "sha256:4ce80b8429964ff2086cae3a63da8aad99782f14f2cd1ee220b0ce368327ee23",
+      "verified": true
+    },
+    {
+      "id": "book-055",
+      "assetName": "book-055-9250e327dbe5.pdf",
+      "assetId": 585728217,
+      "size": 4743043,
+      "digest": "sha256:9250e327dbe5863caf5048fbbdeb2565ba7eb68a9e8da865e0e2bc864da4f57d",
+      "verified": true
+    },
+    {
+      "id": "book-056",
+      "assetName": "book-056-7684c97d8ee2.pdf",
+      "assetId": 585728316,
+      "size": 16083635,
+      "digest": "sha256:7684c97d8ee2f2020961023520073ec967491086ae1701776fc512b2822a4b0a",
+      "verified": true
+    },
+    {
+      "id": "book-057",
+      "assetName": "book-057-b48d88c41bf7.pdf",
+      "assetId": 585728601,
+      "size": 20414415,
+      "digest": "sha256:b48d88c41bf78b83b3c400f1b12da11a939ccad36278183b7e8ba121c04c3bfc",
+      "verified": true
+    },
+    {
+      "id": "book-058",
+      "assetName": "book-058-20196e115316.pdf",
+      "assetId": 585728780,
+      "size": 19253641,
+      "digest": "sha256:20196e115316f73c9f1924a2e4ad995c3a78197844ac62618f37a6dcc033c4cb",
+      "verified": true
+    },
+    {
+      "id": "book-059",
+      "assetName": "book-059-23b48b30ddad.pdf",
+      "assetId": 585728861,
+      "size": 144086045,
+      "digest": "sha256:23b48b30ddada68b1d3fb15a231d287bde2a42921becd2d48b72f12c09118811",
+      "verified": true
+    },
+    {
+      "id": "book-060",
+      "assetName": "book-060-c4d2e2ada10a.pdf",
+      "assetId": 585729617,
+      "size": 123734646,
+      "digest": "sha256:c4d2e2ada10ae5e11c8a6c02ce9fcec2e3fa173c9e09640f0eef592dac56cf14",
+      "verified": true
+    },
+    {
+      "id": "inventory-notes",
+      "assetName": "inventory-notes-deeb065d2eb1.txt",
+      "assetId": 585730401,
+      "size": 6380,
+      "digest": "sha256:deeb065d2eb1f14ffc738557c66ad7d2af489784a94739102630cfec7016ce0f",
+      "verified": true
+    },
+    {
+      "id": "book-061",
+      "assetName": "book-061-7039ebf05ec0.pdf",
+      "assetId": 585730439,
+      "size": 42466373,
+      "digest": "sha256:7039ebf05ec04c2f313f32c22e30f4f23b566bcaace6e1417e53ad1756e434a0",
+      "verified": true
+    },
+    {
+      "id": "book-062",
+      "assetName": "book-062-24c6261586c2.pdf",
+      "assetId": 585730653,
+      "size": 2592139,
+      "digest": "sha256:24c6261586c2e3f79364311e17ae5b2435797f74d9d4a0629aa543f4e41adc74",
+      "verified": true
+    },
+    {
+      "id": "book-063",
+      "assetName": "book-063-6b4ecfa740d6.pdf",
+      "assetId": 585730757,
+      "size": 32805053,
+      "digest": "sha256:6b4ecfa740d693400605f5c45d06c88cf457c836fc1507cd06bf0a1c79aecdde",
+      "verified": true
+    }
+  ]
+}

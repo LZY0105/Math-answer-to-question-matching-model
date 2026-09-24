@@ -1,5 +1,7 @@
 # Find-Engine
 
+> **后续开发与测试：**[Android 实测证据与复审优化方案](docs/android-performance/2026-09-13/README.md) · [书本资料、下载与校验清单](datasets/books-20260924/README.md)。优化尚未实施，新增书本资料尚未评测。
+
 > Find-Engine 是 [duiye](https://github.com/LZY0105/duiye) 软件使用的题目与答案匹配模型。
 
 [English](README.md) | [简体中文](README.zh-CN.md)
