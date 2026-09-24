@@ -130,3 +130,89 @@ A smaller correction alongside them: what the audit called `orderInversions` was
 counting adjacent backward steps, not inversions. One label read far too early
 is a single backward step but as many inversions as there are matches it jumped
 over, so the name overstated the evidence. Both are now reported, separately.
+
+## Scoring the same text once
+
+`contentSimilarity` reads three signals off one normalised string — prose
+bigrams, fragment bigrams and operator contexts — and used to re-normalise and
+re-count both sides for each of them, on every call. Two loops score one text
+against hundreds: the page alignment scores every question on a page against
+every entry in its band, and pair verification scores two dozen sampled
+questions against the whole answer index. Neither reused anything.
+
+`textProfile` now computes all three once per text, and `profileSimilarity`
+scores two profiles. The public `similarity`, `mathSimilarity` and
+`contentSimilarity` are unchanged in signature and return bit-identical values
+(checked over 9,000 random pairs against the previous implementation). The two
+hot loops build their profiles once per side. On a synthetic 500-entry index of
+3,000-character page-range texts, pair verification's content-anchor check fell
+from 13.6 s to 1.7 s and a six-question page alignment over a 340-entry band
+from 2.1 s to 0.5 s, with the same verdicts. The section lookup also stops
+re-sorting the alignment on every question.
+
+The README's "nothing is sampled" line was wrong for the safety matrix and the
+ablation regimes, which run on a page stride in both the tests and the tools;
+it now says so.
+
+## The first books from outside the series
+
+`datasets/books-20260924` is 63 volumes from other publishers and nine
+subjects, kept as release assets. Twenty-two were read through the demo's
+PDF.js adapter (`tools/extract-books.mjs`) and run through the public
+interface; `datasets/books-20260924/EVALUATION.md` has the full account and
+`test/test_books_20260924.js` asserts it. Every matched pair has a scanned
+side, so the text path never runs end to end and nothing measured is a recall.
+What the books did exercise found three defects in the gates that run before
+matching:
+
+- A bookmark per page, titled with the page number, read as a question level:
+  326 and 213 phantom questions on two volumes. The classifier now recognises
+  a flat integer cohort tracking the page counter as `PAGE_MARKER`.
+- 习题 bookmarks were trusted as question markers by the classifier and given
+  no id by the parser, so an 87-bookmark exercise book indexed as nothing.
+  `idFromOutlineTitle` reads the classifier's marker vocabulary.
+- Subject detection knew two subjects and named MATH_ANALYSIS on ODE, PDE and
+  probability books. It knows ten now, names before topics, two-to-one margin,
+  MIXED otherwise; the two original topic lists are unchanged.
+
+Over 462 ordered pairings of the 22 volumes, zero automatic answers.
+
+The 陈纪修 pair, two scanned volumes with bookmark trees for the same book,
+aligned 40 of 41 sections to identical titles and located 355 of 381 pages —
+and exposed a fourth defect: a region came from the last aligned section
+starting at or before the page with no upper bound, so two shared titles
+located 91 of 96 sampled pages of a wrong book. Regions are now bounded by the
+aligned section's own span (which was itself ending at the node's first child
+rather than the next section); the wrong book drops to 7 of 96.
+
+## The 考研 corpus, re-uploaded
+
+`datasets/exam-corpus-20260924` is the eight books the report's numbers come
+from, as release assets. Running them found the demo adapter passing pdf.js
+a `file://` URL for its CMap directory, which Node's `fs.readFile` rejects
+and pdf.js ignores — every CJK font decoded as noise while extraction
+reported success, the same misdiagnosis §7.2 of the report records. The
+adapter passes paths now. The first 2023 exercise book uploaded has section
+bookmarks only; judged against the key's own bookmarks, the 2023 pair
+resolves 288 of 508 through the public interface with zero wrong (main:
+285). On the 留白作答版 added afterwards — the book the report measured, 508
+question bookmarks — all three suites pass on the branch as on main: 471
+of 508 strict, 508 of 508 calibrated, zero wrong, the ablation regimes at
+2, 429 and 44, and one shared failure on the algebra strict floor (173
+against 175) that the demo adapter's line grouping accounts for. Getting there fixed the answer-side range as well: it stopped at a
+chapter's first aligned section, and now uses the answer node's own span.
+`datasets/exam-corpus-20260924/EVALUATION.md` has the account.
+
+## The algebra shortfall, root-caused
+
+Two findings from asking why the algebra pair sat two questions below its
+strict floor. The entry-text cleaner deleted every isolated occurrence of an
+entry's page numbers from its text, so a question on pages 3 and 4 lost every
+lone 3 and 4 — its cubes, its coefficients, the 3 of its own label. It now
+drops only a line that is nothing but the page number. And the demo adapter
+grouped rows by a 2.5-point baseline tolerance that kept subscripts and lost
+every superscript into a row of its own; it now attaches a smaller item that
+starts where a row's item ends, in that item's whitespace, and leaves the
+bounds of ∫, ∑, ∏ and lim alone. Measured on the three pairs, the cleaner fix
+alone clears every floor; the row rule adds three questions on 2023 and is
+neutral on the display-heavy analysis pair. All floors met, zero wrong.

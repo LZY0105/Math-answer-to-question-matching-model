@@ -1,0 +1,189 @@
+# First pass over the textbook release
+
+What the engine does with 24 of the 63 volumes, read through the demo's PDF.js
+adapter on 2026-09-24. This is the first material from outside the 考研 series
+the engine was built on; the research report's threats-to-validity section said
+such a set did not exist. It now does, with one large limit stated first.
+
+## The limit
+
+**Every matched pair in this release has a scanned side.** Of the 24 volumes,
+11 have no text layer at all, 6 have a layer of about ten characters a page
+(page numbers and running heads over a scan), and one extracts with no Chinese
+(broken font map). Six carry a usable text layer, and no two of them belong
+together. The released matching path — a text layer
+on both sides — never runs end to end here. Nothing below is a recall figure.
+
+What the release does exercise is everything that decides before matching
+starts: the text-quality gate, the outline classifier on bookmark trees written
+by other tools, subject detection on subjects the engine had never seen, and
+the pairing matrix.
+
+## Volumes read
+
+| id | volume | pages | text layer | bookmarks |
+|---|---|---:|---|---|
+| book-003 | 谢惠民 上 | 442 | sparse, 10 chars/page | 3 levels, sections only |
+| book-017 | 王高雄 常微分方程 | 264 | scanned | 2 nodes |
+| book-018 | 数值分析 | 339 | scanned | **331 flat, one per page** |
+| book-019 | 陈纪修 上 | 381 | sparse, 10 chars/page | 3 levels, chapters, sections, topics |
+| book-022 | 姜礼尚 数学物理方程 | 249 | scanned | none |
+| book-023 | 茆诗松 概率论 | 490 | usable, 1,034 chars/page | 3 levels, sections and 习题 sets |
+| book-026 | 绿皮书 | 492 | sparse, 0.2% of pages | 3 levels, **87 "习题 n.n"** |
+| book-027 | 谷超豪 数学物理方程 | 213 | scanned | none |
+| book-028 | 杨子胥 近世代数 | 188 | usable | 2 levels, § sections |
+| book-031 | 韩士安 近世代数 | 255 | scanned | 67 flat sections |
+| book-038 | 数值分析 答案 | 49 | scanned | none |
+| book-040 | 杨子胥 习题解 | 615 | scanned | none |
+| book-041 | 茆诗松 习题与解答 | 462 | scanned | none |
+| book-043 | 江泽坚 习题解答 | 76 | opaque, 0.02% Han | 2 nodes |
+| book-044 | 绿皮书答案 | 175 | usable, 830 chars/page | 2 levels, sections only |
+| book-049 | 谷超豪 答案 | 44 | usable | none |
+| book-050 | 近世代数三百题 答案 | 146 | scanned | none |
+| book-051 | 韩士安 习题解答 | 222 | sparse, 0.5% of pages | **218 flat, one per page** |
+| book-053 | 陈纪修 上 答案 | 246 | sparse, 10 chars/page | 2 levels, chapters and sections |
+| book-056 | 北大六版 | 342 | sparse, 10 chars/page | none |
+| book-057 | 数学分析 第六版 上 | 329 | scanned | none |
+| book-061 | 王高雄 习题详解 | 258 | usable | none |
+| book-062 | 近世代数三百题 | 192 | scanned | none |
+| book-063 | 高等代数 考研教案 | 452 | usable | none |
+
+The quality gate's verdict agreed with a reading of every volume. The opaque
+book is the case the report describes: mathematics extracts, prose does not.
+
+These verdicts were first taken through the demo adapter with its CMap
+directory passed as a `file://` URL, which pdf.js under Node cannot read and
+silently ignores — every CID-keyed CJK font then decoded to garbage while
+extraction reported success. That made 绿皮书答案 read as opaque and hid the
+ten-character page furniture on five scans. The adapter now passes filesystem
+paths; the table above is from the corrected extraction.
+
+## Pairing matrix
+
+Every volume against every other, both orientations, sampled at about 40
+pages per pairing.
+
+| | |
+|---|---|
+| Ordered pairings | 552 |
+| Producing any automatic answer | **0** |
+| Blocked at document level (role or subject conflict) | 0 |
+| Held at OCR_REQUIRED | 510 |
+| Held at UNKNOWN_PAIR with a text layer both sides | 42 |
+
+An earlier extraction of the same volumes blocked 33 pairings. Every one of
+them involved the 谷超豪 answer book (book-049, 44 pages, 35 entries), which
+scored 1.00 on answer language and 1.00 on explicit answers and so read as a
+confirmed ANSWER; on its left it was rejected as a wrong role, on its right a
+subject conflict could be checked. Under the adapter's final row grouping it
+scores 0.97 and 0.94, two entries fewer with a recognisable answer marker, and
+the 0.97 explicit-answer threshold turns it UNKNOWN. UNKNOWN still forbids an
+automatic answer, so the safety count is unchanged; what moved is the role
+threshold, by two entries out of thirty-five, on a change in how text lines
+are assembled. That is the transfer problem noted below, measured a second
+way.
+
+No pairing was verified, which is correct: none is a matched pair with text
+on both sides.
+
+## The 陈纪修 pair: a matched pair with bookmarks on both sides
+
+Both volumes are scans, so no question is ever matched. Both carry bookmark
+trees written for the same book, which makes this the first pair on which the
+section alignment can be checked against a truth it did not produce.
+
+| | |
+|---|---|
+| Exercise chapters and sections aligned | 40 of 41 (9 chapters, 31 sections) |
+| Aligned pairs whose titles are identical | 39; the appendix pair scores 0.78 on a reworded title |
+| Pages locating to an answer section | 355 of 381 |
+| Pages not locating | 26: front matter before chapter 1, and the index after the last aligned section |
+| Automatic answers | 0 |
+| Pair preparation | 21 ms |
+
+Every located region points at the answer section carrying the same title as
+the exercise section the page sits in.
+
+**A fourth defect, from the wrong-book side of the same test.** Against a
+近世代数 textbook, the alignment paired two section titles this book happens
+to share ("1 集合", "2 映射与函数") and nothing else — and located 91 of 96
+sampled pages of the wrong book through them, because a region was taken from
+the last aligned section starting at or before the page, with no upper bound.
+A region is now taken only from an aligned section whose own span contains the
+page, and the tightest such section wins. The wrong book drops to 7 of 96; the
+matched pair keeps 355 of 381 (the 7 pages it loses are the index, which no
+aligned section covers). The section span itself was also wrong: it ended at
+the node's first child instead of at the next section or chapter, which the
+comment above it had claimed all along. `src/region-locator.js`,
+`src/outline-classify.js`.
+
+Against a different 数学分析 exercise book (谢惠民), 20 chapter and section
+titles still align at a median score of 0.61 and 54 of 96 pages locate. Those
+regions point at the same topics in the wrong book; the pair gate, not the
+alignment, is what should refuse that pair, and it cannot on two scans. That is
+the identity limit the research report describes, and it is unchanged.
+
+## Three defects, found and fixed
+
+**A bookmark per page indexed as a question level.** Two scanned volumes
+(book-018, book-051) carry one bookmark per page titled with the printed page
+number: 326 and 213 flat nodes, every title equal to its page minus a constant
+(12 and 8). The classifier's "dense short-span identifier cohort" rule read
+both as question levels, and they indexed as 326 and 213 questions no book
+asks. Other gates kept the matrix at zero leaks, but with OCR those trees
+would have driven matching. The classifier now recognises a cohort of flat
+integer ids that tracks the page counter at a single offset on 90% or more of
+at least ten nodes as `PAGE_MARKER`, which enters neither the question index
+nor the section anchors. `src/outline-classify.js`.
+
+**A trusted marker with no id.** book-026 carries 87 "习题 n.n" bookmarks. The
+classifier accepts 习题 as a question marker and called the cohort questions;
+the id parser knew only 例题, so every node received an empty id and the book
+indexed as nothing. `idFromOutlineTitle` now reads the same marker vocabulary
+the classifier trusts (例题, 习题, 练习题, 例, 第 n 题, Example, Exercise,
+Problem). The book now indexes 69 exercise sets with section-scoped ids.
+`src/question-id.js`.
+
+**Subject detection silent or wrong outside two subjects.** The detector knew
+Mathematical Analysis and Algebra and read anything else as MIXED, which
+never rejects. Worse, it named MATH_ANALYSIS on a differential-equations
+answer book (book-061), a PDE answer book (book-049) and a probability
+textbook (book-023), because 极限 and 积分 are the working vocabulary of every
+analysis-family subject. It now knows ten subjects, decides by the words that
+name a subject before the words that belong to its topics, and requires a
+two-to-one margin either way. On the 22 volumes: no wrong confident verdict,
+the subject named on all four volumes with readable text and a name to read,
+MIXED on the rest. The two original subjects keep their original topic lists,
+so the 考研 books classify as before — that last claim still has to be
+confirmed by rerunning the corpus suites on a machine that has the corpus.
+`src/pair-verifier.js`.
+
+## What the release also shows, and is left as measured
+
+- **Role thresholds do not transfer.** book-061 is a genuine 习题详解 and
+  scores 0.84 on answer language and 0.85 on explicit answers, against a 0.97
+  threshold set on the 考研 keys. It is a body index, so the verdict is UNKNOWN
+  rather than a rejection, and that is the right outcome for the wrong reason.
+- **Printed years are not exam years.** Two volumes report a year from their
+  print date (2016, 2022). On the 考研 books the year in every running head is
+  the exam year and is identity; on a textbook it is a printing and can differ
+  between a book and its answer volume. No pair here had a year on both sides,
+  so the false-rejection this implies is not yet observed.
+- **Pair preparation on two large body indexes takes seconds.** book-043
+  against book-063 took 13 s with the sampled page loop, most of it in the
+  content-anchor check and the page alignment over 579 body entries. The
+  profile cache introduced earlier applies; the remaining cost is the bigram
+  Dice itself.
+
+## Reproducing
+
+```sh
+node datasets/books-20260924/download.mjs --id book-003 book-017 book-018 book-019 book-022 book-023 \
+  book-026 book-027 book-028 book-031 book-038 book-040 book-041 book-043 book-044 book-049 \
+  book-050 book-051 book-053 book-056 book-057 book-061 book-062 book-063 --out ../find-engine-books
+node tools/extract-books.mjs --books ../find-engine-books
+FIND_ENGINE_BOOKS=../find-engine-books/extracted node test/test_books_20260924.js
+```
+
+`test/test_books_20260924.js` asserts everything in this note that the engine
+can check by itself, and skips without the extracted books.

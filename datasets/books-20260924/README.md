@@ -5,6 +5,7 @@
 - [逐文件下载目录](CATALOG.md)
 - [机器可读清单及 SHA-256](manifest.json)
 - [原始分类说明](source-inventory.txt)
+- [首轮评估：22 卷的文本层、书签结构、科目判定与配对矩阵](EVALUATION.md)
 - [Android 实测与复审方案](../../docs/android-performance/2026-09-13/README.md)
 
 使用 Node.js 18 或更新版本，在仓库根目录运行：

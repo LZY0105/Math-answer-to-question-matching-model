@@ -72,6 +72,10 @@ failure this one is built against:
 - **The worst regime has reached its own deadline** — 1,573 ms against a
   1,500 ms alignment budget, so results there are produced by expiry rather
   than by decision.
+- A first pass over the [2026-09 textbook release](datasets/books-20260924/EVALUATION.md),
+  22 volumes from other publishers and nine subjects, found three defects in
+  the pre-matching gates and zero automatic answers over 462 pairings. Every
+  pair there has a scanned side, so it measures the gates, not recall.
 - Figures from the real books cannot be reproduced from a clone: the corpus is
   extracted from copyrighted textbooks and is not committed. A clean clone runs
   the 234 synthetic checks and skips the rest, saying which are skipped and why.
@@ -170,7 +174,10 @@ turn genuine ambiguity into a confident wrong answer.
 ## Results
 
 Eight documents: three matched exercise/answer pairs with bookmarks on both
-sides, and one scanned pair. Every figure is full-book; nothing is sampled.
+sides, and one scanned pair. The capability figures are full-book. The safety
+matrix and the degraded-structure regimes are run on a page stride (about 25
+pages per invalid combination, every eighth page in the ablation), because
+their question is whether *any* automatic answer escapes, not how many.
 
 ### Safety
 
