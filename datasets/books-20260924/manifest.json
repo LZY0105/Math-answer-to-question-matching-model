@@ -1,0 +1,654 @@
+{
+  "schemaVersion": 1,
+  "corpusId": "books-20260924",
+  "date": "2026-09-24",
+  "repository": "LZY0105/Math-answer-to-question-matching-model",
+  "releaseTag": "test-corpus-20260924",
+  "releaseUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/tag/test-corpus-20260924",
+  "fileCount": 64,
+  "pdfCount": 63,
+  "totalBytes": 8758976034,
+  "scope": "Maintainer-provided PDFs for future testing; not a labeled benchmark and not the September 13 baseline corpus.",
+  "files": [
+    {
+      "id": "book-001",
+      "originalName": "【习题集】白皮书第四版-加书签、颜色加深、去水品、修复.pdf",
+      "bytes": 299612858,
+      "sha256": "6eb9c449f9d883b1782f7898bbfdf83e86865b23ca924f8458a4bf31b6cf016e",
+      "assetName": "book-001-6eb9c449f9d8.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-001-6eb9c449f9d8.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-002",
+      "originalName": "【习题集】裴礼文-加书签、去水印、修复、颜色加深.pdf",
+      "bytes": 412262630,
+      "sha256": "a6f5e48d22547b93edeb93556acfa0389392f4b2870da51e42db294b3a0cdbe5",
+      "assetName": "book-002-a6f5e48d2254.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-002-a6f5e48d2254.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-003",
+      "originalName": "【习题集】谢惠民第二版-上-加书签、颜色加深、清晰化.pdf",
+      "bytes": 21189421,
+      "sha256": "f6652654505d0b1d4ca5fa1dcebb562f288693e7304f0c8eae23c78fc51d8eb7",
+      "assetName": "book-003-f6652654505d.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-003-f6652654505d.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-004",
+      "originalName": "【习题集】谢惠民第二版-下-加书签、颜色加深、修复.pdf",
+      "bytes": 163759341,
+      "sha256": "f5a8c9184b61bc989a5c4f0955692cc679eada43677ce33ae0ac97be4532e2ae",
+      "assetName": "book-004-f5a8c9184b61.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-004-f5a8c9184b61.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-005",
+      "originalName": "【习题集】陈现平《高等代数300例》第2版.pdf",
+      "bytes": 347914766,
+      "sha256": "30864d14ec1b1fb684aa30c234434593e5af79c4d93f80e2c774fb0985f58142",
+      "assetName": "book-005-30864d14ec1b.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-005-30864d14ec1b.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-006",
+      "originalName": "【教材】丘维声 上册-第二版.pdf",
+      "bytes": 75902179,
+      "sha256": "14de0a7a37d8113326baf4d378a893e41766b062facb0b5c732245f4a706306f",
+      "assetName": "book-006-14de0a7a37d8.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-006-14de0a7a37d8.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-007",
+      "originalName": "【教材】丘维声 下册-第二版.pdf",
+      "bytes": 153126629,
+      "sha256": "693c497a84763540b607f191872484fac8212d9d80961d0670fa2f17ae3876c2",
+      "assetName": "book-007-693c497a8476.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-007-693c497a8476.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-008",
+      "originalName": "【教材】北大五版-加书签+颜色加深+修复.pdf",
+      "bytes": 119698830,
+      "sha256": "064b72a54ef9236f43708dc1cfb47d704252124f3726c912da43d3cab026e56f",
+      "assetName": "book-008-064b72a54ef9.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-008-064b72a54ef9.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-009",
+      "originalName": "【教材】华东师大五版 下-颜色加深、加书签.pdf",
+      "bytes": 110120950,
+      "sha256": "230556c54067a1c184f1782830a738f88036390810aa019a10660b177db94cf1",
+      "assetName": "book-009-230556c54067.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-009-230556c54067.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-010",
+      "originalName": "【教材】华东师大五版上-颜色加深、加书签.pdf",
+      "bytes": 113032592,
+      "sha256": "de8b95e5da0ab867cae7c8c2c372cc387b8c61294af1f1891c971ab7868d3302",
+      "assetName": "book-010-de8b95e5da0a.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-010-de8b95e5da0a.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-011",
+      "originalName": "【教材】史济怀第三版上-加书签、颜色加深.pdf",
+      "bytes": 281449899,
+      "sha256": "7c7a2137ee4e6a65a4b0b698850a718bf2f0bea15d622f65a4c4a90fff00bf94",
+      "assetName": "book-011-7c7a2137ee4e.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-011-7c7a2137ee4e.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-012",
+      "originalName": "【教材】史济怀第三版下-加书签、颜色加深.pdf",
+      "bytes": 249375160,
+      "sha256": "6bdaca5299edc337a07f8b6f3b9090839cfde3a4e3eabbcce636f516697d4c9f",
+      "assetName": "book-012-6bdaca5299ed.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-012-6bdaca5299ed.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-013",
+      "originalName": "【教材】吕林根 解析几何 第五版【国家级规划教材】 (吕林根 许子道) (已优化).pdf",
+      "bytes": 481837720,
+      "sha256": "34d0f1bab6d6dce848d2fb2ad5025e87579e31d666f19f7297a1962946232520",
+      "assetName": "book-013-34d0f1bab6d6.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-013-34d0f1bab6d6.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-014",
+      "originalName": "【教材】实变函数与泛函分析概要 第五版第二册（郑维行）.pdf",
+      "bytes": 435318774,
+      "sha256": "2234a9593d360e7a42d3e79a0ec4124c0774fed84ac4c1fbb8e23b1f21efd399",
+      "assetName": "book-014-2234a9593d36.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-014-2234a9593d36.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-015",
+      "originalName": "【教材】实变函数与泛函分析概要第五版第一册 (郑维行).pdf",
+      "bytes": 98181383,
+      "sha256": "dfc226cf7ff45553c5ea88cda1564d3cbf055d55acf0aa4e65a95cea05bdace4",
+      "assetName": "book-015-dfc226cf7ff4.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-015-dfc226cf7ff4.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-016",
+      "originalName": "【教材】常微分方程教程 第三版 (丁同仁，李承治) .pdf",
+      "bytes": 116335811,
+      "sha256": "6dda7c126ac3ef408e5cf620a03b4dcfbec357a6b0d12eb7c640bff45ac3c11c",
+      "assetName": "book-016-6dda7c126ac3.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-016-6dda7c126ac3.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-017",
+      "originalName": "【教材】常微分方程第四版-王高雄.pdf",
+      "bytes": 44798956,
+      "sha256": "a00db4bc05af45431db5280f6770c9a7e4ef17b96e17db6bd7a99d51a64bf06a",
+      "assetName": "book-017-a00db4bc05af.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-017-a00db4bc05af.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-018",
+      "originalName": "【教材】数值分析 第五版 (李庆扬 王能超 易大义) .pdf",
+      "bytes": 118018621,
+      "sha256": "119f31217a7e31f2e97e2c31378157e21c5be3552d8d758842683968f7c464eb",
+      "assetName": "book-018-119f31217a7e.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-018-119f31217a7e.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-019",
+      "originalName": "【教材】数学分析 陈纪修第三版上-颜色加深、加书签.pdf",
+      "bytes": 121959694,
+      "sha256": "5129ea577911d6caac3fbb10e4fbb10efc339057e1a7e9fe9c2d57a66365ab11",
+      "assetName": "book-019-5129ea577911.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-019-5129ea577911.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-020",
+      "originalName": "【教材】数学分析 陈纪修第三版下-颜色加深、加书签.pdf",
+      "bytes": 141849950,
+      "sha256": "9caea68bcbddd8a65f8d81f00715854bb618c251d69c1f218d84325c2c109a84",
+      "assetName": "book-020-9caea68bcbdd.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-020-9caea68bcbdd.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-021",
+      "originalName": "【教材】数学分析中的问题与方法 (李傅山) .pdf",
+      "bytes": 87589413,
+      "sha256": "ce854f3b4d8fdec76d2cff7d135af864a1d46529a98fb8831448130ffd9d76f7",
+      "assetName": "book-021-ce854f3b4d8f.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-021-ce854f3b4d8f.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-022",
+      "originalName": "【教材】数学物理方程讲义(姜礼尚).pdf",
+      "bytes": 5763680,
+      "sha256": "1934a0367ba616bbaedaddbd6f740e7fa9b15d1d5646efbc2d6d17b694188428",
+      "assetName": "book-022-1934a0367ba6.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-022-1934a0367ba6.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-023",
+      "originalName": "【教材】概率论与数理统计教程 第三版 茆诗松(有目录).pdf",
+      "bytes": 60051370,
+      "sha256": "376dbc3aafa7921b3fa7d213c2a32f6514621df6388952eddeb7cb2a7cbed6ea",
+      "assetName": "book-023-376dbc3aafa7.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-023-376dbc3aafa7.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-024",
+      "originalName": "【教材】江泽坚《实变函数论》.pdf",
+      "bytes": 353313436,
+      "sha256": "bdcb975edad041a77b9d040032c9fdbbf610f77c8020aac61639d98dee76371e",
+      "assetName": "book-024-bdcb975edad0.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-024-bdcb975edad0.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-025",
+      "originalName": "【教材】程其襄-实变函数与泛函分析基础 第4版 (程其襄, 张奠宙, 胡善文, 薛以锋) .pdf",
+      "bytes": 46997908,
+      "sha256": "da99c87657ad86972439202e09c71b1e2d85afd93ba0197207c8f0dd5e66753e",
+      "assetName": "book-025-da99c87657ad.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-025-da99c87657ad.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-026",
+      "originalName": "【教材】绿皮书高等代数学第四版-谢启鸿-加书签、颜色深化.pdf",
+      "bytes": 18469466,
+      "sha256": "6144c336d080859d6c49a09a653342239af7dd71d38b15d58425a43308015f2d",
+      "assetName": "book-026-6144c336d080.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-026-6144c336d080.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-027",
+      "originalName": "【教材】谷超豪-数学物理方程第3版_[谷超豪_等编]_2012年版(1).pdf",
+      "bytes": 10235975,
+      "sha256": "149994e42d5adb53b9742526a2933e0ab9a52ef2bc78c023e4dffb388442d62c",
+      "assetName": "book-027-149994e42d5a.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-027-149994e42d5a.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-028",
+      "originalName": "【教材】近世代数 第四版(书签带目录) (杨子胥) .pdf",
+      "bytes": 68768408,
+      "sha256": "b0c1583eb65b2d0bc7f51149d9277d8e709121eb445fa86ca2ca3ede91dd70b7",
+      "assetName": "book-028-b0c1583eb65b.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-028-b0c1583eb65b.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-029",
+      "originalName": "【教材】近世代数引论（第四版） (冯克勤、李尚志、章璞).pdf",
+      "bytes": 409831071,
+      "sha256": "fa516fdb6e9557272a6aaba4b51a2ca7453c41e48b347170e930fe3075055c70",
+      "assetName": "book-029-fa516fdb6e95.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-029-fa516fdb6e95.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-030",
+      "originalName": "【教材】钟玉泉-复变函数论-第五版.pdf",
+      "bytes": 91797083,
+      "sha256": "caa24f265e644a89d318c156660fe20b4b9eb2c529ec96b908f9cb0beade2696",
+      "assetName": "book-030-caa24f265e64.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-030-caa24f265e64.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-031",
+      "originalName": "【教材】韩式安-近世代数-第二版.pdf",
+      "bytes": 22486964,
+      "sha256": "423dda1552ab4709f387f968f92828f494064ac1f4feff1b4380192b3e612a18",
+      "assetName": "book-031-423dda1552ab.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-031-423dda1552ab.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-032",
+      "originalName": "【教材】高等代数典型问题与方法 (樊启斌) .pdf",
+      "bytes": 316556640,
+      "sha256": "1a056f2850f45b8f6894d5afb8cae869ef3908b00dc56909cf2194f11f3a4fc4",
+      "assetName": "book-032-1a056f2850f4.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-032-1a056f2850f4.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-033",
+      "originalName": "【答案】北大五版答案-加书签+颜色加深+修复.pdf",
+      "bytes": 435226918,
+      "sha256": "639220abc51960fc6f72687dddc860334bb472a8a6ea9e4b3c61ed60e97f3a68",
+      "assetName": "book-033-639220abc519.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-033-639220abc519.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-034",
+      "originalName": "【答案】华东师大五版上册-加书签、修复.pdf",
+      "bytes": 139195079,
+      "sha256": "80a7dab9b0b01b541b57aed890399628cf7635c47a5db949b3b02ac69865130e",
+      "assetName": "book-034-80a7dab9b0b0.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-034-80a7dab9b0b0.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-035",
+      "originalName": "【答案】华东师大五版下-加书签、修复.pdf",
+      "bytes": 135372552,
+      "sha256": "b0f799d03aa587b5b75921ebc40d999283547b8a5ea478271bccd1d1a81bfeb7",
+      "assetName": "book-035-b0f799d03aa5.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-035-b0f799d03aa5.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-036",
+      "originalName": "【答案】史济怀答案.pdf",
+      "bytes": 360002980,
+      "sha256": "d21a6129036916f03447b02b4e9a68bc142bd902e9bdc1903b0fe30f1b208245",
+      "assetName": "book-036-d21a61290369.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-036-d21a61290369.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-037",
+      "originalName": "【答案】实变函数与泛函分析基础（第四版）学习指导与习题解答.pdf",
+      "bytes": 28577426,
+      "sha256": "9beee58c1fb453ff2a32c228e09975e2678f773c31ab19119cdecc33bdacbdcf",
+      "assetName": "book-037-9beee58c1fb4.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-037-9beee58c1fb4.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-038",
+      "originalName": "【答案】数值分析第五版课后习题答案.pdf",
+      "bytes": 3266390,
+      "sha256": "24dc045e4dfd6a3942ae877f16db5da1ee50e0c8b252f876fd342655e9ad2bce",
+      "assetName": "book-038-24dc045e4dfd.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-038-24dc045e4dfd.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-039",
+      "originalName": "【答案】数学分析中的问题与方法.pdf",
+      "bytes": 46117020,
+      "sha256": "e50c892fcf94a0c5d1fe6a2bae83e86934a28eaa46ca053a9aaa6feed198b611",
+      "assetName": "book-039-e50c892fcf94.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-039-e50c892fcf94.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-040",
+      "originalName": "【答案】杨子胥-近世代数习题解.pdf",
+      "bytes": 6802401,
+      "sha256": "b73d8d32c7365b308fe600d59def69d1d70264a63c9f14cfefae9d269c8c2a51",
+      "assetName": "book-040-b73d8d32c736.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-040-b73d8d32c736.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-041",
+      "originalName": "【答案】概率论与数理统计教程( 第三版 )习题与解答 (茆诗松, 程依明, 濮晓龙) (Z-Library).pdf",
+      "bytes": 39822617,
+      "sha256": "432f7bd0db44d994f20c386d226b9248401bcb3b9ea2fc09e919fbb50259502f",
+      "assetName": "book-041-432f7bd0db44.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-041-432f7bd0db44.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-042",
+      "originalName": "【答案】樊启斌高等代数典型问题与方法课后习题解答.pdf",
+      "bytes": 220008811,
+      "sha256": "c84d85ed3f71cdcbf0ff5aa1818c87a71d7e55e440440aa5c57c191c743c3c26",
+      "assetName": "book-042-c84d85ed3f71.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-042-c84d85ed3f71.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-043",
+      "originalName": "【答案】江泽坚 实变函数论 习题解答.pdf",
+      "bytes": 891993,
+      "sha256": "c31cc05f71f640c1dfea618ae2593a1231e1a6ff76c10c2348535b1ee1f3c3d8",
+      "assetName": "book-043-c31cc05f71f6.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-043-c31cc05f71f6.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-044",
+      "originalName": "【答案】绿皮书答案-第四版.pdf",
+      "bytes": 2574884,
+      "sha256": "d6314771c38bc2177526c4b5d83049709368937acc84dd0bee1e529f2be77cfe",
+      "assetName": "book-044-d6314771c38b.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-044-d6314771c38b.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-045",
+      "originalName": "【答案】裴礼文答案-超清修复可打印、后续加书签.pdf",
+      "bytes": 330566394,
+      "sha256": "de75d9048eb41db9b075a649268f9a69479fd760dae2209b22d927ad66ed6d28",
+      "assetName": "book-045-de75d9048eb4.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-045-de75d9048eb4.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-046",
+      "originalName": "【答案】解析几何(第五版)学习辅导书 (吕林根).pdf",
+      "bytes": 24017926,
+      "sha256": "b71300eb84052d7c00e4da063bb6394a995d26ef57b927c29b10fba58fee2b28",
+      "assetName": "book-046-b71300eb8405.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-046-b71300eb8405.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-047",
+      "originalName": "【答案】谢惠民-上册.pdf",
+      "bytes": 242591866,
+      "sha256": "65e9791cb43b60c04ba0a49e518182a4dee8e509cd1c9a7bb566c1b7e2076c7a",
+      "assetName": "book-047-65e9791cb43b.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-047-65e9791cb43b.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-048",
+      "originalName": "【答案】谢惠民-下册.pdf",
+      "bytes": 144357591,
+      "sha256": "b60d524acbd20e4df5f382fa836f5a60756045585504afbc2fd7b2ce300c77ce",
+      "assetName": "book-048-b60d524acbd2.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-048-b60d524acbd2.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-049",
+      "originalName": "【答案】谷超豪-数学物理方程第三版(谷超豪)答案.pdf",
+      "bytes": 912612,
+      "sha256": "2c0914d90546e9f3876b08d70b5365e12e7f6c976e197877c0da0c9cca8b9316",
+      "assetName": "book-049-2c0914d90546.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-049-2c0914d90546.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-050",
+      "originalName": "【答案】近世代数三百题.pdf",
+      "bytes": 1912356,
+      "sha256": "45d927e947d06efcdfd74667792d9faa7c5c7fb61880080eb935ab2159cf56aa",
+      "assetName": "book-050-45d927e947d0.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-050-45d927e947d0.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-051",
+      "originalName": "【答案】近世代数习题解答 (韩士安 林磊) .pdf",
+      "bytes": 16455123,
+      "sha256": "4531d2cd4d7042c4ca244015112e42cb03df0c8743ad537080d4096b31db8434",
+      "assetName": "book-051-4531d2cd4d70.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-051-4531d2cd4d70.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-052",
+      "originalName": "【答案】钟玉泉-复变函数论-第五版.pdf",
+      "bytes": 96907853,
+      "sha256": "e8be2a6a6650ca51e19098cad997ad34d4ac5d0f0a011df5173fca7c88b9b07b",
+      "assetName": "book-052-e8be2a6a6650.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-052-e8be2a6a6650.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-053",
+      "originalName": "【答案】陈纪修第三版上-答案-加书签、修复、颜色加深.pdf",
+      "bytes": 330699791,
+      "sha256": "bab8a49f0e91352bf71f01ca8dc1bedb7ddf5b0966a46a0f0355c1b4ac99b83e",
+      "assetName": "book-053-bab8a49f0e91.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-053-bab8a49f0e91.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-054",
+      "originalName": "【答案】陈纪修第三版下答案-加书签、颜色加深.pdf",
+      "bytes": 348902503,
+      "sha256": "4ce80b8429964ff2086cae3a63da8aad99782f14f2cd1ee220b0ce368327ee23",
+      "assetName": "book-054-4ce80b842996.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-054-4ce80b842996.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-055",
+      "originalName": "【解析】陈现平《高等代数300例》第2版.pdf",
+      "bytes": 4743043,
+      "sha256": "9250e327dbe5863caf5048fbbdeb2565ba7eb68a9e8da865e0e2bc864da4f57d",
+      "assetName": "book-055-9250e327dbe5.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-055-9250e327dbe5.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-056",
+      "originalName": "北大六版.pdf",
+      "bytes": 16083635,
+      "sha256": "7684c97d8ee2f2020961023520073ec967491086ae1701776fc512b2822a4b0a",
+      "assetName": "book-056-7684c97d8ee2.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-056-7684c97d8ee2.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-057",
+      "originalName": "数学分析 第六版 上册 黑白.pdf",
+      "bytes": 20414415,
+      "sha256": "b48d88c41bf78b83b3c400f1b12da11a939ccad36278183b7e8ba121c04c3bfc",
+      "assetName": "book-057-b48d88c41bf7.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-057-b48d88c41bf7.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-058",
+      "originalName": "数学分析 第六版 下册 黑白.pdf",
+      "bytes": 19253641,
+      "sha256": "20196e115316f73c9f1924a2e4ad995c3a78197844ac62618f37a6dcc033c4cb",
+      "assetName": "book-058-20196e115316.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-058-20196e115316.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-059",
+      "originalName": "数学分析教程4版上册--常庚哲，史济怀.pdf",
+      "bytes": 144086045,
+      "sha256": "23b48b30ddada68b1d3fb15a231d287bde2a42921becd2d48b72f12c09118811",
+      "assetName": "book-059-23b48b30ddad.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-059-23b48b30ddad.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-060",
+      "originalName": "数学分析教程4版下册--常庚哲，史济怀.pdf",
+      "bytes": 123734646,
+      "sha256": "c4d2e2ada10ae5e11c8a6c02ce9fcec2e3fa173c9e09640f0eef592dac56cf14",
+      "assetName": "book-060-c4d2e2ada10a.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-060-c4d2e2ada10a.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "inventory-notes",
+      "originalName": "文件清单及分类说明.txt",
+      "bytes": 6380,
+      "sha256": "deeb065d2eb1f14ffc738557c66ad7d2af489784a94739102630cfec7016ce0f",
+      "assetName": "inventory-notes-deeb065d2eb1.txt",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/inventory-notes-deeb065d2eb1.txt",
+      "kind": "provided-inventory",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-061",
+      "originalName": "王高雄《常微分方程》（第4版）习题详解.pdf",
+      "bytes": 42466373,
+      "sha256": "7039ebf05ec04c2f313f32c22e30f4f23b566bcaace6e1417e53ad1756e434a0",
+      "assetName": "book-061-7039ebf05ec0.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-061-7039ebf05ec0.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-062",
+      "originalName": "近世代数三百题 (冯克勤).pdf",
+      "bytes": 2592139,
+      "sha256": "24c6261586c2e3f79364311e17ae5b2435797f74d9d4a0629aa543f4e41adc74",
+      "assetName": "book-062-24c6261586c2.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-062-24c6261586c2.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    },
+    {
+      "id": "book-063",
+      "originalName": "高等代数 考研教案 北大第5版.pdf",
+      "bytes": 32805053,
+      "sha256": "6b4ecfa740d693400605f5c45d06c88cf457c836fc1507cd06bf0a1c79aecdde",
+      "assetName": "book-063-6b4ecfa740d6.pdf",
+      "downloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/test-corpus-20260924/book-063-6b4ecfa740d6.pdf",
+      "kind": "pdf",
+      "validationStatus": "not_evaluated"
+    }
+  ]
+}

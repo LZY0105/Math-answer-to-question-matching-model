@@ -1,0 +1,197 @@
+{
+  "date": "2026-09-24",
+  "measuredAt": "2026-09-13",
+  "testedInstallTime": "2026-09-13 21:25:35 Asia/Shanghai",
+  "files": [
+    {
+      "file": "after-10-queries-host.txt",
+      "bytes": 3504,
+      "sha256": "a9b285be140b9fea3eedeee826e8fe3a2942a3adb91297cee638e485676ff93a",
+      "sourceSha256": "a9b285be140b9fea3eedeee826e8fe3a2942a3adb91297cee638e485676ff93a",
+      "role": "baseline_evidence",
+      "publicationEdits": []
+    },
+    {
+      "file": "after-10-queries-renderer.txt",
+      "bytes": 3317,
+      "sha256": "6529ad8f4623c3a1ffbb5a77004cd4a769c66a407ec718e90e61770e73adbb7b",
+      "sourceSha256": "6529ad8f4623c3a1ffbb5a77004cd4a769c66a407ec718e90e61770e73adbb7b",
+      "role": "baseline_evidence",
+      "publicationEdits": []
+    },
+    {
+      "file": "after-page-sweep-host.txt",
+      "bytes": 3548,
+      "sha256": "ef5df2888673ddd140b68d992b6e800c8d338936db59810518ff27e08555629a",
+      "sourceSha256": "ef5df2888673ddd140b68d992b6e800c8d338936db59810518ff27e08555629a",
+      "role": "baseline_evidence",
+      "publicationEdits": []
+    },
+    {
+      "file": "after-page-sweep-renderer.txt",
+      "bytes": 3318,
+      "sha256": "cc78d3e3d9d466c6c549ccb0ea7f13151642e416f2f38481abebd7b1eef25e29",
+      "sourceSha256": "cc78d3e3d9d466c6c549ccb0ea7f13151642e416f2f38481abebd7b1eef25e29",
+      "role": "baseline_evidence",
+      "publicationEdits": []
+    },
+    {
+      "file": "Android匹配引擎优化方案-复审版.md",
+      "bytes": 18540,
+      "sha256": "3f1281ba64defc0b7b27409dd1d3ed9fd0f67372fda5c3b0dc53d2b2abeae645",
+      "sourceSha256": "945bd2dfc6dbb3ad3b37e479814015b842ba39a3d202839240fe9d2520d95e40",
+      "role": "unimplemented_plan",
+      "publicationEdits": [
+        "local_links_replaced_with_relative_or_pinned_github_links"
+      ]
+    },
+    {
+      "file": "Android匹配引擎优化方案.md",
+      "bytes": 13004,
+      "sha256": "fb63c19b7d8fde1ebc4ecdd08fc9117ba48dd2e406893a3500bce9fa9d43e809",
+      "sourceSha256": "ef5d4c858cda48e80f181e4090c2a49c29491280ccecdb1b2d3774da3a41264f",
+      "role": "unimplemented_plan",
+      "publicationEdits": [
+        "superseded_notice_added"
+      ]
+    },
+    {
+      "file": "answer-panel.png",
+      "bytes": 716621,
+      "sha256": "0d9bb9f76e7c9037e91aabb541f6766eaf17aaf7cd5aa256e8c0a11efadc9c39",
+      "sourceSha256": "0d9bb9f76e7c9037e91aabb541f6766eaf17aaf7cd5aa256e8c0a11efadc9c39",
+      "role": "baseline_evidence",
+      "publicationEdits": []
+    },
+    {
+      "file": "baseline-host.txt",
+      "bytes": 3617,
+      "sha256": "f966c8be2eb146b894d2a961fab6dcc782897955e542ca78227cfefe385d4b34",
+      "sourceSha256": "f966c8be2eb146b894d2a961fab6dcc782897955e542ca78227cfefe385d4b34",
+      "role": "baseline_evidence",
+      "publicationEdits": []
+    },
+    {
+      "file": "baseline-renderer.txt",
+      "bytes": 3317,
+      "sha256": "3133443aa58d8ffc27decde0d93f598697c95e2cd6f8c720bd6eb5edc420b3e9",
+      "sourceSha256": "3133443aa58d8ffc27decde0d93f598697c95e2cd6f8c720bd6eb5edc420b3e9",
+      "role": "baseline_evidence",
+      "publicationEdits": []
+    },
+    {
+      "file": "baseline-screen.png",
+      "bytes": 686356,
+      "sha256": "6354cf1015f24049cb3ae065ebdb3f6f145887c4a73d6d44898c4c478facbc28",
+      "sourceSha256": "6354cf1015f24049cb3ae065ebdb3f6f145887c4a73d6d44898c4c478facbc28",
+      "role": "baseline_evidence",
+      "publicationEdits": []
+    },
+    {
+      "file": "cold-before-host.txt",
+      "bytes": 3505,
+      "sha256": "b93d8808555cbfa562e1a415f6e8dde92234764ff0322c2581df16746fab53a7",
+      "sourceSha256": "b93d8808555cbfa562e1a415f6e8dde92234764ff0322c2581df16746fab53a7",
+      "role": "baseline_evidence",
+      "publicationEdits": []
+    },
+    {
+      "file": "cold-before-renderer.txt",
+      "bytes": 3318,
+      "sha256": "a25aec4e33d62e63117d92382ac093e0759ee9fdf26cd4465334741d49b2bdbc",
+      "sourceSha256": "a25aec4e33d62e63117d92382ac093e0759ee9fdf26cd4465334741d49b2bdbc",
+      "role": "baseline_evidence",
+      "publicationEdits": []
+    },
+    {
+      "file": "cold-query.json",
+      "bytes": 4236,
+      "sha256": "196eea09be03c5f3b97b57cfce77ed4a283ae972f9819d56eaed3329cee87c82",
+      "sourceSha256": "196eea09be03c5f3b97b57cfce77ed4a283ae972f9819d56eaed3329cee87c82",
+      "role": "baseline_evidence",
+      "publicationEdits": []
+    },
+    {
+      "file": "cpu-and-page-sweep.json",
+      "bytes": 8828,
+      "sha256": "ea484545ebf4a95ed60cc5539ccaa0ce6b165834ecb2329defbf2a24fe42933a",
+      "sourceSha256": "ea484545ebf4a95ed60cc5539ccaa0ce6b165834ecb2329defbf2a24fe42933a",
+      "role": "baseline_evidence",
+      "publicationEdits": []
+    },
+    {
+      "file": "device.json",
+      "bytes": 1988,
+      "sha256": "ef89a207bbb62ed0fca45c21b3fe6a4d41a1cc1af5693eefda8474fbe18bfddc",
+      "sourceSha256": "a70f6abed4a850c494c3b82e528aea704e5b361958b0b96488ace6044b9ee61c",
+      "role": "baseline_evidence",
+      "publicationEdits": [
+        "apk_device_installation_path_removed"
+      ]
+    },
+    {
+      "file": "first-query.cpuprofile",
+      "bytes": 211316,
+      "sha256": "c51d17ab8ad002c9e6598cd0278efc776a4b9e81688fdbf73b4ad684af6dd849",
+      "sourceSha256": "c51d17ab8ad002c9e6598cd0278efc776a4b9e81688fdbf73b4ad684af6dd849",
+      "role": "baseline_evidence",
+      "publicationEdits": []
+    },
+    {
+      "file": "first-query.cpuprofile.gz",
+      "bytes": 47793,
+      "sha256": "6a2d5fe6e68d3bd0b5875f59c04ada72b097f9427c5ec32efce04bf584989cbb",
+      "sourceSha256": "6a2d5fe6e68d3bd0b5875f59c04ada72b097f9427c5ec32efce04bf584989cbb",
+      "role": "compressed_profile_copy",
+      "publicationEdits": []
+    },
+    {
+      "file": "page-sweep-result.png",
+      "bytes": 816159,
+      "sha256": "c01c49ea0fd8fe97f1331253ee5585aa2248f7f23a37170dd5bda1c7d68323c2",
+      "sourceSha256": "c01c49ea0fd8fe97f1331253ee5585aa2248f7f23a37170dd5bda1c7d68323c2",
+      "role": "baseline_evidence",
+      "publicationEdits": []
+    },
+    {
+      "file": "successful-query.png",
+      "bytes": 687358,
+      "sha256": "aae3c351182b595ee3cd9c83a5ec47625cfcf2b1ffd7404256589e6998304f06",
+      "sourceSha256": "aae3c351182b595ee3cd9c83a5ec47625cfcf2b1ffd7404256589e6998304f06",
+      "role": "excluded_incomplete_attempt",
+      "publicationEdits": []
+    },
+    {
+      "file": "warm-queries.json",
+      "bytes": 10753,
+      "sha256": "e609b2bc1a4c8744b14d81d74eb6fe5b75ff0406979d811e22d66bc8d7a92de2",
+      "sourceSha256": "e609b2bc1a4c8744b14d81d74eb6fe5b75ff0406979d811e22d66bc8d7a92de2",
+      "role": "baseline_evidence",
+      "publicationEdits": []
+    },
+    {
+      "file": "warm-query-host.txt",
+      "bytes": 3504,
+      "sha256": "e42a777e6fe0cc8e2a7cb7a6edc3a6289d32867ccf61e7619e32ce3d68f478dd",
+      "sourceSha256": "e42a777e6fe0cc8e2a7cb7a6edc3a6289d32867ccf61e7619e32ce3d68f478dd",
+      "role": "excluded_incomplete_attempt",
+      "publicationEdits": []
+    },
+    {
+      "file": "warm-query-renderer.txt",
+      "bytes": 3317,
+      "sha256": "ca0335b5bd2602ae1816ed015382be1ed2f268798d92fcc0c481dad5464115db",
+      "sourceSha256": "ca0335b5bd2602ae1816ed015382be1ed2f268798d92fcc0c481dad5464115db",
+      "role": "excluded_incomplete_attempt",
+      "publicationEdits": []
+    },
+    {
+      "file": "真机性能评估报告.md",
+      "bytes": 8112,
+      "sha256": "7bd06fe27e4b09b7ac7ee4770d1d2e30d26469c8ad06e154a8d7908564e3f559",
+      "sourceSha256": "7bd06fe27e4b09b7ac7ee4770d1d2e30d26469c8ad06e154a8d7908564e3f559",
+      "role": "baseline_evidence",
+      "publicationEdits": []
+    }
+  ]
+}

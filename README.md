@@ -1,5 +1,7 @@
 # Find-Engine
 
+> **Development handoff:** [Android performance evidence and reviewed optimization plan](docs/android-performance/2026-09-13/README.md) · [Book corpus, downloads and SHA-256 manifest](datasets/books-20260924/README.md). The optimization plan is not implemented, and the new book corpus has not been evaluated.
+
 > Find-Engine is the question-to-answer matching model used by the
 > [duiye](https://github.com/LZY0105/duiye) application.
 

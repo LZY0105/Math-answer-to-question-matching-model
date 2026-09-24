@@ -1,0 +1,10 @@
+{
+  "at": "2026-09-13T13:52:05.749Z",
+  "package": "io.github.lzy0105.duiye",
+  "hostPid": 3329,
+  "rendererPid": 3370,
+  "apkSha256": "f02090b2de527566d42a2ae2a065215a5fa48f6bfae7dd0a3888b661f2f78758",
+  "battery": "Current Battery Service state:\r\n  AC powered: false\r\n  USB powered: true\r\n  Wireless powered: false\r\n  Dock powered: false\r\n  Max charging current: 500000\r\n Time when the latest updated value of the Max charging current was sent via battery changed broadcast: +1h54m15s648ms\r\n  Max charging voltage: 5000000\r\n  Charge counter: 604\r\n  status: 2\r\n  health: 2\r\n  present: true\r\n  level: 6\r\n  scale: 100\r\n  voltage: 3599\r\n Time when the latest updated value of the voltage was sent via battery changed broadcast: +1h56m6s993ms\r\n The last voltage value sent via the battery changed broadcast: 3589\r\n  temperature: 320\r\n  technology: Li-ion\r\n  Charging state: 0\r\n  Charging policy: 0\r\n  Capacity level: 2\r\n",
+  "webview": "Current WebView Update Service state\r\n  Current WebView package (name, version): (com.google.android.webview, 138.0.7204.179)\r\n  Minimum targetSdkVersion: 33\r\n  Minimum WebView version code: 720417931\r\n  Number of relros started: 1\r\n  Number of relros finished: 1\r\n  WebView package dirty: false\r\n  Any WebView package installed: true\r\n  Preferred WebView package (name, version): (com.google.android.webview, 138.0.7204.179)\r\n  WebView packages:\r\n    Valid package com.google.android.webview (versionName: 138.0.7204.179, versionCode: 720417931, targetSdkVersion: 35) is  installed/enabled for all users\r\n    com.google.android.webview.beta is NOT installed.\r\n    com.google.android.webview.dev is NOT installed.\r\n    com.google.android.webview.canary is NOT installed.\r\n    com.google.android.webview.debug is NOT installed.\r\n    com.android.webview is NOT installed.\r\n",
+  "publicationNote": "APK hash retained; installation-specific device path omitted from public copy."
+}
