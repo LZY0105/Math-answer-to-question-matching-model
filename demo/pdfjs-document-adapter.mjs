@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { basename } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 
@@ -79,9 +79,15 @@ export async function openPdfDocument(filePath, { includeGeometry = true } = {})
   const bytes = await readFile(filePath);
   const loadingTask = pdfjs.getDocument({
     data: new Uint8Array(bytes),
-    cMapUrl: cmapUrl.href,
+    // Filesystem PATHS, not file:// URLs. Under Node, pdf.js reads CMaps and
+    // standard fonts with fs.readFile, which rejects a "file://..." string —
+    // and pdf.js swallows that rejection, so every CID-keyed CJK font then
+    // decodes to garbage while extraction reports success. Measured: the 2023
+    // exercise book extracted with 0.0% Han through the URL form and 23%
+    // through the path form, same file, same page.
+    cMapUrl: fileURLToPath(cmapUrl),
     cMapPacked: true,
-    standardFontDataUrl: fontsUrl.href,
+    standardFontDataUrl: fileURLToPath(fontsUrl),
     useSystemFonts: false,
     isEvalSupported: false,
     useWorkerFetch: false,

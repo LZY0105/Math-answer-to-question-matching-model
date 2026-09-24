@@ -8,9 +8,10 @@ such a set did not exist. It now does, with one large limit stated first.
 ## The limit
 
 **Every matched pair in this release has a scanned side.** Of the 24 volumes,
-17 have no text layer at all, one has a layer on 0.2% of its pages, and two
-extract with no Chinese (broken font map). Only four carry a usable text layer,
-and no two of them belong together. The released matching path — a text layer
+11 have no text layer at all, 6 have a layer of about ten characters a page
+(page numbers and running heads over a scan), and one extracts with no Chinese
+(broken font map). Six carry a usable text layer, and no two of them belong
+together. The released matching path — a text layer
 on both sides — never runs end to end here. Nothing below is a recall figure.
 
 What the release does exercise is everything that decides before matching
@@ -22,10 +23,10 @@ the pairing matrix.
 
 | id | volume | pages | text layer | bookmarks |
 |---|---|---:|---|---|
-| book-003 | 谢惠民 上 | 442 | scanned | 3 levels, sections only |
+| book-003 | 谢惠民 上 | 442 | sparse, 10 chars/page | 3 levels, sections only |
 | book-017 | 王高雄 常微分方程 | 264 | scanned | 2 nodes |
 | book-018 | 数值分析 | 339 | scanned | **331 flat, one per page** |
-| book-019 | 陈纪修 上 | 381 | scanned | 3 levels, chapters, sections, topics |
+| book-019 | 陈纪修 上 | 381 | sparse, 10 chars/page | 3 levels, chapters, sections, topics |
 | book-022 | 姜礼尚 数学物理方程 | 249 | scanned | none |
 | book-023 | 茆诗松 概率论 | 490 | usable, 1,034 chars/page | 3 levels, sections and 习题 sets |
 | book-026 | 绿皮书 | 492 | sparse, 0.2% of pages | 3 levels, **87 "习题 n.n"** |
@@ -36,20 +37,26 @@ the pairing matrix.
 | book-040 | 杨子胥 习题解 | 615 | scanned | none |
 | book-041 | 茆诗松 习题与解答 | 462 | scanned | none |
 | book-043 | 江泽坚 习题解答 | 76 | opaque, 0.02% Han | 2 nodes |
-| book-044 | 绿皮书答案 | 175 | opaque, 0% Han | 2 levels, sections only |
+| book-044 | 绿皮书答案 | 175 | usable, 830 chars/page | 2 levels, sections only |
 | book-049 | 谷超豪 答案 | 44 | usable | none |
 | book-050 | 近世代数三百题 答案 | 146 | scanned | none |
-| book-051 | 韩士安 习题解答 | 222 | scanned | **218 flat, one per page** |
-| book-053 | 陈纪修 上 答案 | 246 | scanned | 2 levels, chapters and sections |
-| book-056 | 北大六版 | 342 | scanned | none |
+| book-051 | 韩士安 习题解答 | 222 | sparse, 0.5% of pages | **218 flat, one per page** |
+| book-053 | 陈纪修 上 答案 | 246 | sparse, 10 chars/page | 2 levels, chapters and sections |
+| book-056 | 北大六版 | 342 | sparse, 10 chars/page | none |
 | book-057 | 数学分析 第六版 上 | 329 | scanned | none |
 | book-061 | 王高雄 习题详解 | 258 | usable | none |
 | book-062 | 近世代数三百题 | 192 | scanned | none |
 | book-063 | 高等代数 考研教案 | 452 | usable | none |
 
-The quality gate's verdict agreed with a reading of every volume. The two
-opaque books are the case the report describes: mathematics extracts, prose
-does not.
+The quality gate's verdict agreed with a reading of every volume. The opaque
+book is the case the report describes: mathematics extracts, prose does not.
+
+These verdicts were first taken through the demo adapter with its CMap
+directory passed as a `file://` URL, which pdf.js under Node cannot read and
+silently ignores — every CID-keyed CJK font then decoded to garbage while
+extraction reported success. That made 绿皮书答案 read as opaque and hid the
+ten-character page furniture on five scans. The adapter now passes filesystem
+paths; the table above is from the corrected extraction.
 
 ## Pairing matrix
 

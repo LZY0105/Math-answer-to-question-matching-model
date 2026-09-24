@@ -5,6 +5,7 @@
 - [机器可读清单](manifest.json)
 - [SHA-256 清单](SHA256SUMS)
 - [GitHub Release 下载](https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/tag/exam-corpus-20260924)
+- [与三套语料测试套件的对照结果](EVALUATION.md)：上传的 2023 习题册没有题级书签，与测试套件依赖的版本不同
 
 资料用于后续开发与测试，当前上传不代表已完成题目覆盖、答案准确率或匹配评测。完整答案解析与留白作答版是不同用途的输入，不能直接当作题目—答案配对结果。
 

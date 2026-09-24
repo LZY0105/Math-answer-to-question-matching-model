@@ -79,8 +79,19 @@ export function sectionRangeForPage(alignment, exercisePage, answerPageCount) {
   if (!chosen) return null;
   const index = sorted.indexOf(chosen);
   const answerStart = chosen.answer.pageNumber;
-  const next = sorted.slice(index + 1).find(p => p.answer.pageNumber > answerStart);
-  const answerEnd = next ? next.answer.pageNumber - 1 : (answerPageCount || answerStart);
+  // The answer side's own span, when the classifier measured one: a chapter
+  // runs to the next chapter, not to its first section. The next-pair rule
+  // below cut a chapter-level range at the first aligned section inside it —
+  // on the 2023 pair that left "第一章" covering pages 19-59 of a chapter
+  // running to 210, and every question in a section the alignment had missed
+  // fell outside the range that was supposed to be its fallback.
+  const ownEnd = Number.isFinite(chosen.answer.endPage) ? chosen.answer.endPage : null;
+  // Failing that, the next aligned section at the same or a shallower depth on
+  // the answer side — a chapter's range must not stop at its own first section.
+  const depth = chosen.answer.depth ?? 0;
+  const next = sorted.slice(index + 1).find(p =>
+    p.answer.pageNumber > answerStart && (p.answer.depth ?? 0) <= depth);
+  const answerEnd = ownEnd ?? (next ? next.answer.pageNumber - 1 : (answerPageCount || answerStart));
 
   return {
     from: answerStart,

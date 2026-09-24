@@ -184,3 +184,18 @@ starting at or before the page with no upper bound, so two shared titles
 located 91 of 96 sampled pages of a wrong book. Regions are now bounded by the
 aligned section's own span (which was itself ending at the node's first child
 rather than the next section); the wrong book drops to 7 of 96.
+
+## The 考研 corpus, re-uploaded
+
+`datasets/exam-corpus-20260924` is the eight books the report's numbers come
+from, as release assets. Running them found the demo adapter passing pdf.js
+a `file://` URL for its CMap directory, which Node's `fs.readFile` rejects
+and pdf.js ignores — every CJK font decoded as noise while extraction
+reported success, the same misdiagnosis §7.2 of the report records. The
+adapter passes paths now. The uploaded 2023 exercise book has section
+bookmarks only, so the suites' 2023 assertions fail identically on every
+branch; judged against the key's own bookmarks instead, the 2023 pair
+resolves 288 of 508 through the public interface with zero wrong (main:
+285). Getting there fixed the answer-side range as well: it stopped at a
+chapter's first aligned section, and now uses the answer node's own span.
+`datasets/exam-corpus-20260924/EVALUATION.md` has the account.
