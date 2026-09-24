@@ -62,14 +62,22 @@ export function sectionRangeForPage(alignment, exercisePage, answerPageCount) {
   const sorted = sortedPairs(alignment);
   if (sorted.length === 0) return null;
 
-  let index = -1;
-  for (let i = 0; i < sorted.length; i++) {
-    if (sorted[i].exercise.pageNumber <= exercisePage) index = i;
-    else break;
+  // The page must fall INSIDE an aligned exercise section, and the tightest
+  // such section wins. The previous rule took the last aligned section starting
+  // at or before the page, with no upper bound — so three sections a wrong book
+  // happened to share with this one located 91 of 96 sampled pages of it.
+  // Measured on the 2026-09 textbook corpus: 陈纪修 against a 近世代数
+  // textbook aligned "1 集合" and "2 映射与函数" and nothing else, and pages
+  // three hundred further on were still "located" through them.
+  let chosen = null;
+  for (const pair of sorted) {
+    const from = pair.exercise.pageNumber;
+    const to = Number.isFinite(pair.exercise.endPage) ? pair.exercise.endPage : Infinity;
+    if (exercisePage < from || exercisePage > to) continue;
+    if (!chosen || (pair.exercise.depth ?? 0) >= (chosen.exercise.depth ?? 0)) chosen = pair;
   }
-  if (index < 0) return null;
-
-  const chosen = sorted[index];
+  if (!chosen) return null;
+  const index = sorted.indexOf(chosen);
   const answerStart = chosen.answer.pageNumber;
   const next = sorted.slice(index + 1).find(p => p.answer.pageNumber > answerStart);
   const answerEnd = next ? next.answer.pageNumber - 1 : (answerPageCount || answerStart);

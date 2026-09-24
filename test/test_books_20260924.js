@@ -31,6 +31,7 @@ import { PAIR_STATUS, RUNG } from '../src/decision.js';
 import { preparePair } from '../src/matching-engine.js';
 import { NODE_KIND, classifyOutline } from '../src/outline-classify.js';
 import { documentSubject } from '../src/pair-verifier.js';
+import { alignOutlines } from '../src/question-matcher.js';
 import { assessTextQuality } from '../src/text-quality.js';
 
 let PASS = 0, FAIL = 0, SKIP = 0;
@@ -59,6 +60,7 @@ const BOOKS = {
   'book-003': { name: '谢惠民 上', role: 'EX', subject: 'MATH_ANALYSIS', quality: 'SCANNED' },
   'book-017': { name: '王高雄 常微分方程', role: 'EX', subject: 'ODE', quality: 'SCANNED' },
   'book-018': { name: '数值分析', role: 'EX', subject: 'NUMERICAL_ANALYSIS', quality: 'SCANNED', pageMarkers: true },
+  'book-019': { name: '陈纪修 上', role: 'EX', subject: 'MATH_ANALYSIS', quality: 'SCANNED' },
   'book-022': { name: '姜礼尚 数学物理方程', role: 'EX', subject: 'PDE', quality: 'SCANNED' },
   'book-023': { name: '茆诗松 概率论', role: 'EX', subject: 'PROBABILITY', quality: 'USABLE' },
   'book-026': { name: '绿皮书', role: 'EX', subject: 'ALGEBRA', quality: 'SPARSE_LAYER', exerciseSets: 60 },
@@ -73,6 +75,7 @@ const BOOKS = {
   'book-049': { name: '谷超豪 答案', role: 'ANS', subject: 'PDE', quality: 'USABLE' },
   'book-050': { name: '近世代数三百题 答案', role: 'ANS', subject: 'ABSTRACT_ALGEBRA', quality: 'SCANNED' },
   'book-051': { name: '韩士安 习题解答', role: 'ANS', subject: 'ABSTRACT_ALGEBRA', quality: 'SCANNED', pageMarkers: true },
+  'book-053': { name: '陈纪修 上 答案', role: 'ANS', subject: 'MATH_ANALYSIS', quality: 'SCANNED' },
   'book-056': { name: '北大六版', role: 'EX', subject: 'ALGEBRA', quality: 'SCANNED' },
   'book-057': { name: '数学分析 第六版 上', role: 'EX', subject: 'MATH_ANALYSIS', quality: 'SCANNED' },
   'book-061': { name: '王高雄 习题详解', role: 'ANS', subject: 'ODE', quality: 'USABLE' },
@@ -139,6 +142,58 @@ for (const k of known.filter(k => BOOKS[k].exerciseSets)) {
     assert.ok(idx.entries.every(e => /^\d+\.\d+$/.test(e.label)), 'set ids are section-scoped');
   });
 }
+
+await check('book-019 -> book-053 陈纪修: two scanned volumes still locate by their bookmark trees', async () => {
+  // The one matched pair with bookmarks on both sides. Neither has a text
+  // layer, so no question is ever matched — but the section trees are the same
+  // book's, and every exercise page must locate to the answer section that
+  // carries the same title. Measured: 40 of 40 aligned pairs carry identical
+  // titles (the appendix pair scores 0.78 on a genuinely reworded title), and
+  // 355 of 381 pages locate; the 26 that do not are front matter before the
+  // first chapter and the index after the last aligned section.
+  if (!raw['book-019'] || !raw['book-053']) return;
+  const q = raw['book-019'];
+  const a = raw['book-053'];
+  const al = alignOutlines(q.outline, a.outline, { exercisePageCount: q.numPages, answerPageCount: a.numPages });
+  assert.ok(al.pairs.length >= 40, `${al.pairs.length} aligned sections`);
+  const norm = (t) => String(t).replace(/\s+/g, '');
+  const differing = al.pairs.filter(p => norm(p.exercise.title) !== norm(p.answer.title));
+  assert.ok(differing.length <= 1, `titles differ on ${differing.map(p => `${p.exercise.title}~${p.answer.title}`).join(', ')}`);
+
+  const p = await preparePair({ exerciseDocument: asDoc(q), answerDocument: asDoc(a), expectScript: 'han' });
+  assert.ok(p.decision.reasonCodes.includes('OCR_REQUIRED'));
+  let located = 0;
+  let auto = 0;
+  let wrongRegion = 0;
+  for (let pg = 1; pg <= q.numPages; pg++) {
+    for (const m of await p.session.matchQuestion({ page: pg })) {
+      if (m.rung === RUNG.AUTO_MATCH) auto++;
+      if (m.rung !== RUNG.LOCATED) continue;
+      located++;
+      if (norm(m.region.exerciseSection) !== norm(m.region.answerSection)
+        && !/习题答案/.test(m.region.answerSection)) wrongRegion++;
+    }
+  }
+  assert.equal(auto, 0);
+  assert.equal(wrongRegion, 0, `${wrongRegion} regions point at a differently titled section`);
+  assert.ok(located >= 350, `only ${located} of ${q.numPages} pages located`);
+});
+
+await check('book-019 陈纪修 against a wrong book locates almost nothing', async () => {
+  // A 近世代数 textbook shares two section titles with this one ("1 集合",
+  // "2 映射与函数"). Before regions were bounded by the aligned section's own
+  // span, those two pairs located 91 of 96 sampled pages of the wrong book.
+  if (!raw['book-019'] || !raw['book-028']) return;
+  const q = raw['book-019'];
+  const p = await preparePair({ exerciseDocument: asDoc(q), answerDocument: asDoc(raw['book-028']), expectScript: 'han' });
+  let located = 0;
+  let sampled = 0;
+  for (let pg = 1; pg <= q.numPages; pg += 4) {
+    sampled++;
+    for (const m of await p.session.matchQuestion({ page: pg })) if (m.rung === RUNG.LOCATED) located++;
+  }
+  assert.ok(located <= sampled / 8, `${located} of ${sampled} sampled pages located against the wrong book`);
+});
 
 // ═══════════════════════════════════════════════════════════════
 group('3. Subject detection never names a wrong subject');

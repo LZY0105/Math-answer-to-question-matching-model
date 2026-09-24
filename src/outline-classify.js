@@ -200,8 +200,17 @@ function withSpans(nodes, numPages) {
     (a.pageNumber ?? 0) - (b.pageNumber ?? 0) || (a.depth ?? 0) - (b.depth ?? 0));
   return sorted.map((node, i) => {
     if (Number.isFinite(node.endPage)) return { ...node, span: node.endPage - node.pageNumber + 1 };
-    const next = sorted.slice(i + 1).find(n => (n.pageNumber ?? 0) > (node.pageNumber ?? 0));
-    const end = next ? next.pageNumber - 1 : (numPages || node.pageNumber);
+    // The next node at the same or a shallower depth: a section runs until the
+    // next section or chapter, not until its own first subsection. An earlier
+    // version stopped at the next node of ANY depth, which cut every section
+    // down to the page before its first child — and a region locator bounding
+    // itself by that span would have dropped most of a valid book.
+    const next = sorted.slice(i + 1).find(n =>
+      (n.pageNumber ?? 0) > (node.pageNumber ?? 0) && (n.depth ?? 0) <= (node.depth ?? 0));
+    // A last node with no page count has an UNKNOWN end, not a one-page one;
+    // the region locator treats an unknown end as open rather than closed.
+    if (!next && !numPages) return { ...node, endPage: undefined, span: 1 };
+    const end = next ? next.pageNumber - 1 : numPages;
     return { ...node, endPage: Math.max(node.pageNumber ?? 0, end), span: Math.max(1, end - (node.pageNumber ?? 0) + 1) };
   });
 }

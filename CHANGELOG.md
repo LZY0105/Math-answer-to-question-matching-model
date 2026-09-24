@@ -176,3 +176,11 @@ matching:
   MIXED otherwise; the two original topic lists are unchanged.
 
 Over 462 ordered pairings of the 22 volumes, zero automatic answers.
+
+The 陈纪修 pair, two scanned volumes with bookmark trees for the same book,
+aligned 40 of 41 sections to identical titles and located 355 of 381 pages —
+and exposed a fourth defect: a region came from the last aligned section
+starting at or before the page with no upper bound, so two shared titles
+located 91 of 96 sampled pages of a wrong book. Regions are now bounded by the
+aligned section's own span (which was itself ending at the node's first child
+rather than the next section); the wrong book drops to 7 of 96.
