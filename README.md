@@ -72,6 +72,10 @@ failure this one is built against:
 - **The worst regime has reached its own deadline** — 1,573 ms against a
   1,500 ms alignment budget, so results there are produced by expiry rather
   than by decision.
+- A first pass over the [2026-09 textbook release](datasets/books-20260924/EVALUATION.md),
+  22 volumes from other publishers and nine subjects, found three defects in
+  the pre-matching gates and zero automatic answers over 462 pairings. Every
+  pair there has a scanned side, so it measures the gates, not recall.
 - Figures from the real books cannot be reproduced from a clone: the corpus is
   extracted from copyrighted textbooks and is not committed. A clean clone runs
   the 234 synthetic checks and skips the rest, saying which are skipped and why.

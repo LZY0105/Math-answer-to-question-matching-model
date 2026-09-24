@@ -153,3 +153,26 @@ re-sorting the alignment on every question.
 The README's "nothing is sampled" line was wrong for the safety matrix and the
 ablation regimes, which run on a page stride in both the tests and the tools;
 it now says so.
+
+## The first books from outside the series
+
+`datasets/books-20260924` is 63 volumes from other publishers and nine
+subjects, kept as release assets. Twenty-two were read through the demo's
+PDF.js adapter (`tools/extract-books.mjs`) and run through the public
+interface; `datasets/books-20260924/EVALUATION.md` has the full account and
+`test/test_books_20260924.js` asserts it. Every matched pair has a scanned
+side, so the text path never runs end to end and nothing measured is a recall.
+What the books did exercise found three defects in the gates that run before
+matching:
+
+- A bookmark per page, titled with the page number, read as a question level:
+  326 and 213 phantom questions on two volumes. The classifier now recognises
+  a flat integer cohort tracking the page counter as `PAGE_MARKER`.
+- 习题 bookmarks were trusted as question markers by the classifier and given
+  no id by the parser, so an 87-bookmark exercise book indexed as nothing.
+  `idFromOutlineTitle` reads the classifier's marker vocabulary.
+- Subject detection knew two subjects and named MATH_ANALYSIS on ODE, PDE and
+  probability books. It knows ten now, names before topics, two-to-one margin,
+  MIXED otherwise; the two original topic lists are unchanged.
+
+Over 462 ordered pairings of the 22 volumes, zero automatic answers.

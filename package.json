@@ -28,10 +28,11 @@
   "scripts": {
     "demo": "node demo/cli.mjs",
     "demo:web": "node demo/server.mjs",
-    "test": "node test/test_tools.js && node test/test_question_matcher.js && node test/test_answer_index.js && node test/test_text_source.js && node test/test_glyph_map.js && node test/test_structure.js && node test/test_matching_engine.js && node test/test_demo.js && node test/test_real_pdfs.js && node test/test_no_bookmarks.js && node test/test_corpus_regression.js",
+    "test": "node test/test_tools.js && node test/test_question_matcher.js && node test/test_answer_index.js && node test/test_text_source.js && node test/test_glyph_map.js && node test/test_structure.js && node test/test_matching_engine.js && node test/test_demo.js && node test/test_real_pdfs.js && node test/test_no_bookmarks.js && node test/test_corpus_regression.js && node test/test_books_20260924.js",
     "test:unit": "node test/test_tools.js && node test/test_question_matcher.js && node test/test_answer_index.js && node test/test_text_source.js && node test/test_glyph_map.js && node test/test_structure.js && node test/test_matching_engine.js && node test/test_demo.js",
     "test:demo": "node test/test_demo.js",
-    "test:real": "node test/test_real_pdfs.js && node test/test_no_bookmarks.js && node test/test_corpus_regression.js",
+    "test:real": "node test/test_real_pdfs.js && node test/test_no_bookmarks.js && node test/test_corpus_regression.js && node test/test_books_20260924.js",
+    "test:books": "node test/test_books_20260924.js",
     "test:nobookmarks": "node test/test_no_bookmarks.js",
     "test:scenarios": "node test/test_corpus_regression.js",
     "test:tools": "node test/test_tools.js"
