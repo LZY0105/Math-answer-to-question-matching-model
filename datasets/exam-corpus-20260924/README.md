@@ -1,20 +1,19 @@
-# 2023–2025 数学专业考研真题资料
+# 2023–2025 数学专业考研真题语料
 
-共 8 份 PDF，来自用户提供的 2023–2025 数学专业考研真题、完整答案解析和留白作答版，总大小 246,109,076 字节。
+本目录登记 9 个用户提供的 2023–2025 年数学专业考研 PDF，共 246,776,725 字节，供后续开发、离线运行和匹配测试使用。
 
-- [机器可读清单](manifest.json)
-- [SHA-256 清单](SHA256SUMS)
-- [GitHub Release 下载](https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/tag/exam-corpus-20260924)
-- [与三套语料测试套件的对照结果](EVALUATION.md)：上传的 2023 习题册没有题级书签，与测试套件依赖的版本不同
+- [文件清单](manifest.json)
+- [SHA-256 校验值](SHA256SUMS)
+- [上传核验记录](upload-verification.json)
+- [GitHub Release 下载页](https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/tag/exam-corpus-20260924)
+- [与三套语料测试套件的对照结果](EVALUATION.md)
 
-资料用于后续开发与测试，当前上传不代表已完成题目覆盖、答案准确率或匹配评测。完整答案解析与留白作答版是不同用途的输入，不能直接当作题目—答案配对结果。
+PDF 二进制文件存放在 GitHub Release 资产中，主分支只保存清单、校验值、核验记录和下载工具。该语料不代表新的匹配准确率结论。
 
-使用 Node.js 18 或更新版本，在仓库根目录运行：
+需要 Node.js 18 或更高版本。列出文件：
 
-~~~sh
+```sh
 node datasets/exam-corpus-20260924/download.mjs --list
-node datasets/exam-corpus-20260924/download.mjs --id exam-001 --out ../exam-corpus
+node datasets/exam-corpus-20260924/download.mjs --id exam-009 --out ../exam-corpus
 node datasets/exam-corpus-20260924/download.mjs --all --out ../exam-corpus
-~~~
-
-下载器默认只列清单；下载时恢复原始中文文件名，并校验文件大小与 SHA-256。PDF 作为 Release 资产发布，不直接进入普通 Git 历史。
+```

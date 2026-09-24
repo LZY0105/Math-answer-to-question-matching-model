@@ -1,12 +1,12 @@
 {
-  "verifiedAt": "2026-09-24T13:50:41.673Z",
+  "verifiedAt": "2026-09-24T14:24:46.739Z",
   "repository": "LZY0105/Math-answer-to-question-matching-model",
   "releaseTag": "exam-corpus-20260924",
   "releaseUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/tag/exam-corpus-20260924",
   "releaseId": 395739483,
   "commit": "b6984b85f4b24faccb4a1bf9cf9d91b13a45c48c",
-  "fileCount": 8,
-  "totalBytes": 246109076,
+  "fileCount": 9,
+  "totalBytes": 246776725,
   "assets": [
     {
       "name": "exam-001-d27af445ea11.pdf",
@@ -55,6 +55,12 @@
       "size": 697693,
       "digest": "sha256:24352c2fa9c4ca508a0321511c613a984a4c4ef3441d98097dd17ef79de5f5d6",
       "browserDownloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/exam-corpus-20260924/exam-008-24352c2fa9c4.pdf"
+    },
+    {
+      "name": "exam-009-d1ef3049f073.pdf",
+      "size": 667649,
+      "digest": "sha256:d1ef3049f07383aa4dca294943958d239220479c28a0600a768086f23b7a9fbc",
+      "browserDownloadUrl": "https://github.com/LZY0105/Math-answer-to-question-matching-model/releases/download/exam-corpus-20260924/exam-009-d1ef3049f073.pdf"
     }
   ]
 }
