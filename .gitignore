@@ -1,5 +1,8 @@
 node_modules/
 
+# Python 字节码缓存。
+__pycache__/
+
 # Extracted text from copyrighted textbooks — see test/test_real_pdfs.js.
 # Point FIND_ENGINE_CORPUS at it, or keep it beside the repo, never inside it.
 find-engine-corpus/
