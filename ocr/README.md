@@ -23,11 +23,11 @@ LaTeX 目标去除不可见的间距、字号及自动定界符尺寸命令，�
 
 ## 本地推理
 
-推理只需要 NumPy、Pillow 和 ONNX Runtime，不需要 PyTorch。`--bundle` 指向已导出且验证过的本地模型目录：
+推理只需要 NumPy、Pillow 和 ONNX Runtime，不需要 PyTorch。选定的模型包就在仓库里（[`models/formula-scratch-kv-int8-texteller-r10/`](models/formula-scratch-kv-int8-texteller-r10/)，见 [MODEL_CARD](MODEL_CARD.md)）；`--bundle` 也可以指向别的、自己导出并验证过的模型目录：
 
 ```sh
 python -m pip install -r ocr/requirements.txt
-python ocr/recognize_scratch.py --bundle PATH_TO_BUNDLE --image formula.png
+python ocr/recognize_scratch.py --bundle ocr/models/formula-scratch-kv-int8-texteller-r10 --image formula.png
 ```
 
 返回 JSON 包含 `latex`、`tokenIds`、`endedWithEos`、`meanLogProbability`、`reviewRequired` 和原因代码。空输出或未终止输出的退出码为 2。模型、词表及运行参数在加载时校验；推理过程不下载模型、不调用云服务。

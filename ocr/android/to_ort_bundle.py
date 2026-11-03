@@ -10,7 +10,7 @@
 最后用同一批验证图比较：原包按 ARM 上的做法加载（关掉 NCHWc），新包用完整版 ORT 读（它也认 ORT 格式），
 编码器输出要逐位相同、识别结果要逐记号相同。
 
-python ocr/android/to_ort_bundle.py --bundle tmp/formula-scratch-kv-int8-texteller-r10 \
+python ocr/android/to_ort_bundle.py --bundle ocr/models/formula-scratch-kv-int8-texteller-r10 \
     --output tmp/formula-scratch-kv-int8-texteller-r10-ort --manifest 验证清单.jsonl [--limit 300]
 """
 

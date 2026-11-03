@@ -1,0 +1,4 @@
+# 模型包原样存取，一个字节都不能变：Java、Python 两个运行器加载时都按 model.properties / metadata.json
+# 核对 encoder.onnx、decoder.onnx、tokenizer.json 的 SHA-256。tokenizer.json 是 LF，Windows 上 core.autocrlf
+# 一检出就变成 CRLF，哈希对不上、加载不了；metadata.json、model.properties 导出时就是 CRLF，也照原样存。
+* -text
