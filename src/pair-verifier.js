@@ -70,8 +70,10 @@ const THRESHOLDS = Object.freeze({
   /**
    * Share of sampled labels whose correct partner must rank first.
    *
-   * Valid pairs measure 58-75%; a wrong-year pair measures 0%. Forty sits in
-   * the middle of that gap.
+   * Measured on each entry's own text: valid pairs 62.5-100%, the wrong pairs
+   * of the exam corpus 0-8.3%. Forty sits inside that gap. (On page-range text,
+   * as first measured, valid pairs scored 58-75% with hidden text present and
+   * as low as 0% without it.)
    */
   anchorTop1: 0.4,
   /** Labels sampled when testing content agreement. */
@@ -265,12 +267,27 @@ export function documentSubject(doc, { sampleLines = 3000 } = {}) {
 export function contentAnchorAgreement(exerciseIndex, answerIndex, {
   sample = THRESHOLDS.anchorSample,
 } = {}) {
+  // Each entry's OWN text — bounded by its printed heading and the next, or by
+  // its bookmark and the next — where the index has it, and the page range
+  // only where it does not.
+  //
+  // The page range carries the neighbours: on a page holding three questions,
+  // a question's range text is mostly the other two, and so is its answer's.
+  // Measured on the 2024 analysis pair, ranking by range text put question
+  // 1.4's answer fourth behind 1.3's, because 1.3 dominated both ranges; read
+  // as printed, without the text its pages' clips hide
+  // (datasets/exam-corpus-20260924/EVALUATION.md), the valid pair scored 0 of
+  // 24 and was REJECTED. It had verified only because the hidden text made
+  // both books' ranges alike by accident. On own text the three valid pairs
+  // score 1.000, 0.625 and 0.792 as the text layer reads, 1.000, 0.667 and
+  // 0.833 as printed, and the wrong pairs at most 0.083 either way.
+  const own = (e) => e?.scopedText || e?.text || '';
   const answers = new Map();
   for (const e of answerIndex?.entries ?? []) {
-    if (e.text && !answers.has(e.label)) answers.set(e.label, e);
+    if (own(e) && !answers.has(e.label)) answers.set(e.label, e);
   }
   const shared = (exerciseIndex?.entries ?? [])
-    .filter(e => e.text && answers.has(e.label));
+    .filter(e => own(e) && answers.has(e.label));
 
   if (shared.length < THRESHOLDS.minSharedForAnchors) {
     return { top1: null, sampled: 0, shared: shared.length, sufficient: false };
@@ -281,14 +298,14 @@ export function contentAnchorAgreement(exerciseIndex, answerIndex, {
   // on a 500-entry index of page-range texts this is the difference between
   // ~15 s and well under a second for the whole check.
   const pool = (answerIndex?.entries ?? [])
-    .filter(e => e.text)
-    .map(e => ({ entry: e, profile: textProfile(e.text) }));
+    .filter(e => own(e))
+    .map(e => ({ entry: e, profile: textProfile(own(e)) }));
   const step = Math.max(1, Math.floor(shared.length / sample));
   let first = 0;
   let sampled = 0;
   for (let i = 0; i < shared.length && sampled < sample; i += step) {
     const q = shared[i];
-    const qp = textProfile(q.text);
+    const qp = textProfile(own(q));
     let best = null;
     let bestScore = -Infinity;
     for (const candidate of pool) {

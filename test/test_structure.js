@@ -20,7 +20,7 @@ import {
 import { locateAnswerRegion, sectionRangeForPage } from '../src/region-locator.js';
 import { auditOcrMatches, headingPagesFrom } from '../src/ocr-audit.js';
 import { idFromOutlineTitle, parseQuestionLine } from '../src/question-id.js';
-import { documentSubject } from '../src/pair-verifier.js';
+import { contentAnchorAgreement, documentSubject } from '../src/pair-verifier.js';
 import {
   buildContentsLocations, estimatePageOffset, extractContentsRows,
 } from '../src/contents-index.js';
@@ -628,6 +628,31 @@ check('a name mentioned in passing does not outvote the book', () => {
     lines: Array.from({ length: 30 }, (_, i) => ({ page: i + 1, text: '求极限，并计算积分与级数' })),
   };
   assert.equal(documentSubject(book).subject, 'MATH_ANALYSIS');
+});
+
+// ═══════════════════════════════════════════════════════════════
+group('9. The identity check reads each question\'s own text');
+
+check('neighbours on a shared page do not outvote a question\'s own answer', () => {
+  // Three questions to a page, so a question's page-range text is mostly its
+  // two neighbours, and so is its answer's. Measured on the 2024 analysis pair
+  // read as printed, ranking on range text scored 0 of 24 and rejected a valid
+  // pair; on own text it scores 0.667. Range text scores this fixture 0.042.
+  const exprs = Array.from({ length: 30 }, (_, i) => `f(x)=x^${i + 2}+${3 * i + 1}x-${i + 5}`);
+  const pageOf = (i) => Math.floor(i / 3);
+  const rangeText = (i, extra) => exprs.filter((_, j) => pageOf(j) === pageOf(i)).map(e => `${extra} ${e}`).join(' ');
+  const exercise = { entries: exprs.map((e, i) => ({ label: `1.${i + 1}`, text: rangeText(i, '求'), scopedText: `求 ${e}` })) };
+  const answer = { entries: exprs.map((e, i) => ({ label: `1.${i + 1}`, text: rangeText(i + 1 < 30 ? i + 1 : i, '解答：由'), scopedText: `解答：由 ${e} 可得` })) };
+  const r = contentAnchorAgreement(exercise, answer);
+  assert.equal(r.sufficient, true);
+  assert.ok(r.top1 >= 0.9, `own-text agreement ${r.top1}`);
+});
+
+check('a question without bounded text falls back to its page range', () => {
+  const exprs = Array.from({ length: 12 }, (_, i) => `g(t)=t^${i + 2}-${2 * i + 7}`);
+  const exercise = { entries: exprs.map((e, i) => ({ label: `2.${i + 1}`, text: `求 ${e}` })) };
+  const answer = { entries: exprs.map((e, i) => ({ label: `2.${i + 1}`, text: `解答：${e}` })) };
+  assert.equal(contentAnchorAgreement(exercise, answer).top1, 1);
 });
 
 console.log('\n═══════════════════════════════════════════════════════════════');
