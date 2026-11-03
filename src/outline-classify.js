@@ -177,6 +177,7 @@ function flatten(outline) {
         title: item.title,
         pageNumber: item.pageNumber,
         endPage: item.endPage,
+        top: Number.isFinite(item.top) ? item.top : null,
         depth: item.depth ?? depth,
         childCount: item.children?.length ?? 0,
         sectionPath: path,

@@ -13,6 +13,8 @@
 
 import assert from 'node:assert/strict';
 
+import { indexQuestionDocument } from '../src/answer-index.js';
+import { extractFormulaSet } from '../src/formula-set.js';
 import { preparePair } from '../src/matching-engine.js';
 import { PAIR_STATUS, RUNG } from '../src/decision.js';
 
@@ -446,6 +448,105 @@ await check('matchQuestion and matchAll agree on the same page', async () => {
   assert.equal(one[0].rung, all.matches.find(
     m => m.question?.label === one[0].question?.label).rung,
     'single-question and whole-book flows must apply the same rules');
+});
+
+// ═══════════════════════════════════════════════════════════════
+group('7. A formula recogniser: regions with geometry, no prose, no labels');
+
+/** A scanned exercise book: bookmarks with positions, no text layer at all. */
+function makeScannedExercise() {
+  const items = [];
+  for (let i = 1; i <= N; i++) {
+    items.push({ title: `例题 1.${i}`, pageNumber: Math.ceil(i / 2), top: (i % 2 === 1) ? 60 : 400, children: [] });
+  }
+  // Twelve pages, two questions each, two expressions per question: enough
+  // characters a page that the coverage gate reads a text layer, which is what
+  // a recognised exercise book looks like. A fixture thinner than twenty
+  // characters a page is a scan with stray text, by the gate's own rule.
+  return {
+    numPages: 12,
+    outline: { available: true, items: [{ title: '第1章 2024 年极限与连续函数', pageNumber: 1, top: 20, children: items }] },
+    async extractText() { return []; },
+  };
+}
+
+/** The recogniser the host would inject: formulas with their vertical extent. */
+function formulaRecognizer(page) {
+  const first = 2 * page - 1;
+  const second = 2 * page;
+  const out = [];
+  if (first <= N) {
+    out.push({ latex: `f(x)=x^{${first}}+${first}`, top: 80, bottom: 96 });
+    out.push({ latex: `\\lim_{x \\to 0} \\frac{f(x)-${first}}{x^{${first}}}`, top: 110, bottom: 126 });
+  }
+  if (second <= N) {
+    out.push({ latex: `f(x)=x^{${second}}+${second}`, top: 420, bottom: 436 });
+    out.push({ latex: `\\lim_{x \\to 0} \\frac{f(x)-${second}}{x^{${second}}}`, top: 450, bottom: 466 });
+  }
+  return out;
+}
+
+await check('formula regions index under the bookmark tree with their text in matcher form', async () => {
+  const index = await indexQuestionDocument(makeScannedExercise(), { expectScript: 'han', recognizer: formulaRecognizer });
+  assert.equal(index.ocrRequired, false, 'recognition produced usable text');
+  assert.equal(index.textOrigin, 'OCR_FORMULA');
+  assert.equal(index.quality, 'USABLE', `formula-only text is judged on noise, not on Han: ${index.reason}`);
+  assert.equal(index.source, 'OUTLINE');
+  assert.equal(index.entries.length, N);
+  const first = index.entries.find(e => e.label === '1.1');
+  assert.ok(/f\(x\)=x1\+1/.test(first.scopedText.replace(/\s+/g, '')), first.scopedText);
+});
+
+await check('bookmark positions bound each question to its own formulas on a shared page', async () => {
+  const index = await indexQuestionDocument(makeScannedExercise(), { expectScript: 'han', recognizer: formulaRecognizer });
+  const q1 = index.entries.find(e => e.label === '1.1');
+  const q2 = index.entries.find(e => e.label === '1.2');
+  assert.ok(!/x2\+2/.test(q1.scopedText.replace(/\s+/g, '')), `1.1 took its neighbour's formula: ${q1.scopedText}`);
+  assert.ok(/x2\+2/.test(q2.scopedText.replace(/\s+/g, '')), q2.scopedText);
+  assert.ok(!/x1\+1/.test(q2.scopedText.replace(/\s+/g, '')), `1.2 took its predecessor's formula: ${q2.scopedText}`);
+  assert.ok(q1.spans?.length, 'geometry survives as spans, so a tap can select a question');
+});
+
+await check('a formula-read exercise book against a text answer key resolves by id and is gated by its formulas', async () => {
+  const prepared = await preparePair({
+    exerciseDocument: makeScannedExercise(),
+    answerDocument: makeDoc({ role: 'ANSWER' }),
+    recognizer: formulaRecognizer,
+    expectScript: 'han',
+  });
+  assert.ok(prepared.session, prepared.decision.reasonCodes.join(','));
+  assert.ok(!prepared.decision.reasonCodes.includes('OCR_REQUIRED'), 'recognised text lifts OCR_REQUIRED');
+  const matches = await prepared.session.matchQuestion({ page: 1 });
+  assert.equal(matches.length, 2);
+  for (const m of matches) {
+    assert.equal(m.entry.label, m.question.label, 'the id is the correspondence');
+    assert.ok(m.formula, 'formula evidence is computed from the recognised text');
+    assert.equal(m.formula.conflicts, 0, JSON.stringify(m.formula));
+  }
+});
+
+await check('two recognised regions are two expressions, never one', async () => {
+  // With no prose between them, adjacent formulas used to run together into one
+  // expression. Measured on the 2023 book, that halved the formula gate's
+  // coverage. Each region now opens with a separator the splitter honours.
+  const doc = {
+    numPages: 12,
+    outline: { available: true, items: [{ title: '第1章 极限', pageNumber: 1, top: 20, children: Array.from({ length: 24 }, (_, i) => ({ title: `例题 1.${i + 1}`, pageNumber: Math.ceil((i + 1) / 2), top: (i % 2 === 0) ? 60 : 400, children: [] })) }] },
+    async extractText() { return []; },
+  };
+  const index = await indexQuestionDocument(doc, {
+    expectScript: 'han',
+    recognizer: (page) => [
+      { text: 'f ( x ) = x 2 + 1', formula: true, top: 80, bottom: 96 },
+      { text: 'g ( x ) = 2 x − 3', formula: true, top: 110, bottom: 126 },
+      { latex: 'h(x)=x^{3}', top: 420, bottom: 436 },
+      { latex: 'k(x)=\\sqrt{x}', top: 450, bottom: 466 },
+    ],
+  });
+  const first = index.entries[0];
+  const set = extractFormulaSet(first.scopedText || first.text);
+  assert.equal(set.count, 2, `${JSON.stringify(set.expressions.map(e => e.fragment))}`);
+  assert.deepEqual(set.expressions.map(e => e.fragment), ['f(x)=x2+1', 'g(x)=2x-3']);
 });
 
 console.log('\n═══════════════════════════════════════════════════════════════');

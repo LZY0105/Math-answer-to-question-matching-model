@@ -55,6 +55,24 @@ const OPERATOR_BASE = /[∫∑∏∬∭∮]|^\s*(lim|max|min|sup|inf)\s*$/;
 const ROW_TOLERANCE = 2.5;
 
 export function groupTextItems(items, pageNumber, viewport, includeGeometry) {
+  return groupTextRows(items, viewport)
+    .map(row => {
+      const line = { page: pageNumber, text: row.items.map(item => item.text).join(' ').trim() };
+      if (!includeGeometry) return line;
+      return { ...line, y: row.y, height: row.height };
+    })
+    .filter(line => line.text);
+}
+
+/**
+ * The rows of a page, each with its items in reading order.
+ *
+ * The same grouping groupTextItems reads lines from, exposed for tools that
+ * need the items themselves — their positions and widths — rather than the
+ * joined text. An item is {text, x, y, width, height} in page points with the
+ * origin at the top-left; y is the baseline.
+ */
+export function groupTextRows(items, viewport) {
   const placed = items
     .filter(item => typeof item.str === 'string' && item.str.trim())
     .map(item => ({
@@ -126,13 +144,10 @@ export function groupTextItems(items, pageNumber, viewport, includeGeometry) {
   return rows
     .filter(row => !merged.has(row))
     .sort((a, b) => a.y - b.y)
-    .map(row => {
+    .map((row) => {
       row.items.sort((a, b) => a.x - b.x);
-      const line = { page: pageNumber, text: row.items.map(item => item.text).join(' ').trim() };
-      if (!includeGeometry) return line;
-      return { ...line, y: row.y, height: row.height };
-    })
-    .filter(line => line.text);
+      return row;
+    });
 }
 
 
@@ -140,18 +155,42 @@ async function resolveOutline(document) {
   const raw = await document.getOutline();
   if (!raw?.length) return { available: false, items: [] };
 
+  // Page heights, for turning a destination's PDF-space top (origin at the
+  // bottom of the page) into the top-origin coordinate the text lines use.
+  const heights = new Map();
+  const pageHeight = async (pageNumber) => {
+    if (!heights.has(pageNumber)) {
+      const page = await document.getPage(pageNumber);
+      heights.set(pageNumber, page.getViewport({ scale: 1 }).height);
+    }
+    return heights.get(pageNumber);
+  };
+
   const convert = async (item) => {
     let destination = item.dest;
     if (typeof destination === 'string') destination = await document.getDestination(destination);
 
     let pageNumber = null;
+    let top = null;
     if (Array.isArray(destination) && destination[0]) {
       try { pageNumber = (await document.getPageIndex(destination[0])) + 1; } catch { /* unresolved */ }
+      // Where on the page the bookmark points. /XYZ carries [left, top, zoom],
+      // /FitH and /FitBH carry [top]; the rest name a page and nothing finer.
+      // A bookmark's position is what bounds a question on a page the book
+      // prints no parseable heading for — a scan read by a formula recogniser
+      // has nothing else.
+      const kind = destination[1]?.name;
+      const raw = kind === 'XYZ' ? destination[3]
+        : (kind === 'FitH' || kind === 'FitBH') ? destination[2] : null;
+      if (pageNumber && Number.isFinite(raw)) {
+        try { top = (await pageHeight(pageNumber)) - raw; } catch { /* leave null */ }
+      }
     }
 
     return {
       title: String(item.title ?? '').trim(),
       pageNumber,
+      ...(Number.isFinite(top) ? { top: Number(top.toFixed(2)) } : {}),
       children: await Promise.all((item.items ?? []).map(convert)),
     };
   };

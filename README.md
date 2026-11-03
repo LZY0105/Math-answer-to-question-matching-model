@@ -76,6 +76,11 @@ failure this one is built against:
   22 volumes from other publishers and nine subjects, found three defects in
   the pre-matching gates and zero automatic answers over 462 pairings. Every
   pair there has a scanned side, so it measures the gates, not recall.
+- The repository's own [formula recogniser](ocr/README.md) feeds the engine
+  through a region contract; [`ocr/MATCHING.md`](ocr/MATCHING.md) records what
+  the engine does with formula-only input, measured against an oracle: zero
+  wrong, two pairs verified on formulas alone, and the path still unmeasured
+  with the model's own output.
 - Figures from the real books cannot be reproduced from a clone: the corpus is
   extracted from copyrighted textbooks and is not committed. A clean clone runs
   the 234 synthetic checks and skips the rest, saying which are skipped and why.

@@ -30,6 +30,7 @@ import { bodyQuestionFilter } from './body-structure.js';
 import { buildContentsLocations } from './contents-index.js';
 import { createTextSource } from './text-source.js';
 import { createTextCleaner, entryText } from './entry-text.js';
+import { latexToText } from './formula-latex.js';
 import {
   compareIds,
   normalizeId,
@@ -253,8 +254,8 @@ export function buildOutlineIndex(outline, lines, {
     if (linesByPage && cleaner) {
       const own = entryText(
         usable ?? [],
-        { label: item.id, page: item.pageNumber, endPage },
-        next ? { label: next.id, page: next.pageNumber } : null,
+        { label: item.id, page: item.pageNumber, endPage, top: item.top ?? null },
+        next ? { label: next.id, page: next.pageNumber, top: next.top ?? null } : null,
         cleaner,
       );
       scopedText = own.text;
@@ -266,6 +267,8 @@ export function buildOutlineIndex(outline, lines, {
         label: item.id,
         page: item.pageNumber,
         endPage,
+        // Where on its first page the bookmark points, when the adapter says.
+        top: Number.isFinite(item.top) ? item.top : null,
         lines: text ? [text] : [],
         subQuestions: [],
         depth: item.depth ?? 0,
@@ -291,7 +294,7 @@ export function buildOutlineIndex(outline, lines, {
 }
 
 function finalizeEntry(entry, ordinal, source) {
-  const text = entry.lines.join(' ').trim();
+  const text = entry.lines.join('\n').trim();
   const label = normalizeId(entry.label) || String(entry.label ?? '');
   return {
     // Unique per entry. Page and label together are NOT unique — a page can
@@ -305,6 +308,8 @@ function finalizeEntry(entry, ordinal, source) {
     ordinal,
     page: entry.page,
     endPage: entry.endPage ?? entry.page,
+    // Where on its first page the entry's bookmark points, when known.
+    top: Number.isFinite(entry.top) ? entry.top : null,
     depth: entry.depth ?? null,
     title: entry.title ?? null,
     text,
@@ -403,36 +408,98 @@ async function recogniseDocument(doc, recognizer, { expectScript, budget }) {
   // A document that reaches here has already been judged unable to serve its own
   // text, so there is no layer for createTextSource to prefer and nothing lost by
   // going straight to the recogniser.
+  let formulaLines = 0;
+  let textLines = 0;
   for (let page = 1; page <= limit; page++) {
-    let text = '';
+    let got;
     try {
-      const got = await recognizer(page);
-      text = Array.isArray(got)
-        ? got.map(r => r?.text ?? '').join('\n')
-        : String(got ?? '');
+      got = await recognizer(page);
     } catch {
       pagesFailed++;
       continue;
     }
 
-    const pageLines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    const pageLines = recognisedLines(got, page);
     if (pageLines.length === 0) { pagesFailed++; continue; }
-    for (const line of pageLines) lines.push({ page, text: line });
+    for (const line of pageLines) {
+      lines.push(line);
+      if (line.formula) formulaLines++;
+      else textLines++;
+    }
     pagesRecognised++;
   }
 
-  const assessment = assessTextQuality(lines, { expectScript, pagesRead: limit });
+  // A formula recogniser returns no prose, so a book it has read carries no
+  // Han whatever its language; judged as Chinese that reads as a broken font
+  // map, and OPAQUE text is never compared. Its output is judged on noise
+  // alone, which is what it is: mathematics in the script mathematics uses.
+  const formulaOnly = formulaLines > 0 && textLines === 0;
+  const assessment = assessTextQuality(lines, {
+    expectScript: formulaOnly ? 'auto' : expectScript,
+    pagesRead: limit,
+  });
   const usable = pagesRecognised > 0 && !requiresRecognizer(assessment.quality);
   return {
     lines,
     assessment,
     usable,
+    formulaOnly,
     pagesRecognised,
     pagesFailed,
     truncated: limit < total,
     reason: usable ? null
       : (pagesRecognised === 0 ? 'OCR 未返回任何文本' : `OCR 结果仍不可用：${assessment.reason}`),
   };
+}
+
+/**
+ * What a recogniser returned for one page, as lines.
+ *
+ * Three shapes are accepted. A string is page text, one line per newline. An
+ * array is a list of items; an object with a `regions` or `items` array is the
+ * same list. Each item is either a line of text ({text}), a recognised formula
+ * ({latex}), or a formula the host already holds as text ({text, formula:
+ * true}), and any may carry its vertical extent on the page ({top, bottom} or
+ * {y, height}), which is what lets a tap select one question on a page the
+ * recogniser read.
+ *
+ * A formula arrives as LaTeX and leaves as the text form the matcher scores —
+ * see src/formula-latex.js. The line remembers it was a formula, because a
+ * book read by a formula recogniser is judged differently from one read whole.
+ */
+/**
+ * A recognised region is one line, and a line is one expression: see
+ * extractMathFragments. Nothing is inserted between regions; the lines
+ * themselves keep them apart, exactly as a text layer's rows do.
+ */
+function recognisedLines(got, page) {
+  const out = [];
+  const push = (text, geometry, formula) => {
+    for (const piece of String(text ?? '').split(/\r?\n/)) {
+      const trimmed = piece.trim();
+      if (!trimmed) continue;
+      out.push({ page, text: trimmed, ...geometry, ...(formula ? { formula: true } : {}) });
+    }
+  };
+  const items = Array.isArray(got) ? got
+    : Array.isArray(got?.regions) ? got.regions
+      : Array.isArray(got?.items) ? got.items
+        : null;
+  if (items === null) {
+    push(got, {}, false);
+    return out;
+  }
+  for (const item of items) {
+    if (item == null) continue;
+    if (typeof item === 'string') { push(item, {}, false); continue; }
+    const top = Number.isFinite(item.top) ? item.top : (Number.isFinite(item.y) ? item.y : undefined);
+    const bottom = Number.isFinite(item.bottom) ? item.bottom
+      : (Number.isFinite(top) && Number.isFinite(item.height) ? top + item.height : undefined);
+    const geometry = Number.isFinite(top) && Number.isFinite(bottom) ? { top, bottom, y: top, height: bottom - top } : {};
+    if (typeof item.latex === 'string') push(latexToText(item.latex), geometry, true);
+    else push(item.text, geometry, item.formula === true);
+  }
+  return out;
 }
 
 /**
@@ -483,9 +550,9 @@ function collectText(linesByPage, from, to) {
   const parts = [];
   for (let page = from; page <= to; page++) {
     const bucket = linesByPage.get(page);
-    if (bucket) parts.push(bucket.join(' '));
+    if (bucket) parts.push(bucket.join('\n'));
   }
-  return parts.join(' ').trim();
+  return parts.join('\n').trim();
 }
 
 /**
@@ -692,9 +759,10 @@ async function indexDocument(doc, {
   const base = {
     ocrRequired,
     recognizerAvailable: !!recognizer,
-    textOrigin: recognised ? 'OCR' : 'TEXT_LAYER',
+    textOrigin: recognised ? (ocr.formulaOnly ? 'OCR_FORMULA' : 'OCR') : 'TEXT_LAYER',
     ocr: ocr ? {
       attempted: true,
+      formulaOnly: !!ocr.formulaOnly,
       pagesRecognised: ocr.pagesRecognised,
       pagesFailed: ocr.pagesFailed,
       truncated: ocr.truncated,

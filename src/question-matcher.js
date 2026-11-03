@@ -176,8 +176,31 @@ const MATH_CHAR = /[0-9a-zA-Z+\-*/=^_(){}[\]<>|.,\\∫∑∏√±×÷≤≥≠�
  * @returns {string[]} fragments, single characters discarded
  */
 export function extractMathFragments(text) {
-  return fragmentRuns(normalizeForMatch(text));
+  // A line boundary is an expression boundary. Entry text keeps its lines
+  // apart with newlines, and a formula recogniser returns one region per
+  // line; normalisation would otherwise run two lines together into one
+  // expression, which is how a question's four formulas became one and the
+  // formula gate's coverage halved. Measured in datasets/exam-corpus-20260924.
+  //
+  // Except where the break falls inside an expression: a line that ends with
+  // a binary operator, or a line that begins with one, is a wrapped formula,
+  // and its two halves are one expression on both sides of a comparison.
+  const out = [];
+  const lines = String(text ?? '').split(/\r?\n/);
+  let carry = '';
+  for (let i = 0; i < lines.length; i++) {
+    const line = carry + lines[i];
+    const next = lines[i + 1];
+    if (next !== undefined && (WRAPPED_END.test(line) || WRAPPED_START.test(next))) { carry = line + ' '; continue; }
+    carry = '';
+    out.push(...fragmentRuns(normalizeForMatch(line)));
+  }
+  return out;
 }
+
+/** A line that ends mid-expression, or one that begins mid-expression. */
+const WRAPPED_END = /[+\-−=×·/]\s*$/u;
+const WRAPPED_START = /^\s*[+\-−=×·/](?![\s]*[(\d])/u;
 
 /** The maths runs of an already-normalised string. */
 function fragmentRuns(s) {

@@ -390,8 +390,17 @@ export function verifyPair({
   //
   // Weak agreement from unreliable indexes is missing evidence, and missing
   // evidence is UNKNOWN, never REJECTED.
+  //
+  // Nor does text a recogniser produced. The 40% line was measured on text
+  // layers; recognised formulas carry no prose, and a valid pair's own
+  // exercise book, read as formulas alone, ranked its partner first for 29% of
+  // sampled questions on the 2024 analysis pair — a correct pair, rejected.
+  // Recognised text may still CONFIRM a pair; its disagreement is missing
+  // evidence, and a binding may resolve it.
+  const fromLayer = (index) => (index?.textOrigin ?? 'TEXT_LAYER') === 'TEXT_LAYER';
   const anchorsAreReliable = exerciseIndex?.source === 'OUTLINE'
-    && answerIndex?.source === 'OUTLINE';
+    && answerIndex?.source === 'OUTLINE'
+    && fromLayer(exerciseIndex) && fromLayer(answerIndex);
 
   /**
    * A binding is the user asserting a pairing the engine could not establish.

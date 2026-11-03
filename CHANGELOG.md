@@ -216,3 +216,20 @@ starts where a row's item ends, in that item's whitespace, and leaves the
 bounds of ∫, ∑, ∏ and lim alone. Measured on the three pairs, the cleaner fix
 alone clears every floor; the row rule adds three questions on 2023 and is
 neutral on the display-heavy analysis pair. All floors met, zero wrong.
+
+## A formula recogniser's output, read by the engine
+
+`ocr/` is the repository's own formula OCR (branch `codex/scratch-formula-ocr`,
+merged). It reads one crop into LaTeX; the engine reads pages. The recogniser
+contract now accepts regions — `{latex|text, top, bottom}` per page — and a
+new `src/formula-latex.js` turns LaTeX into the text form the matcher scores.
+Making that output usable changed the engine on every path, for the better:
+a line is now an expression boundary (two rows of display mathematics had been
+one expression on one side and several on the other), a wrapped line is one
+expression, a bookmark's position bounds its entry, and text a recogniser
+produced can confirm a pair but never reject one. Text-layer strict recall:
+2023 from 474 to 506 of 508, algebra from 186 to 191, analysis from 159 to
+183, zero wrong. Measured against an oracle standing in for the model (the text
+layer's own regions), the formula-only path verifies two of three pairs on
+formulas alone and resolves 356, 122 and 134 questions under the strict rule
+with zero wrong; `ocr/MATCHING.md` has the account and the open problem.

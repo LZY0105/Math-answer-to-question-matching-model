@@ -112,7 +112,22 @@ are the suite's, measured on the host app's reader.
 | Nearest baseline within reach | 175 | 154 | 481 |
 | Adjacent to a base item | 176 | 154 | 475 |
 | Adjacent, in the line's whitespace | 176 | 157 | 474 |
-| **…and not after a large operator** | **176** | **159** | **474** |
+| …and not after a large operator | 176 | 159 | 474 |
+
+Three engine changes made for the formula-recogniser path (see
+`ocr/MATCHING.md`) then moved these again, with the row rule unchanged:
+
+| Engine change, cumulative | 2024 Algebra (175) | 2024 Analysis (159) | 2023 (470) |
+|---|---|---|---|
+| Bookmark positions bound each entry's text | 186 | 184 | 474 |
+| A line is an expression boundary | 191 | 175 | 507 |
+| **…unless it wraps mid-expression** | **191** | **183** | **506** |
+
+Zero wrong at every row. The line boundary is the large one: two rows of
+display mathematics — a numerator and a denominator, the rows of a matrix —
+had been joining into one expression on whichever side happened to break
+differently, and reading as a conflict. The no-answer-bookmarks regime of the
+2023 ablation rose from 444 to 492 distinct questions on the same change.
 
 Zero wrong under every rule and every policy. The cleaner fix alone clears
 every floor. Script attachment is a fidelity gain for inline exponents, worth

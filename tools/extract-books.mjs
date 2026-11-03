@@ -17,6 +17,7 @@
 //   --books  where datasets/books-20260924/download.mjs put the PDFs
 //   --out    where to write the JSON (default: <books>/extracted)
 //   --force  re-extract books whose JSON already exists
+//   --geometry  keep each line's vertical position (y, height) in page points
 //   KEY=FILE extract one file under a chosen key; with none given, every PDF in
 //            --books is extracted under its manifest id (book-NNN)
 //
@@ -34,12 +35,13 @@ const REPO = resolve(HERE, '..');
 const MANIFEST = join(REPO, 'datasets', 'books-20260924', 'manifest.json');
 
 function parseArgs(argv) {
-  const opts = { books: resolve(REPO, '..', 'find-engine-books'), out: null, force: false, picks: [] };
+  const opts = { books: resolve(REPO, '..', 'find-engine-books'), out: null, force: false, geometry: false, picks: [] };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--books') opts.books = resolve(argv[++i]);
     else if (a === '--out') opts.out = resolve(argv[++i]);
     else if (a === '--force') opts.force = true;
+    else if (a === '--geometry') opts.geometry = true;
     else if (a.includes('=')) {
       const at = a.indexOf('=');
       opts.picks.push({ key: a.slice(0, at), file: resolve(a.slice(at + 1)) });
@@ -64,8 +66,8 @@ function discover(booksDir) {
   return out.sort((a, b) => a.key.localeCompare(b.key));
 }
 
-export async function extractBook(file) {
-  const doc = await openPdfDocument(file, { includeGeometry: false });
+export async function extractBook(file, { geometry = false } = {}) {
+  const doc = await openPdfDocument(file, { includeGeometry: geometry });
   try {
     const lines = await doc.extractText({});
     return { numPages: doc.numPages, outline: doc.outline, lines, source: basename(file) };
@@ -86,7 +88,7 @@ async function main() {
     const dest = join(opts.out, `${key}.json`);
     if (existsSync(dest) && !opts.force) { console.log(`skip\t${key}\t(exists)`); continue; }
     const t0 = performance.now();
-    const doc = await extractBook(file);
+    const doc = await extractBook(file, { geometry: opts.geometry });
     writeFileSync(dest, JSON.stringify(doc));
     console.log(`ok\t${key}\tpages=${doc.numPages}\tlines=${doc.lines.length}\t${(performance.now() - t0).toFixed(0)} ms`);
   }
