@@ -18,6 +18,9 @@ Android maths study tablet app, where it runs entirely on-device. The public
 PDF demo uses PDF.js as a development-only adapter; the core under `src/`
 remains dependency-free.
 
+> **🤝 [Handover, 2026-11-03](HANDOVER.md)** — where everything is, how to
+> re-verify it, what is fragile, and what to do next.
+>
 > **📄 [Research report](RESEARCH-REPORT.md)** — full design rationale,
 > evaluation methodology, ablation study, parameter sweeps, and five documented
 > negative results. Everything below is a summary; the report is the detail.
