@@ -15,3 +15,11 @@ find-engine-corpus/
 # extracted text from copyrighted textbooks and must never enter the repo;
 # the measurement scripts beside it are reproducible from tools/.
 tmp/
+
+# 一次性的评测产出与交付快照，不是源码。
+# android-perf-* 是设备性能会话（截图、trace、PSS 采样），github-handoff-* 是
+# 一次语料发布的状态文件和它的一次性脚本，qa_chinese_report 是导出的报告与配图。
+# 都能从 tools/ 和 ocr/ 里的脚本重新做出来，而且加起来四十多兆。
+output/android-perf-*/
+output/github-handoff-*/
+qa_chinese_report/

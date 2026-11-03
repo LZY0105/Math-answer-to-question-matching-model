@@ -32,6 +32,29 @@ python ocr/recognize_scratch.py --bundle PATH_TO_BUNDLE --image formula.png
 
 返回 JSON 包含 `latex`、`tokenIds`、`endedWithEos`、`meanLogProbability`、`reviewRequired` 和原因代码。空输出或未终止输出的退出码为 2。模型、词表及运行参数在加载时校验；推理过程不下载模型、不调用云服务。
 
+## 数据集与人工复核
+
+训练标签怎么来的，这几个脚本是完整记录。它们之前一直散在仓库根目录、没进版本控制——模型进了仓，做出模型的过程没进。
+
+按运行顺序：
+
+| 脚本 | 做什么 |
+|---|---|
+| `extract_formula_dataset.py` | 从源书 PDF 渲染页面、切出公式候选 |
+| `build_pure_formula_dataset.py` | 候选 → 纯公式数据集：检测、以 TexTeller 为教师打标签、分区落到 SQLite |
+| `verify_training_ready_dataset.py` | 开训之前的闸：重复 id、缺图、空标签、标签里混进汉字或控制字符 |
+| `review_pending_formula_labels.py` | 人工复核待定标签；`--phase adjudicate --decisions-file` 把裁决结果并回去 |
+| `inspect_review_nearest.py` | 复核时看某条候选在数据集里最近的几个邻居 |
+
+`review_decisions_batch_001.jsonl` 是已经做过的那一批人工裁决（`accept_visual` 一类的判定，带 LaTeX 和理由）。它和其它数据不一样：**重跑不出来**，所以它进仓。
+
+两条关于路径的约定：
+
+- `--source` 和 `--output` 没有默认值，必须显式给。源书目录和数据集落地处都是机器相关的，给默认值等于把某一台机器的路径当成约定——主干的 `b0b5d56`（Keep home directories out of the extractor and its output）记的就是这件事。
+- `pdftoppm` 从 PATH 上找，`--pdftoppm` 可以覆盖，和 `import_pdf_formulas.py` 一致。`extract_formula_dataset.py` 另外把它落进 `PDFTOPPM` 环境变量，因为渲染在 `ProcessPoolExecutor` 的工作进程里跑，而 Windows 用 spawn 起子进程，父进程改过的全局变量到不了那边。
+
+训练数据、中间产物和各轮评估输出都不进仓：数据在被忽略的 `tmp/` 下，评估输出在被忽略的 `reports/` 下。
+
 ## 复现第二轮训练
 
 已验证环境为 Python 3.12、PyTorch 2.10.0 + CUDA 12.6、Node.js 24。其余工具版本固定在 requirements 和 npm lockfile 中。以下 `python` 应指向安装了这些依赖的解释器：
