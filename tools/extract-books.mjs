@@ -18,6 +18,8 @@
 //   --out    where to write the JSON (default: <books>/extracted)
 //   --force  re-extract books whose JSON already exists
 //   --geometry  keep each line's vertical position (y, height) in page points
+//   --split FILE --map FILE  read lines from a split made by ocr/clip_windows.py,
+//            keeping only what each page's clip actually prints (one KEY=FILE)
 //   KEY=FILE extract one file under a chosen key; with none given, every PDF in
 //            --books is extracted under its manifest id (book-NNN)
 //
@@ -35,13 +37,15 @@ const REPO = resolve(HERE, '..');
 const MANIFEST = join(REPO, 'datasets', 'books-20260924', 'manifest.json');
 
 function parseArgs(argv) {
-  const opts = { books: resolve(REPO, '..', 'find-engine-books'), out: null, force: false, geometry: false, picks: [] };
+  const opts = { books: resolve(REPO, '..', 'find-engine-books'), out: null, force: false, geometry: false, split: null, map: null, picks: [] };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--books') opts.books = resolve(argv[++i]);
     else if (a === '--out') opts.out = resolve(argv[++i]);
     else if (a === '--force') opts.force = true;
     else if (a === '--geometry') opts.geometry = true;
+    else if (a === '--split') opts.split = resolve(argv[++i]);
+    else if (a === '--map') opts.map = resolve(argv[++i]);
     else if (a.includes('=')) {
       const at = a.indexOf('=');
       opts.picks.push({ key: a.slice(0, at), file: resolve(a.slice(at + 1)) });
@@ -66,13 +70,48 @@ function discover(booksDir) {
   return out.sort((a, b) => a.key.localeCompare(b.key));
 }
 
-export async function extractBook(file, { geometry = false } = {}) {
+export async function extractBook(file, { geometry = false, split = null, map = null } = {}) {
   const doc = await openPdfDocument(file, { includeGeometry: geometry });
   try {
-    const lines = await doc.extractText({});
+    const lines = split ? await printedLines(split, map, geometry) : await doc.extractText({});
     return { numPages: doc.numPages, outline: doc.outline, lines, source: basename(file) };
   } finally {
     await doc.destroy();
+  }
+}
+
+/**
+ * The lines actually printed, read from the split ocr/clip_windows.py writes.
+ *
+ * A copy drawing one clipped form contributes only the lines inside its
+ * window; a native copy, and a page that clips nothing, contributes all of
+ * its lines. Lines come back on their original pages, top to bottom.
+ */
+async function printedLines(splitFile, mapFile, geometry) {
+  const copies = JSON.parse(readFileSync(mapFile, 'utf-8')).copies;
+  const split = await openPdfDocument(splitFile, { includeGeometry: true });
+  try {
+    const out = [];
+    for (let i = 0; i < copies.length; i++) {
+      const copy = copies[i];
+      for (const line of await split.extractText({ from: i + 1, to: i + 1 })) {
+        if (copy.window) {
+          const [, top, , bottom] = copy.window;
+          const centre = Number.isFinite(line.height) ? line.y - line.height / 2 : line.y;
+          if (!(centre >= top - 1 && centre <= bottom + 1)) continue;
+        }
+        const placed = { ...line, page: copy.page };
+        if (!geometry) { delete placed.y; delete placed.height; }
+        out.push(placed);
+      }
+    }
+    return out
+      .map((line, order) => ({ line, order }))
+      .sort((a, b) => (a.line.page - b.line.page)
+        || ((Number.isFinite(a.line.y) && Number.isFinite(b.line.y)) ? a.line.y - b.line.y : a.order - b.order))
+      .map(({ line }) => line);
+  } finally {
+    await split.destroy();
   }
 }
 
@@ -88,7 +127,7 @@ async function main() {
     const dest = join(opts.out, `${key}.json`);
     if (existsSync(dest) && !opts.force) { console.log(`skip\t${key}\t(exists)`); continue; }
     const t0 = performance.now();
-    const doc = await extractBook(file, { geometry: opts.geometry });
+    const doc = await extractBook(file, { geometry: opts.geometry, split: opts.split, map: opts.map });
     writeFileSync(dest, JSON.stringify(doc));
     console.log(`ok\t${key}\tpages=${doc.numPages}\tlines=${doc.lines.length}\t${(performance.now() - t0).toFixed(0)} ms`);
   }

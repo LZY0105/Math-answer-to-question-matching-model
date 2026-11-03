@@ -25,6 +25,12 @@
 // Usage:
 //   node tools/ocr-ablation.mjs --corpus ../exam-corpus/data.json --exercise q2023 \
 //     --answer ans2023 --regions ../exam-corpus/q2023-oracle.jsonl [--policy STRICT|CALIBRATED]
+//     [--tap] [--regime ids|content] [--compare OTHER-REGIONS.jsonl] [--json OUT.json]
+//
+// --compare reads another reading of the same boxes, usually the oracle, and
+// reports how often this one equals it in matcher form. For the 2024 留白
+// books, regions and corpus must both come from the split ocr/clip_windows.py
+// writes, or the text their clips hide is read as printed (ocr/MATCHING.md).
 
 import { readFileSync } from 'node:fs';
 
@@ -49,6 +55,7 @@ function parseArgs(argv) {
     else if (a === '--json') o.json = argv[++i];
     else if (a === '--answer-lines-separated') o.answerLines = true;
     else if (a === '--tap') o.tap = true;
+    else if (a === '--compare') o.compare = argv[++i];
     else throw new Error(`unrecognised argument: ${a}`);
   }
   for (const k of ['corpus', 'exercise', 'answer', 'regions']) if (!o[k]) throw new Error(`--${k} is required`);
@@ -330,6 +337,39 @@ if (opts.regimes.includes('content')) {
     marginHistogram: covBands,
   };
   report.content = content;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Region-level agreement with another reading of the same boxes, usually the
+// oracle: how often the recogniser's text, in matcher form, equals the text
+// layer's, and how close it is when it does not.
+if (opts.compare) {
+  const { latexToText } = await import('../src/formula-latex.js');
+  const { normalizeForMatch } = await import('../src/question-matcher.js');
+  const other = new Map();
+  for (const line of readFileSync(opts.compare, 'utf-8').split('\n')) {
+    if (!line.trim()) continue;
+    const r = JSON.parse(line);
+    other.set(`${r.page}|${r.bbox.join(',')}`, r);
+  }
+  let n = 0; let same = 0; let simSum = 0; let unmatched = 0; const worst = [];
+  for (const line of readFileSync(opts.regions, 'utf-8').split('\n')) {
+    if (!line.trim()) continue;
+    const r = JSON.parse(line);
+    const o = other.get(`${r.page}|${r.bbox.join(',')}`);
+    if (!o) { unmatched++; continue; }
+    const mine = normalizeForMatch(typeof r.latex === 'string' ? latexToText(r.latex) : r.text);
+    const theirs = normalizeForMatch(typeof o.latex === 'string' ? latexToText(o.latex) : o.text);
+    n++;
+    if (mine === theirs) same++;
+    const sim = contentSimilarity(mine, theirs);
+    simSum += sim;
+    if (mine !== theirs && worst.length < 12) worst.push({ page: r.page, read: mine, layer: theirs, sim: Number(sim.toFixed(2)) });
+  }
+  report.regionAgreement = {
+    regions: n, identical: same, identicalShare: n ? Number((same / n).toFixed(4)) : null,
+    meanSimilarity: n ? Number((simSum / n).toFixed(4)) : null, withoutCounterpart: unmatched, examples: worst,
+  };
 }
 
 console.log(JSON.stringify(report, (k, v) => (v instanceof Set ? [...v] : v), 2));

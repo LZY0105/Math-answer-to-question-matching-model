@@ -23,6 +23,11 @@
 //
 // Usage:
 //   node tools/formula-regions.mjs --pdf BOOK.pdf --out regions.jsonl [--pages 4-20]
+//   node tools/formula-regions.mjs --pdf SPLIT.pdf --map SPLIT-map.json --out regions.jsonl
+//
+// The second form reads a book whose pages clip an embedded original page
+// (the 2024 留白 books) through the split ocr/clip_windows.py writes, so that
+// text the clip hides is never read as printed.
 
 import { createWriteStream } from 'node:fs';
 import { readFile } from 'node:fs/promises';
@@ -50,6 +55,7 @@ function parseArgs(argv) {
     if (a === '--pdf') o.pdf = argv[++i];
     else if (a === '--out') o.out = argv[++i];
     else if (a === '--pages') o.pages = argv[++i];
+    else if (a === '--map') o.map = argv[++i];
     else throw new Error(`unrecognised argument: ${a}`);
   }
   if (!o.pdf || !o.out) throw new Error('--pdf and --out are required');
@@ -105,16 +111,35 @@ async function main() {
     cMapUrl: fileURLToPath(cmapUrl), cMapPacked: true, standardFontDataUrl: fileURLToPath(fontsUrl),
     useSystemFonts: false, isEvalSupported: false, useWorkerFetch: false, verbosity: 0,
   }).promise;
+  // With --map the PDF is a split made by ocr/clip_windows.py: each copy draws
+  // one clipped form, an item is printed only if it lies inside that copy's
+  // window, and regions are reported on the original page.
+  const copies = opts.map ? JSON.parse(await readFile(opts.map, 'utf-8')).copies : null;
   const sink = createWriteStream(opts.out, { flags: 'wx' });
   let regions = 0;
+  let hidden = 0;
   const pages = pageList(opts.pages, doc.numPages);
   for (const number of pages) {
     const page = await doc.getPage(number);
     const viewport = page.getViewport({ scale: 1 });
     const content = await page.getTextContent();
-    for (const row of groupTextRows(content.items, viewport)) {
+    const copy = copies ? copies[number - 1] : null;
+    let items = content.items;
+    if (copy?.window) {
+      const [x0, top, x1, bottom] = copy.window;
+      items = items.filter((it) => {
+        const h = Math.abs(it.height ?? it.transform?.[3] ?? 0);
+        const cx = (it.transform?.[4] ?? 0) + (it.width ?? 0) / 2;
+        const cy = viewport.height - (it.transform?.[5] ?? 0) - h / 2;
+        const inside = cx >= x0 - 1 && cx <= x1 + 1 && cy >= top - 1 && cy <= bottom + 1;
+        if (!inside && String(it.str ?? '').trim()) hidden++;
+        return inside;
+      });
+    }
+    const reported = copy ? copy.page : number;
+    for (const row of groupTextRows(items, viewport)) {
       for (const region of formulaRuns(row, viewport.height)) {
-        sink.write(JSON.stringify({ page: number, ...region }) + '\n');
+        sink.write(JSON.stringify({ page: reported, ...region }) + '\n');
         regions++;
       }
     }
@@ -122,7 +147,7 @@ async function main() {
   }
   await new Promise((resolve) => sink.end(resolve));
   await doc.destroy();
-  console.log(JSON.stringify({ pages: pages.length, regions }));
+  console.log(JSON.stringify({ pages: pages.length, regions, ...(copies ? { hiddenItemsDropped: hidden } : {}) }));
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {

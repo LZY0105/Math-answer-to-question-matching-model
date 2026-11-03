@@ -81,12 +81,14 @@ failure this one is built against:
   pair there has a scanned side, so it measures the gates, not recall.
 - The repository's own [formula recogniser](ocr/README.md) feeds the engine
   through a region contract; [`ocr/MATCHING.md`](ocr/MATCHING.md) records what
-  the engine does with formula-only input, measured against an oracle: zero
-  wrong, two pairs verified on formulas alone, and the path still unmeasured
-  with the model's own output.
+  the engine does with the model's own readings of the three exercise books:
+  zero wrong, all three pairs verified on formulas alone, strict recall about
+  two thirds of a perfect recogniser's (half on the analysis book). It also
+  records that the 2024 exercise books hide most of their text layer under
+  clipping, and what reading only the printed text changes.
 - Figures from the real books cannot be reproduced from a clone: the corpus is
   extracted from copyrighted textbooks and is not committed. A clean clone runs
-  the 234 synthetic checks and skips the rest, saying which are skipped and why.
+  the 277 synthetic checks and skips the rest, saying which are skipped and why.
 
 ## The problem
 

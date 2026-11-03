@@ -229,7 +229,37 @@ one expression on one side and several on the other), a wrapped line is one
 expression, a bookmark's position bounds its entry, and text a recogniser
 produced can confirm a pair but never reject one. Text-layer strict recall:
 2023 from 474 to 506 of 508, algebra from 186 to 191, analysis from 159 to
-183, zero wrong. Measured against an oracle standing in for the model (the text
-layer's own regions), the formula-only path verifies two of three pairs on
-formulas alone and resolves 356, 122 and 134 questions under the strict rule
-with zero wrong; `ocr/MATCHING.md` has the account and the open problem.
+183, zero wrong. The figures first recorded here for the formula-only path
+(two of three pairs verified; 356, 122 and 134 strict) were measured on
+regions that included text the 2024 books hide; the next entry corrects them.
+
+## The model, run; and what the 2024 exercise books hide
+
+The model bundle is in the repository now (`ocr/models/`), and it has read
+every formula region of the three exercise books. With the exercise book's
+text layer hidden, the engine verifies all three pairs on the model's formulas
+alone (anchor top-1 0.792, 0.542, 0.750), answers 224, 85 and 116 questions
+under the strict rule against the oracle's 356, 168 and 178 by the tap, and
+gives zero wrong answers in every reading. The model reads 76%, 66% and 76%
+of regions exactly as the text layer does; about a quarter of the rest are
+the text layer's own quirks, which the answer keys share.
+
+Getting a fair oracle found that the two 2024 留白 exercise books are built by
+clipping embedded pages of a compact typesetting to one question's window:
+every extractor ignores the clips, so the text layer carries every
+neighbouring question, 12,790 lines in the analysis book of which 2,130 are
+printed. `ocr/clip_windows.py` splits such a book one form per copy, cutting
+each by its window and its own `/BBox`, and the region and corpus tools read
+the split. The earlier "listing page then reprints" explanation was wrong.
+Read as printed, text-path strict recall on the 2024 pairs is 213 and 208
+instead of 183 and 191, zero wrong, which is the case for clip-aware
+extraction in the host; one assertion moves with it, the alphabet check
+reading two unrelated decoded books at 0.9178 (it is consulted only for
+unreadable text, and the test should be restated on garbled text).
+
+On printed text the identity check rejected the valid analysis pair: it
+ranked page-range text, and a page's range is mostly its other questions. It
+reads each entry's own text now: valid pairs 0.625–1.000, wrong pairs at most
+0.083, as read or as printed. All suites pass as read (23, 9, 26; textbook
+release 56, no automatic answer in 552 pairings). `ocr/MATCHING.md` has the
+measurement.
