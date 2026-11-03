@@ -1,6 +1,6 @@
 # 自建公式 OCR 模型说明
 
-状态（2026-10-12 起）：选定模型为第十轮的带缓存 INT8 导出（`tmp/formula-scratch-kv-int8-texteller-r10/`，架构标记 `scratch-formula-ocr-v1-kv`，4,245,614 字节），按既定量化规则选出，无需例外。
+状态（2026-10-12 起）：选定模型为第十轮的带缓存 INT8 导出（架构标记 `scratch-formula-ocr-v1-kv`，4,245,614 字节），按既定量化规则选出，无需例外。这个包原样收在仓库的 [`models/formula-scratch-kv-int8-texteller-r10/`](models/formula-scratch-kv-int8-texteller-r10/)（导出时在 `tmp/formula-scratch-kv-int8-texteller-r10/`，六个文件逐字节相同）；别的包和各轮检查点不进仓。
 
 第十轮与第八轮的数据、词表、训练设置完全相同，只把视觉部分换成 v2。换用的原因是新增了「复制题目公式并转成字迹」的用途，它要求整条公式完全认对，长公式最需要。
 - **配对：** 检索与第八轮持平。
@@ -463,7 +463,7 @@ TexTeller 的错误有系统性：把 Q、σ、O 标作 `0`，把普通粗体字
 
 | 包 | 文件 | 字节 | SHA-256 |
 | --- | --- | --- | --- |
-| `tmp/formula-scratch-kv-int8-texteller-r10/`（选定，带缓存） | encoder.onnx | 2,153,192 | `871e39e7a706a7321be24e40fc4a60821d611fa4465d24f94623054e74330952` |
+| `tmp/formula-scratch-kv-int8-texteller-r10/`（选定，带缓存；仓库里在 `ocr/models/` 下） | encoder.onnx | 2,153,192 | `871e39e7a706a7321be24e40fc4a60821d611fa4465d24f94623054e74330952` |
 | | decoder.onnx | 2,092,422 | `ab24668ae858f729dda9e1532ca98951dfcbc13d838d572bbb51a46d93c51eff` |
 | `tmp/formula-scratch-int8-texteller-r10/`（整段前缀接口） | encoder.onnx | 1,911,059 | `16ab0556c15236c1b8c285d7413075eacf39e396bd0b1b7acab83653c9996f1f` |
 | | decoder.onnx | 2,379,313 | `8766ce3c04d0a3d96dd6d581562002069c2ae35417dc7d086c04e3c6c2e8feeb` |

@@ -35,7 +35,7 @@ Runtime documentation: [ONNX Runtime Java](https://onnxruntime.ai/docs/get-start
 官方 Android 包每个架构的原生库有十几到二十多兆。只跑这个模型的话，可以从源码编一个只含所用算子的精简版，对页就是这样做的，三个架构合计 6.3 MB。但精简版只认 ORT 格式的模型，所以先转换：
 
 ~~~powershell
-python ocr/android/to_ort_bundle.py --bundle tmp/formula-scratch-kv-int8-texteller-r10 --output tmp/formula-scratch-kv-int8-texteller-r10-ort --manifest <验证清单.jsonl>
+python ocr/android/to_ort_bundle.py --bundle ocr/models/formula-scratch-kv-int8-texteller-r10 --output tmp/formula-scratch-kv-int8-texteller-r10-ort --manifest <验证清单.jsonl>
 ~~~
 
 - **输出包：**
