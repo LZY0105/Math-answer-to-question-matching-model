@@ -82,13 +82,14 @@ failure this one is built against:
 - The repository's own [formula recogniser](ocr/README.md) feeds the engine
   through a region contract; [`ocr/MATCHING.md`](ocr/MATCHING.md) records what
   the engine does with the model's own readings of the three exercise books:
-  zero wrong, all three pairs verified on formulas alone, strict recall about
-  two thirds of a perfect recogniser's (half on the analysis book). It also
-  records that the 2024 exercise books hide most of their text layer under
-  clipping, and what reading only the printed text changes.
+  zero wrong, all three pairs verified on formulas alone, strict recall 71–78%
+  of a perfect recogniser's. It also records that the 2024 books hide much of
+  their text layer under clipping, how the demo adapter reads only the printed
+  text, and a first real scan (the 绿皮书), where the model reads 92 of 95
+  printed exercise numbers.
 - Figures from the real books cannot be reproduced from a clone: the corpus is
   extracted from copyrighted textbooks and is not committed. A clean clone runs
-  the 277 synthetic checks and skips the rest, saying which are skipped and why.
+  the 285 synthetic checks and skips the rest, saying which are skipped and why.
 
 ## The problem
 

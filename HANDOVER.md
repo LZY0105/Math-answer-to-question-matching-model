@@ -7,16 +7,17 @@ below on 2026-11-03; the numbers are reproducible with the commands given.
 
 ## 摘要
 
-匹配引擎本体（`src/`，零依赖）已完成两轮优化并全部通过验证：文本路径在
-2023 / 2024 三组真题上严格策略召回 506/508、183/271、191/217，校准策略全部
-508/508、271/271、217/217，无一错配；三套语料测试套件全部通过。本仓库自研的
-公式 OCR（`ocr/`，模型包已提交在 `ocr/models/formula-scratch-kv-int8-texteller-r10/`）
-已接入引擎的识别器契约，并在三本真题练习册上**用真实模型跑完全程**：零错配；
-三组配对仅凭模型识别的公式全部通过配对验证；严格策略召回约为文本层「理想识别器」
-的三分之二（2023、高代）和一半（数分）；校准策略召回不变。另发现 2024 两本
-留白作答版的每页都以裁剪方式嵌入整页原排版，文本层里藏着大量看不见的邻题文字；
-只读印出来的文字时，文本路径的严格召回反而升到 213/271、208/217。没有题级书签的
-教材（整个 `books-20260924` 发布）仍是未解决的问题。
+匹配引擎本体（`src/`，零依赖）已完成三轮优化并全部通过验证。本轮把 PDF 读取层
+改成「只读印出来的字」：2024 年两本留白作答版**和两本 2024 答案**都以裁剪方式嵌入整页
+原排版，文本层里藏着 42–83% 看不见的邻题文字；读取层现在按 pdf.js 的绘制指令重放裁剪，
+只保留真正画出来的字，并按印刷形态读出 ≠、√、分式和极限下标。文本路径严格策略召回因此
+从 506/508、183/271、191/217 升到 **506/508、248/271、213/217**，校准策略全部
+508/508、271/271、217/217，无一错配；三套语料测试套件全部通过。仓库自研的公式 OCR 模型
+（`ocr/models/formula-scratch-kv-int8-texteller-r10/`）在三本真题练习册上隐藏文本层后
+跑完全程：零错配，三组配对仅凭模型公式全部通过验证，严格策略召回由 224/85/116 升到
+**289/160/128**，约为「理想识别器」的 71–78%。第一组真实扫描教材（绿皮书）上，模型在
+第 1–2 章读对了 95 道习题中 92 道的题号；答案书只给结果、不复述题目，所以这类教材要靠
+「节 + 题号」匹配——引擎还缺这一层索引，这是下一步。
 
 ## 1. Where things are
 
@@ -46,7 +47,7 @@ question bookmarks every 2023 assertion depends on. Use `exam-009` as `q2023`.
 
 ```sh
 npm ci                      # pdfjs-dist, development only
-npm run test:unit           # 277 synthetic checks, no data needed; this is what CI runs
+npm run test:unit           # 285 synthetic checks, no data needed; this is what CI runs
 ```
 
 Build the exam corpus JSON (text layers, line geometry, bookmark positions):
@@ -84,64 +85,55 @@ node tools/ocr-ablation.mjs --corpus $E/data.json --exercise q2023 --answer ans2
   --regions $E/q2023-model.jsonl --compare $E/q2023-regions.jsonl --policy STRICT --tap
 ```
 
-The two 2024 exercise books hide most of their text layer under clipping
-(§5), so read them through a split, for the regions and for the corpus:
-
-```sh
-A="$E/2024年名校数学专业考研真题分类_数学分析留白作答版.pdf"
-../ocr-venv/bin/python -m ocr.clip_windows --pdf "$A" --output $E/a2024-windows.json \
-  --split $E/a2024-split.pdf --map $E/a2024-split-map.json
-node tools/formula-regions.mjs --pdf $E/a2024-split.pdf --map $E/a2024-split-map.json --out $E/a2024-regions.jsonl
-node tools/extract-books.mjs --geometry --books $E --out $E/extracted-printed \
-  --split $E/a2024-split.pdf --map $E/a2024-split-map.json "a2024=$A"
-../ocr-venv/bin/python -m ocr.ocr_pages --pdf "$A" --regions $E/a2024-regions.jsonl --bundle $B --output $E/a2024-model.jsonl
-```
-
-then build a corpus JSON with the printed `a2024` (and `g2024`, the same way)
-in place of the full text layers, and run the ablation on it with
-`--exercise a2024 --answer a2024_ma`. The model crops the original pages: a
-clipped page renders only its window. `pdftoppm` (poppler) must be on the
+The adapter reads only what a page paints (§5): the 2024 books need no
+split, for the regions or for the corpus. `ocr/clip_windows.py` remains as an
+independent cross-check of that. The model crops the original pages, and a
+clipped page renders only what it paints. `pdftoppm` (poppler) must be on the
 PATH; it is in this container. Nothing downloads a model or calls a service.
+
+A scanned book: `python -m ocr.scan_line_starts --pdf BOOK.pdf --pages 23-25
+--bundle $B --output starts.jsonl` reads the first ink cluster of every text
+line — on the 绿皮书 (`book-026`), the printed exercise numbers.
 
 ## 3. What is verified, as of this branch
 
-Text-layer path, the three 考研 pairs, zero wrong under every policy:
+Text-layer path, the three 考研 pairs, both books read through the adapter as
+printed, zero wrong under every policy:
 
-| Pair | Strict-policy recall | Calibrated | Suite floors |
-|---|---|---|---|
-| 2023 | 506 / 508 | 508 / 508 | 470 |
-| 2024 Analysis | 183 / 271 | 271 / 271 | 159 |
-| 2024 Algebra | 191 / 217 | 217 / 217 | 175 |
+| Pair | Strict-policy recall | Before round three | Calibrated | Suite floors |
+|---|---|---|---|---|
+| 2023 | 506 / 508 | 506 | 508 / 508 | 470 |
+| 2024 Analysis | 248 / 271 | 183 | 271 / 271 | 159 |
+| 2024 Algebra | 213 / 217 | 191 | 217 / 217 | 175 |
 
 Ablation regimes on 2023 (distinct questions resolved): both bookmark trees
-506; answer key without bookmarks 492; exercise book without 2; neither 47.
+506; answer key without bookmarks 491; exercise book without 2; neither 47.
 Suites: `test_real_pdfs` 23/23, `test_no_bookmarks` 9/9,
 `test_corpus_regression` 26/26.
 
-Textbook release, 24 volumes, every ordered pairing: 552 pairings, 0
-automatic answers (510 OCR_REQUIRED, 42 UNKNOWN_PAIR). `test_books_20260924`
-56/56. Every matched pair there has a scanned side; it measures the gates
-that run before matching, never recall.
+Textbook release, 24 volumes, every ordered pairing, on the same reader: 552
+pairings, 0 automatic answers (510 OCR_REQUIRED, 42 UNKNOWN_PAIR);
+`test_books_20260924` 56/56 (7 volumes' text changed with the reader). Every
+matched pair there has a scanned side; it measures the gates that run before
+matching, never recall.
 
-The same three pairs read as printed (the 2024 exercise books through
-`ocr/clip_windows.py`; §5): strict 506/508, 213/271, 208/217, zero wrong;
-`test_no_bookmarks` 9/9, `test_corpus_regression` 26/26, `test_real_pdfs`
-22/23 — the alphabet assertion fails there (§5).
+Formula-only path, the exercise book's text layer hidden, the model against
+the oracle (`ocr/MATCHING.md` has every step):
 
-Formula-only path, the exercise book's text layer hidden, printed regions,
-the model against the oracle (`ocr/MATCHING.md` has the breakdown):
-
-| Pair | Pair verdict on formulas, oracle → model | Strict, window | Strict, tap | Calibrated | Wrong |
+| Pair | Pair verdict on formulas, oracle / model | Strict, tap: oracle → model | Strict, window | Calibrated | Wrong |
 |---|---|---|---|---|---|
-| 2023 | VERIFIED 0.917 → 0.792 | 371 → 237 / 508 | 356 → 224 | 508 / 508 | 0 |
-| 2024 Analysis | VERIFIED 0.542 → 0.542 | 162 → 82 / 271 | 168 → 85 | 271 / 271 | 0 |
-| 2024 Algebra | VERIFIED 0.792 → 0.750 | 174 → 116 / 217 | 178 → 116 | 217 / 217 | 0 |
+| 2023 | VERIFIED 0.958 / 0.792 | 375 → 289 / 508 | 389 → 264 | 508 / 508 | 0 |
+| 2024 Analysis | VERIFIED 0.833 / 0.792 | 205 → 160 / 271 | 211 → 158 | 271 / 271 | 0 |
+| 2024 Algebra | VERIFIED 0.875 / 0.875 | 180 → 128 / 217 | 180 → 130 | 217 / 217 | 0 |
 
-The model reads 76%, 66% and 76% of regions exactly as the text layer does;
-about a quarter of the rest are the text layer's own quirks (≠ as `6=`, a
-dropped radical, a fraction split into two rows), which the answer keys share.
+The first model run read 224, 85 and 116 by tap. The model reads 81%, 74% and
+80% of regions exactly as the text layer does.
 
-## 4. What changed, and why, in two rounds
+A real scan (绿皮书, chapters 1–2): the model reads 92 of the 95 printed
+exercise numbers, in order (`ocr/scan_line_starts.py`). The engine does not yet
+use them (§6).
+
+## 4. What changed, and why, in three rounds
 
 Round one (PR #1, merged): a text-profile cache (2–3× on the degraded
 regimes); four gate defects from the textbook release — page-number bookmark
@@ -184,6 +176,26 @@ turned out to improve the text path as much as the OCR path:
   `ocr/test_clip_windows.py`, and new groups in
   `test/test_matching_engine.js` and `test/test_structure.js`.
 
+Round three (this branch, continued): the reader reads what the page prints,
+which is where most of the model's gap to the oracle was.
+
+- **≠ and √** (`readMarks`): TeX's zero-width negation slash, extracted as
+  `6`, merges into the relation under it; a radical, hung from its top, joins
+  its radicand's line. `latexToText` reads `\not` through the same table.
+- **Only painted text** (`paintedGlyphs`, `paintedItems`, `pageTextItems`):
+  the clip state replayed from pdf.js's operator list, through nested forms;
+  a text item is kept when the glyph run at its position that spells it is
+  painted. On by default. This found that the 2024 answer keys hide text too.
+- **Fractions and limits** (`paintedRules`, `readFractions`, `readLimits`): a
+  display fraction rebuilt from its drawn bar as `( a ) / ( b )`, a limit's
+  subscript moved after `lim`; both keep the box they are printed in, so the
+  crops hold the whole formula.
+- **The alphabet test restated** on simulated garbling, which is what the
+  check exists for; the threshold is unchanged.
+- **The scanned 绿皮书**: `ocr/scan_line_starts.py` reads the printed exercise
+  numbers; `ocr/extract_formula_dataset.py` and `build_pure_formula_dataset.py`
+  no longer fail to import (a `global` declared after use).
+
 ## 5. Known fragile points — do not take these as settled
 
 - **The role threshold (0.97 on answer-language and explicit-answer shares)**
@@ -203,59 +215,58 @@ turned out to improve the text path as much as the OCR path:
   font size, adjacent to a base, in its whitespace, never after ∫ ∑ ∏ lim) is
   calibrated on two 2024 books. The host app reads through its own pdf.js
   layer with its own grouping; the suites' floors were set on that reader.
-- **The 2024 留白 exercise books hide most of their text layer.** Each page
-  embeds whole pages of a compact typesetting of the questions as form
-  XObjects, clipped to one question's window (and, where a question runs over
-  two embedded pages, cut by each form's `/BBox`). Every extractor ignores the
-  clips, so the text layer holds every neighbouring question: 12,790 lines in
-  the analysis book, 2,130 of them printed. The app reads it that way today
-  and so do the corpus suites' floors; read as printed, strict recall is
-  213/271 and 208/217 instead of 183 and 191. An earlier version of this
-  document blamed "a listing page then reprints"; that was wrong.
-- **The alphabet check does not separate decoded books.** On printed text,
-  `test_real_pdfs` reads the 2023 exercise book against the 2024 analysis book
-  at 0.9178, over the 0.90 line, and fails. The check is only consulted for
-  OPAQUE text; unrelated decoded books already exceed 0.90 as read (the 2025
-  key against the 2023 exercise book, 0.9638). Restate the test on garbled
-  text before the corpus is re-extracted clip-aware; do not move the threshold.
+- **Clip-aware reading lives in the demo adapter, not yet in the app.** The
+  2024 exercise books and answer keys embed whole pages of a compact
+  typesetting as clipped forms; read whole, their text layers carry every
+  neighbouring question (12,699 lines in the analysis exercise book, 2,174
+  printed; 19,005 in its key, 10,672 printed). The adapter now keeps only
+  painted text, and every number in §3 is on that reading. The host app reads
+  through its own pdf.js layer and still reads the hidden text; the functions
+  port as they are (pdf.js public API only). The corpus suites' floors were
+  set on the old reading and stay below the new figures.
+- **The clip replay is a bounding-box model.** A clip path counts by its
+  bounding box (exact for these books' rectangles, generous for anything
+  rounder); a text item is judged by the glyph run at its own position; Type3
+  fonts and vertical text are not modelled. An item it cannot account for is
+  kept, never dropped.
+- **Fractions are rebuilt only from a drawn bar.** A numerator is what sits
+  0.1–0.9 of its size above the bar and centred on it, a denominator 0.3–1.4
+  below. Measured on the 考研 books; a typesetting that draws its bars
+  differently, or none (a text-style fraction with a slash), reads as before.
 - **Ablation is not absence**: stripping bookmarks from a book that has them
   is not a book that never had them (RESEARCH-REPORT §8). The textbook release
   is the real thing and has no text pair.
-- **CI has no corpus, and runs no Python.** A green CI run means the 277
+- **CI has no corpus, and runs no Python.** A green CI run means the 285
   synthetic checks passed and nothing else. The corpus suites run only where
-  the data is; `ocr/test_*.py` run by hand (`python -m unittest ocr.test_clip_windows`).
+  the data is; `ocr/test_*.py` run by hand
+  (`python -m unittest ocr.test_clip_windows ocr.test_scan_line_starts`).
 
 ## 6. Open problems, in the order to take them
 
-1. **Close the gap between the model and the oracle** (strict recall about
-   two thirds, half on analysis). In order: a font-aware reading of the text
-   layer's quirks in the adapter (`6` from a maths symbol font before `=` is
-   ≠; a radical glyph is √), so the answer key agrees with a correct reading
-   — font-aware, because `2x+6=0` is also `6=`; block crops (a `lim` with its
-   subscript, a fraction with both rows), since lone subscripts come back as
-   noise; and `latexToText`'s fraction form matched to what the key's text
-   layer shows for the same print. Re-run `tools/ocr-ablation.mjs --compare`
-   after each, on all three books.
-2. **Clip-aware extraction in the host**: 30 and 17 strict answers on the 2024
-   books, independent of OCR. Restate the alphabet test first (§5).
-3. **The first real scanned pair: 绿皮书** (`book-026`, scanned exercise sets
-   with 87 "习题 n.n" bookmarks that now index, against `book-044`, a usable
-   text-layer answer book). This needs the model, because the exercise side
-   has no text layer, and it is the shape every textbook has.
-4. **Content matching for books without question bookmarks.** Every textbook.
-   On the 2023 pair the oracle's formulas rank the right answer first for only
-   40% of questions by the engine's similarity, with margins under 0.1 for
-   nine in ten; a coverage-based ranking did no better (see
-   `tools/ocr-ablation.mjs --regime content`). Answer entries are whole
-   solutions and a question's formulas are a small part of them. Ideas not
-   yet tried: weight expressions by rarity across the section; match against
-   the first lines of each entry (where a key restates the question); use
-   the answer key's own printed problem numbers inside a section as
-   section-scoped ids.
+1. **Section-scoped ids from printed numbers.** The 绿皮书 pair (`book-026`
+   scanned, `book-044` text) shows the shape of every textbook: bookmarks
+   stop at the exercise set (习题 1.1), the answer book has sections only, and
+   its answers state results (`1. (1) −2. (2) 1.`), so a formula-content match
+   has nothing to find. What identifies an exercise is its set and its printed
+   number, and the model reads 92 of 95 of those off the scan. The index needs
+   a level below the set: on the exercise side from the recogniser's line
+   starts (`ocr/scan_line_starts.py`), on the answer side from the text
+   layer's `k.` lines inside each section, matched within the aligned section.
+2. **The rest of the model's gap**: strict recall is 71–78% of the oracle's.
+   It reads long regions worst (40–73% identical over twenty characters);
+   whether that is the crop or the model is the next measurement.
+3. **Port the reader to the host** (§5): `pageTextItems`, `paintedRules`,
+   `readMarks`, `readFractions`, `readLimits` into the app's
+   `pdf-document.js`, then re-set the corpus suites' floors on its output.
+4. **Content matching for books without question bookmarks** where the key
+   does restate the questions. On the 2023 pair the oracle's formulas ranked
+   the right answer first for only 40% of questions (measured before this
+   round's reader changes; re-measure with `tools/ocr-ablation.mjs --regime
+   content`).
 5. **Per-question validation on the OCR path before any release** — the
    report's list: bidirectional consistency, global one-to-one assignment, a
-   sufficient top-two margin. The formula gate is now in place; the other
-   three are not.
+   sufficient top-two margin. The formula gate is in place; the other three
+   are not.
 6. **Thresholds**: the inherited stage-2/3 constants (`SIMILARITY_STRONG`,
    `SIMILARITY_WEAK`, `GAP_PENALTY`, `LABEL_BONUS`, `MATH_WEIGHT`) have still
    never been swept. Sweep them only on a held-out book.
@@ -276,16 +287,18 @@ turned out to improve the text path as much as the OCR path:
 | `src/region-locator.js` | regions bounded by section spans on both sides |
 | `src/pair-verifier.js` | ten-subject detector; recognised text cannot reject; identity on each entry's own text |
 | `src/question-id.js` | outline ids from 例题 / 习题 / 练习题 / 第 n 题 / Example / Exercise / Problem |
-| `demo/pdfjs-document-adapter.mjs` | CMap paths, script attachment, bookmark `top`, `groupTextRows` |
+| `demo/pdfjs-document-adapter.mjs` | CMap paths, script attachment, bookmark `top`, `groupTextRows`; `readMarks` (≠ √), `pageTextItems`/`paintedGlyphs`/`paintedItems` (only painted text), `paintedRules`/`readFractions`/`readLimits` |
 | `tools/extract-books.mjs` | PDFs → corpus JSON, `--geometry`, `--split --map` for printed text only |
 | `tools/formula-regions.mjs` | formula regions off a text layer (oracle), `--map` for printed regions only |
 | `tools/ocr-ablation.mjs` | the OCR-path measurement: `ids`, `--tap`, `content`, `--compare` |
 | `ocr/ocr_pages.py` | page regions → model LaTeX (`--bundle`) or oracle text (`--oracle`) |
-| `ocr/clip_windows.py` | clip windows of the 2024 留白 books; the one-form-per-copy split and its map |
+| `ocr/clip_windows.py` | clip windows of the 2024 留白 books; the one-form-per-copy split, kept as a cross-check of the adapter |
+| `ocr/scan_line_starts.py` | the formula model's reading of each scanned line's first ink cluster (exercise numbers) |
 | `ocr/models/formula-scratch-kv-int8-texteller-r10/` | the model bundle the measurements used |
 | `test/test_books_20260924.js` | the textbook release suite |
 | `test/test_formula_latex.js`, `test/test_formula_regions.js` | unit suites for the two new modules |
 | `ocr/test_clip_windows.py` | the clip parsing, per-form parts, the split's form removal |
+| `ocr/test_scan_line_starts.py` | the scan line finder: binding side, specks, start width |
 
 ## 8. Conventions worth keeping
 

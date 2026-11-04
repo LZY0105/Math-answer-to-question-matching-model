@@ -143,8 +143,12 @@ their questions as form XObjects, each clipped to one question's window; a
 question that runs over two embedded pages is drawn as two forms in one
 window, each cut by its own `/BBox`. Text extraction ignores clipping, so the
 text layer of every page holds the whole embedded page — the question in the
-window and every neighbour it hides. exam-009 and the answer keys clip
-nothing.
+window and every neighbour it hides. The 2024 answer keys (exam-002,
+exam-003) embed every question statement the same way, a full original page
+cut to the question's box above the natively typeset solution — found on
+2026-11-04, when the reader started replaying clips; this section's first
+version said the keys clipped nothing. The 2023 and 2025 books read the same
+either way.
 
 | | Clipped pages | Windows | Exercise lines as read | Printed |
 |---|---|---|---|---|
@@ -185,6 +189,39 @@ heading or bookmark and the next), top-1 agreement over 24 sampled labels:
 The line is 0.40. All three suites pass as read with the change, at the same
 recall, and the textbook release suite still gives no automatic answer in 552
 pairings. `src/pair-verifier.js`
+
+The alphabet test has since been restated on simulated garbling (each Han
+character through a substitution fixed by its font): one font across the 2023
+pair reads 0.998 and is comparable, different fonts 0.25–0.29 and are not, as
+read and as printed. test_real_pdfs passes 23/23 on both.
+
+## Read as printed by the adapter, 2026-11-04
+
+The demo adapter now keeps only the text a page paints (it replays the clip
+state from pdf.js's operator list; `demo/pdfjs-document-adapter.mjs`), reads
+≠ and √ as printed, and rebuilds display fractions and limit subscripts. Every
+book is read that way by default, so the corpus built with the commands below
+is the printed corpus. Lines as read and printed, same row assembly:
+
+| Book | As read | Printed |
+|---|---|---|
+| exam-004, 2024 Analysis exercise book | 12,699 | 2,174 |
+| exam-002, 2024 Analysis key | 19,005 | 10,672 |
+| exam-005, 2024 Algebra exercise book | 8,290 | 1,858 |
+| exam-003, 2024 Algebra key | 12,785 | 7,354 |
+
+Strict recall, each change cumulative, zero wrong throughout:
+
+| Change | 2023 | 2024 Analysis | 2024 Algebra |
+|---|---|---|---|
+| As read, before | 506 / 508 | 183 / 271 | 191 / 217 |
+| ≠ and √ | 506 | 184 | 191 |
+| Only painted text | 506 | 240 | 213 |
+| Fractions and limits | 506 | 248 | 213 |
+
+Suites on the last row: test_real_pdfs 23/23, test_no_bookmarks 9/9 (regimes
+506 / 491 / 2 / 47), test_corpus_regression 26/26. The suites' floors were set
+on the host app's reader and are below every figure here.
 
 ## Reproducing
 

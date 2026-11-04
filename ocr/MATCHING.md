@@ -2,7 +2,7 @@
 
 How a formula-only recogniser feeds the engine, what was changed to make its
 output usable, and what the repository's own model is measured to do with it.
-Measured on 2026-11-03 with the bundle committed at
+Measured on 2026-11-03 and 2026-11-04 with the bundle committed at
 `ocr/models/formula-scratch-kv-int8-texteller-r10/` (round 10, cached INT8,
 `ocr/MODEL_CARD.md`), against an *oracle* that reads the same regions off the
 book's text layer through the demo adapter.
@@ -29,9 +29,10 @@ Five things had to change in the engine for that list to mean anything.
 
 **LaTeX is converted to the text form the matcher scores.**
 `src/formula-latex.js` turns `x^{2}` into `x2`, `\frac{1}{x+1}` into
-`1/(x+1)`, `\alpha \leq \beta` into `α≤β`, `\lim_{x\to 0}` into `limx→0` —
-the forms the demo adapter reads off a text layer for the same print. The
-report's §7.5 is the reason: a change of representation moves every threshold.
+`1/(x+1)`, `\alpha \leq \beta` into `α≤β`, `\lim_{x\to 0}` into `limx→0`,
+`x \not= 0` into `x≠0` — the forms the demo adapter reads off a text layer for
+the same print. The report's §7.5 is the reason: a change of representation
+moves every threshold.
 
 **A line is an expression boundary.** The engine finds expressions by
 splitting on non-maths characters, and on a text layer the prose between two
@@ -73,91 +74,105 @@ on regions that included the hidden text; on printed regions and own text the
 pair verifies. The rule stays: a recogniser that misreads should cost recall,
 never the pair.
 
-## The 2024 留白 books hide most of their text layer
+## The reader: what the text layer says against what the page prints
+
+A recogniser reads the print. The answer key is read off its text layer, and
+so is the oracle; wherever the text layer says something the page does not
+show, a correct reading conflicts with the key. Four places where it did, all
+fixed in the demo adapter (`demo/pdfjs-document-adapter.mjs`), which the corpus
+and the region tools read through:
+
+**≠ and √.** Computer Modern prints ≠ as a zero-width slash (cmsy 0x36,
+extracted as the digit `6`) over `=`, so `x ≠ 0` read `x 6 = 0`; and it hangs
+a radical from its top, so the sign's baseline sits 0.83 of its size above
+the radicand's and the sign fell onto a line of its own. `readMarks` merges a
+zero-width overlay into the relation under it (≠, ≢, ↦ …) and moves a radical,
+and an n-th root's index, onto the radicand's line. 676 zero-width `6`s and
+1,222 radicals in the four books measured.
+
+**Text the page clips.** The 2024 books clip most of what they draw (next
+section). `pageTextItems` replays the clip state from pdf.js's operator list —
+transforms, clip paths, each form's matrix and `/BBox`, through nested forms —
+marks every glyph painted or clipped, and keeps a text item only when the
+glyph run at its position that spells its opening is painted. Matching by
+place rather than by order matters: pdf.js drops every glyph outside the page
+box before it builds items, and two forms can start different text at the
+same point. On by default; `openPdfDocument(file, { clipAware: false })`
+reads every glyph as before.
+
+**Display fractions.** Numerator and denominator sit 0.68 of the type size
+above and below the main baseline, so they were lines of their own and the
+main line read `a n = 1 + + · · · + − ln n`. The bar is drawn, not typed;
+the operator list has it. `readFractions` rebuilds each fraction from its bar
+(innermost first; a radical's vinculum is not a bar) as one item reading
+`( a ) / ( b )` — bracketed as `latexToText` brackets — on the main line,
+with a box spanning both parts.
+
+**Limit subscripts.** `x → 0` under `lim` sat on its own line, often sharing
+it with the denominator of the fraction that followed. `readLimits` moves it
+after the operator (`lim x → 0`), keeping the box it is printed in.
+
+The last two change the crops as much as the text: a region's box is the
+union of its items' boxes, so the model now reads `\lim_{x\to0}\frac{…}{…}`
+whole instead of a main line cut through both halves of a fraction and a
+21 × 12 point subscript on its own.
+
+## The 2024 books hide most of their text layer
 
 The two 2024 exercise books (`exam-004` analysis, `exam-005` algebra) are
 built by embedding a compact typesetting of their questions: each page draws
 its own running head and page number, then one or more form XObjects, each a
-whole page of that typesetting, clipped to one question's window
-(`… cm x y w h re W n … /fzFrm0 Do`). Text extraction ignores clipping —
-pdf.js, pdfminer and PyMuPDF alike — so each page's text layer holds the whole
-embedded page: the question printed in the window and every neighbour the clip
-hides. (It is the neighbouring questions, not their answers: of the hidden
-lines, 21 of 1,565 in the analysis book open with 解, 证明 or 分析.)
+whole page of that typesetting, clipped to one question's window. The two
+2024 answer keys (`exam-002`, `exam-003`) embed every question statement the
+same way: a form holding the full original page, cut to the question's box,
+above the natively typeset solution. Text extraction ignores clipping —
+pdf.js, pdfminer and PyMuPDF alike — so each of these pages' text layer holds
+every neighbouring question. (Neighbouring questions, not answers: of the
+hidden lines in the analysis exercise book, 21 of 1,565 open with 解, 证明 or
+分析.) The 2023 and 2025 books read the same either way.
 
-| Book | Clipped pages | Windows (= questions) | Windows drawing more than one form | Exercise lines, text layer → printed |
-|---|---|---|---|---|
-| 2024 Analysis | 195 of 200 | 271, up to 3 a page | 15 (14 of two, one of three) | 12,790 → 2,130 |
-| 2024 Algebra | 186 of 197 | 217 | 9 | 8,322 → 1,846 |
+| Book | Lines as read | Lines printed |
+|---|---|---|
+| 2024 Analysis, exercise book | 12,699 | 2,174 |
+| 2024 Analysis, answer key | 19,005 | 10,672 |
+| 2024 Algebra, exercise book | 8,290 | 1,858 |
+| 2024 Algebra, answer key | 12,785 | 7,354 |
 
-The 2023 exercise book and every answer key are native: no clips. An earlier
-version of this note explained the 2024 books' collapse under a
-bookmark-to-bookmark window as a "listing page then reprints" layout. That was
-wrong; the window was swallowing hidden text.
+In the analysis key, 例题 1.1 appeared five times as read, once printed. A
+window drawing two forms (a question running over two embedded pages) cuts
+each by its own `/BBox`; read through the window alone, those pages doubled
+every glyph (`{ { a a n n } }` for `{ a n }`). An earlier version of this note
+called the exercise books' layout "a listing page then reprints" and the
+answer keys native; both were wrong.
 
-A window drawing more than one form shows a question that runs over two
-pages of the original; each form is cut by its own `/BBox` to its part of the
-window, and inside the window each form's text outside its part lies hidden
-under the other's. Read through the window alone, those pages doubled every
-glyph (`{ { a a n n } }` for `{ a n }`) and put a hidden section heading into
-two algebra windows.
-
-Reading only what is printed: `ocr/clip_windows.py` lists each page's windows
-and writes a split PDF — one copy per form drawing only that form, plus a
-native copy per clipped page carrying its running head — with a map giving,
-per copy, the part of the page that form paints (its window cut by its
-`/BBox`). `tools/formula-regions.mjs --map` and `tools/extract-books.mjs
---split --map` read the split and keep only what lies inside each copy's part,
-reported on the original page. `ocr/test_clip_windows.py` covers the parsing.
-
-What this does to the text path, which today reads the hidden text exactly as
-the app's pdf.js layer does:
-
-| Pair | Strict recall, text layer as read | Strict recall, printed text only | Wrong |
-|---|---|---|---|
-| 2023 | 506 / 508 | 506 / 508 | 0 |
-| 2024 Analysis | 183 / 271 | 213 / 271 | 0 |
-| 2024 Algebra | 191 / 217 | 208 / 217 | 0 |
-
-The hidden text costs the text path 30 and 17 strict answers on these books.
-A host that extracts clip-aware gets them back. It also moves one guard: on
-printed text, `test_real_pdfs`'s alphabet check reads the 2023 exercise book
-against the 2024 analysis book at 0.9178, over its 0.90 line, and that
-assertion fails (22 of 23 pass). The check is consulted only for OPAQUE text
-(`textIsComparable`); on decoded text, containment of the smaller alphabet
-measures shared vocabulary, and unrelated decoded books already cross 0.90 in
-the corpus as read (the 2025 key against the 2023 exercise book, 0.9638). The
-pair that now fails stayed under the line only by the hidden text's extra
-glyphs. Restate that test against garbled text — a synthetic per-book glyph
-substitution would do — rather than move the threshold.
+`ocr/clip_windows.py` reaches the printed text by another route — a split PDF,
+one copy per form, each cut by its window and `/BBox` — and stays as a
+cross-check: on the analysis exercise book the two agree on all 271 question
+headings; 61 of the 2,174 lines are only in the adapter's reading and 6 only
+in the split's, mostly integral signs and large brackets at window edges,
+which the split's centre test dropped and which are printed.
 
 ## Measurement: `tools/ocr-ablation.mjs`
 
 The three 考研 exercise books have a text layer and question bookmarks, so
 each can play a scan: hide its text layer, hand the engine its formula
 regions, score every automatic answer against the bookmark oracle. Regions
-come from `tools/formula-regions.mjs` (the text layer; the oracle), and the
-model reads the same boxes through `ocr/ocr_pages.py --regions ... --bundle`.
+come from `tools/formula-regions.mjs` (the text layer, through the adapter; the
+oracle), and the model reads the same boxes through `ocr/ocr_pages.py`.
 
 ```sh
 B=ocr/models/formula-scratch-kv-int8-texteller-r10
-# 2023: native pages
-node tools/formula-regions.mjs --pdf Q2023.pdf --out tmp/q2023-regions.jsonl
-# 2024: read through the split so hidden text never becomes a region
-python -m ocr.clip_windows --pdf A2024.pdf --output tmp/a2024-windows.json \
-  --split tmp/a2024-split.pdf --map tmp/a2024-split-map.json
-node tools/formula-regions.mjs --pdf tmp/a2024-split.pdf --map tmp/a2024-split-map.json \
-  --out tmp/a2024-regions.jsonl
-# the model, cropping the original pages (a clipped page renders only its window)
+node tools/formula-regions.mjs --pdf A2024.pdf --out tmp/a2024-regions.jsonl
 python -m ocr.ocr_pages --pdf A2024.pdf --regions tmp/a2024-regions.jsonl --bundle $B \
   --output tmp/a2024-model.jsonl
 node tools/ocr-ablation.mjs --corpus CORPUS.json --exercise a2024 --answer a2024_ma \
   --regions tmp/a2024-model.jsonl --compare tmp/a2024-regions.jsonl --policy STRICT --tap
 ```
 
-`CORPUS.json` here is the printed-only corpus (`tools/extract-books.mjs
---split --map` for the two 2024 exercise books); `--compare` reports, region
-by region, how often the reading equals the text layer's.
+`CORPUS.json` is the corpus `tools/extract-books.mjs` builds through the same
+adapter; `--compare` reports, region by region, how often the reading equals
+the text layer's. A clipped page renders only what it paints, so the model's
+crops of the original pages need nothing special.
 
 Three readings per pair. *Window*: each question's text is every region
 between its bookmark and the next. *Tap*: each question's text is every region
@@ -166,70 +181,99 @@ supplies on a scan. *Calibrated*: the policy the product ships with ids, where
 a bookmark id resolves the question and the formulas are evidence rather than
 a veto.
 
-## Results: the model against the oracle
+## Results
 
-Distinct questions answered automatically, exercise book's text layer hidden,
-printed regions only. Every reading, under either policy, on all three pairs:
-**zero wrong answers**.
+Every reading below, under either policy, on all three pairs: **zero wrong
+answers.**
 
-| Pair | Pair verdict (anchor top-1), oracle → model | Strict, window: oracle → model | Strict, tap: oracle → model | Calibrated, both | Regions read exactly as the text layer |
-|---|---|---|---|---|---|
-| 2023 | VERIFIED 0.917 → VERIFIED 0.792 | 371 → 237 of 508 | 356 → 224 | 508 / 508 | 2,049 / 2,683 (76.4%) |
-| 2024 Analysis | VERIFIED 0.542 → VERIFIED 0.542 | 162 → 82 of 271 | 168 → 85 | 271 / 271 | 1,087 / 1,638 (66.4%) |
-| 2024 Algebra | VERIFIED 0.792 → VERIFIED 0.750 | 174 → 116 of 217 | 178 → 116 | 217 / 217 | 818 / 1,072 (76.3%) |
+The text path — both books read through their text layers — strict-policy
+recall:
 
-What recognition costs, in the engine's terms:
+| Change, cumulative | 2023 | 2024 Analysis | 2024 Algebra |
+|---|---|---|---|
+| Before this round, text as read | 506 / 508 | 183 / 271 | 191 / 217 |
+| ≠ and √ read as printed | 506 | 184 | 191 |
+| Only painted text, both books | 506 | 240 | 213 |
+| Fractions and limits rebuilt | 506 | **248** | **213** |
 
-- **All three pairs verify on the model's formulas alone.** The identity check
-  never saw the text layer.
-- **Strict recall is about two thirds of the oracle's on 2023 and algebra, half
-  on analysis**, and nothing wrong gets through. The lost questions are capped,
-  not misanswered: questions with a formula conflicting with the key rise from
-  75 to 124 (2023), 51 to 82 (analysis), 20 to 33 (algebra); questions whose
-  formulas the key covers fully fall from 365 to 223, 165 to 86, 166 to 112.
-- **Calibrated recall is unchanged**: a bookmark id resolves the question
-  whatever the formulas say. That is the product's path when ids exist; the
-  strict figures are the evidence available when they do not.
+The formula path — the exercise book's text layer hidden, its formula regions
+read by the oracle and by the model — strict answers by tap (by window in
+brackets):
 
-Where the readings differ from the text layer (`--compare`, mean similarity
-0.882, 0.809, 0.880):
+| Change, cumulative | 2023 oracle | 2023 model | Analysis oracle | Analysis model | Algebra oracle | Algebra model |
+|---|---|---|---|---|---|---|
+| First model run | 356 (371) | 224 (237) | 168 (162) | 85 (82) | 178 (174) | 116 (116) |
+| ≠ and √ read as printed | 359 (373) | 250 (264) | 170 (163) | 93 (88) | 178 (174) | 124 (124) |
+| Answer keys read as printed | 359 (373) | 250 (264) | 175 (180) | 97 (96) | 178 (178) | 127 (130) |
+| Fractions and limits rebuilt | **375** (389) | **289** (264) | **205** (211) | **160** (158) | **180** (180) | **128** (130) |
 
-- **Short regions are read best**: identical for 81% / 65% / 79% of regions of
-  one to three characters, 58% / 31% / 78% of regions over twenty.
-- **About a quarter of the disagreements are the text layer's quirks, not the
-  model's errors** — 369 of 1,439: the model reads ≠ where the layer has `6=`
-  (64), a radical the layer dropped (80), a fraction the layer splits into two
-  rows (225). The answer keys carry the same quirks (`x 6 = 0` 189 times in
-  the 2023 key), so a correct reading there still conflicts with the key.
-- **Lone limit subscripts degenerate.** Regions of about 21 × 12 points holding
-  only `x→0` under a `lim` come back as stacked `\tiny` bullets: 40 of 5,393
-  regions. Eight readings ran out of tokens without an end marker; none came
-  back blank (the two that had were hidden headings, now gone).
+Calibrated recall is 508 / 271 / 217 throughout: a bookmark id resolves the
+question whatever the formulas say. The pair verdict on formulas alone (content
+anchors, top-1) went from 0.792 / 0.542 / 0.750 on the model's readings to
+0.792 / 0.792 / 0.875, and from 0.917 / 0.542 / 0.792 to 0.958 / 0.833 / 0.875
+on the oracle's: VERIFIED for all three pairs in every row.
 
-## What this tells the model, and the engine
+What recognition still costs, measured on the last row:
 
-Three things the measurements point to; only the third has been measured
-for what it recovers:
+- **Strict recall is 77% of the oracle's on 2023, 78% on analysis, 71% on
+  algebra** (it was 63%, 51%, 65%). The lost questions are capped, not
+  misanswered: questions with a formula conflicting with the key number 129,
+  50 and 32 against the oracle's 59, 17 and 22.
+- **The model reads 81%, 74% and 80% of regions exactly as the text layer
+  does** (it was 76%, 66%, 76%), mean similarity 0.924, 0.860, 0.908.
+  Regions of four to eight characters read best (88%, 93%, 82% identical);
+  regions over twenty characters worst (54%, 40%, 73%), and on analysis the
+  shortest too (59% of one to three characters).
+- **The text layer's own quirks are nearly gone from the disagreements**: the
+  model reads ≠ where the layer has `6=` once (64 before), a radical the layer
+  dropped 5 times (80), a fraction the layer split 23 times (225).
+- **Stacked-bullet readings of lone subscripts**: 4 regions (40 before). Four
+  readings ran out of tokens; none came back blank.
 
-1. **Read the text layer's quirks the way the model reads the print.** A
-   font-aware rule in the adapter (`6` drawn from a maths symbol font before
-   `=` is ≠; a radical glyph is √) makes the key agree with a correct reading.
-   It must be font-aware: `2x+6=0` is also `6=` in text.
-2. **Crop blocks, not runs.** A `lim` with its subscript, a fraction with both
-   rows, as one crop. The detector that replaces `tools/formula-regions.mjs`
-   on a scan should be measured against these regions, and the fraction form
-   `latexToText` emits should match what the key's text layer shows for the
-   same print.
-3. **Clip-aware extraction in the host.** Independent of OCR: 30 and 17 strict
-   answers on the 2024 books.
+## A real scan: the 绿皮书 (book-026 against book-044)
 
-The open problem is still a book with no question bookmarks, which is every
-textbook in `datasets/books-20260924`. There the answer has to be found by
-content inside the aligned section, and on the 2023 pair the oracle's formulas
-rank the right answer first for only 40% of questions by the engine's
-similarity, with margins below 0.1 for 90% of them. Answer entries there are
-whole solutions; the question's few formulas are a small part of a long text.
-A coverage-based ranking did no better. This needs a textbook pair with a
-text-layer answer book — 绿皮书 (book-026 against book-044) is the first
-candidate — and now that the model runs here, its regions on book-026's
-scanned exercise sets.
+The first pair in the textbook release with a scanned exercise side and a
+text-layer answer book. book-026 is a 492-page scan whose only text is a
+watermark; its 87 bookmarks stop at the exercise set (习题 1.1). book-044 has
+sections only and numbers its answers inside each section: `1. (1) − 2 .
+(2) 1 .`
+
+Two findings from chapters 1 and 2, 13 exercise sets, 95 exercises:
+
+- **The answers do not restate the questions.** 习题 1.1's first exercise asks
+  for two determinants; its answer is `−2` and `1`. A formula-content match
+  has nothing to find. What identifies an exercise here is its set (the
+  bookmark, aligned with the answer book's section) and its printed number.
+- **The model reads the printed numbers.** `ocr/scan_line_starts.py` finds each
+  text line of a scanned page, crops its first ink cluster and asks the model:
+  92 of the 95 exercise numbers come back, in order, at the exercise margin —
+  all 38 in chapter 1, 54 of 57 in chapter 2 (2.3 #6, 2.5 #1 and 2.6 #7 are
+  missed). Scored against the answer book's own numbering, a number counting
+  only when it continues its set's run. The same crops read the determinants themselves
+  (`(1)\begin{vmatrix}1&2\\3&4\end{vmatrix}`). `ocr/ocr_pages.py --detector
+  ink`, written for clean renders, finds no lines on these pages at all: the
+  binding shadow inks 72–89% of pixel rows, and the shadow changes sides with
+  the page.
+
+What the engine lacks for this pair is the index, not the reading: bookmarks
+that stop at the set index each set as one entry, and nothing yet turns the
+printed numbers inside a set — on the scan, read by the model, and in the
+answer book's text — into section-scoped ids. That is the next piece of
+engine work for every textbook in the release.
+
+## What is left
+
+1. **Section-scoped ids from printed numbers** (above): the index change the
+   textbook release needs, now that the model can read the numbers.
+2. **The model's remaining gap** — a quarter of the oracle's strict answers.
+   Long regions are where it reads worst; whether that is the crop or the
+   model is the next measurement.
+3. **The host.** The app reads through its own pdf.js layer
+   (`pdf-document.js` in LaTeXSnipper_mobile, not reachable from this
+   repository). `paintedGlyphs`, `paintedItems`, `paintedRules`,
+   `readMarks`, `readFractions` and `readLimits` use only pdf.js's public API
+   (`getTextContent`, `getOperatorList`, `OPS`) and port as they are; until
+   they do, the app reads the 2024 books with their hidden text, as the corpus
+   suites' first floors were set on. The operator list is what pdf.js paints
+   from, so a host that renders the page has it already; in the extraction
+   tools it is one extra pass per page.

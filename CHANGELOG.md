@@ -263,3 +263,32 @@ reads each entry's own text now: valid pairs 0.625–1.000, wrong pairs at most
 0.083, as read or as printed. All suites pass as read (23, 9, 26; textbook
 release 56, no automatic answer in 552 pairings). `ocr/MATCHING.md` has the
 measurement.
+
+## Reading what the page prints
+
+The model's gap to the oracle was mostly the reader's. The demo adapter now
+reads TeX's zero-width negation slash (extracted as `6`) as part of the
+relation under it, and hangs a radical on its radicand's line; it replays the
+clip state from pdf.js's operator list and keeps only text a page paints; and
+it rebuilds a display fraction from its drawn bar, and moves a limit's
+subscript after `lim`, keeping the box each is printed in so the crops hold
+the whole formula. `latexToText` reads `\not` through the same table.
+
+Replaying the clips found that the 2024 answer keys embed every question
+statement the same way the exercise books do, a full original page cut to the
+question's box: 44% and 42% of their text layers were hidden neighbouring
+questions. On the printed text the identity check verifies every pair and the
+alphabet test, restated on simulated garbling (the failure the check exists
+for), passes.
+
+Text path, strict recall, both books as printed: 506 / 248 / 213 of 508 / 271
+/ 217 (was 506 / 183 / 191), zero wrong, all suites passing. Formula path, the
+exercise text hidden, strict answers by tap: the model 289 / 160 / 128 (was
+224 / 85 / 116), the oracle 375 / 205 / 180, zero wrong; the model reads 81%,
+74% and 80% of regions exactly as the text layer does. On the first real scan
+in the textbook release, the 绿皮书, the model reads 92 of the 95 printed
+exercise numbers of chapters 1–2 in order (`ocr/scan_line_starts.py`); its
+answer book states results rather than restating questions, so what that pair
+needs next is section-scoped ids in the index. `ocr/MATCHING.md` has every
+step.
+
