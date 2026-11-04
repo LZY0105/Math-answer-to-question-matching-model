@@ -22,12 +22,14 @@
 //   {"page": 4, "bbox": [x0, top, x1, bottom], "text": "f ( x ) = x 2 + 1", "items": 7}
 //
 // Usage:
-//   node tools/formula-regions.mjs --pdf BOOK.pdf --out regions.jsonl [--pages 4-20]
+//   node tools/formula-regions.mjs --pdf BOOK.pdf --out regions.jsonl [--pages 4-20] [--all-text]
 //   node tools/formula-regions.mjs --pdf SPLIT.pdf --map SPLIT-map.json --out regions.jsonl
 //
-// The second form reads a book whose pages clip an embedded original page
-// (the 2024 留白 books) through the split ocr/clip_windows.py writes, so that
-// text the clip hides is never read as printed.
+// Text a page's clips hide is never read as printed: the adapter replays the
+// clip state and keeps only painted text (pageTextItems), which is what the
+// 2024 留白 books need. --all-text reads every glyph instead. The second form
+// reads the split ocr/clip_windows.py writes, which reaches the same text by
+// another route and is kept to cross-check the first.
 
 import { createWriteStream } from 'node:fs';
 import { readFile } from 'node:fs/promises';
@@ -35,7 +37,7 @@ import { fileURLToPath } from 'node:url';
 
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 
-import { groupTextRows } from '../demo/pdfjs-document-adapter.mjs';
+import { groupTextRows, pageTextLayout } from '../demo/pdfjs-document-adapter.mjs';
 
 const cmapUrl = new URL('../node_modules/pdfjs-dist/cmaps/', import.meta.url);
 const fontsUrl = new URL('../node_modules/pdfjs-dist/standard_fonts/', import.meta.url);
@@ -56,6 +58,7 @@ function parseArgs(argv) {
     else if (a === '--out') o.out = argv[++i];
     else if (a === '--pages') o.pages = argv[++i];
     else if (a === '--map') o.map = argv[++i];
+    else if (a === '--all-text') o.allText = true;
     else throw new Error(`unrecognised argument: ${a}`);
   }
   if (!o.pdf || !o.out) throw new Error('--pdf and --out are required');
@@ -94,10 +97,13 @@ export function formulaRuns(row, pageHeight) {
     if (run.length < 2) continue;
     const text = run.map(i => i.text).join(' ').trim();
     if (!MATHY.test(text) || NUMERAL_ONLY.test(text)) continue;
-    const x0 = Math.min(...run.map(i => i.x));
-    const x1 = Math.max(...run.map(i => i.x + i.width));
-    const top = Math.min(...run.map(i => i.y - i.height));
-    const bottom = Math.max(...run.map(i => i.y + 0.3 * i.height));
+    // An item the adapter assembled or moved (a fraction, a limit's
+    // subscript) carries the box it is printed in; the crop must hold that.
+    const boxOf = (i) => i.box ?? [i.x, i.y - i.height, i.x + i.width, i.y + 0.3 * i.height];
+    const x0 = Math.min(...run.map(i => boxOf(i)[0]));
+    const x1 = Math.max(...run.map(i => boxOf(i)[2]));
+    const top = Math.min(...run.map(i => boxOf(i)[1]));
+    const bottom = Math.max(...run.map(i => boxOf(i)[3]));
     if (top < pageHeight * MARGIN || bottom > pageHeight * (1 - MARGIN)) continue;
     out.push({ bbox: [x0 - 2, top - 1, x1 + 2, bottom + 1].map(v => Number(v.toFixed(2))), text, items: run.length });
   }
@@ -122,9 +128,9 @@ async function main() {
   for (const number of pages) {
     const page = await doc.getPage(number);
     const viewport = page.getViewport({ scale: 1 });
-    const content = await page.getTextContent();
     const copy = copies ? copies[number - 1] : null;
-    let items = content.items;
+    const layout = await pageTextLayout(page, { clipAware: !opts.allText });
+    let items = layout.items;
     if (copy?.window) {
       const [x0, top, x1, bottom] = copy.window;
       items = items.filter((it) => {
@@ -137,7 +143,7 @@ async function main() {
       });
     }
     const reported = copy ? copy.page : number;
-    for (const row of groupTextRows(items, viewport)) {
+    for (const row of groupTextRows(items, viewport, layout.rules)) {
       for (const region of formulaRuns(row, viewport.height)) {
         sink.write(JSON.stringify({ page: reported, ...region }) + '\n');
         regions++;

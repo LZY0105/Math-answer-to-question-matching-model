@@ -19,7 +19,9 @@
 //   --force  re-extract books whose JSON already exists
 //   --geometry  keep each line's vertical position (y, height) in page points
 //   --split FILE --map FILE  read lines from a split made by ocr/clip_windows.py,
-//            keeping only what each page's clip actually prints (one KEY=FILE)
+//            keeping only what each page's clip actually prints (one KEY=FILE).
+//            The adapter now keeps only painted text by itself (pageTextItems);
+//            the split stays as an independent cross-check of that.
 //   KEY=FILE extract one file under a chosen key; with none given, every PDF in
 //            --books is extracted under its manifest id (book-NNN)
 //
