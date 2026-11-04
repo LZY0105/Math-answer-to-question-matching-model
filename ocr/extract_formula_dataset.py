@@ -249,6 +249,7 @@ def write_jsonl(path: Path, records):
 
 
 def main():
+    global POPPLER_PDFTOPPM
     sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser()
     parser.add_argument("--source", required=True, help="源书目录（PDF）")
@@ -263,7 +264,6 @@ def main():
     args = parser.parse_args()
     # 落进环境，子进程起来时各自读到同一个值。必须在建进程池之前。
     os.environ["PDFTOPPM"] = str(args.pdftoppm)
-    global POPPLER_PDFTOPPM
     POPPLER_PDFTOPPM = str(args.pdftoppm)
     source = Path(args.source)
     output = Path(args.output)
