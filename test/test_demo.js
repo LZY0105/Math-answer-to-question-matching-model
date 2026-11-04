@@ -41,6 +41,30 @@ await check('superscripts and subscripts join the line they belong to', () => {
   assert.ok(lines.includes('i =1'), 'display limits twelve points away stay separate');
 });
 
+await check('a negation slash reads as part of the relation it is drawn over', () => {
+  // Positions as pdf.js reports them on page 22 of the 2023 key: Computer
+  // Modern's zero-width slash, mapped to "6", over the "=" of "= 0".
+  const item = (str, x, y, size, width) => ({ str, transform: [size, 0, 0, size, x, 200 - y], height: size, width });
+  const lines = groupTextItems([
+    item('x', 346.18, 139.65, 12, 6.67), item('6', 356.2, 139.65, 12, 0), item('= 0', 356.2, 139.65, 12, 18.32),
+    item('a', 100, 160, 12, 6), item('7', 108, 160, 12, 0), item('→', 108, 160, 12, 12), item('b', 122, 160, 12, 6),
+    item('n', 100, 180, 12, 6), item('=', 108, 180, 12, 9), item('6', 119, 180, 12, 6), item('+', 127, 180, 12, 9),
+  ], 1, { height: 200 }, false).map(l => l.text);
+  assert.deepEqual(lines, ['x ≠ 0', 'a ↦ b', 'n = 6 +'], 'a printed 6 has an advance and stays a digit');
+});
+
+await check('a radical sign joins its radicand, and an n-th root reads n√x', () => {
+  // Page 4 of the 2023 exercise book, \sqrt[n]{64}: the sign hangs from its
+  // top, 9.9 points above the radicand's baseline; the index sits in its crook.
+  const item = (str, x, y, size, width) => ({ str, transform: [size, 0, 0, size, x, 400 - y], height: size, width });
+  const lines = groupTextItems([
+    item('2 +', 280, 330.11, 12, 15), item('n', 301.99, 324.53, 5.98, 4.6), item('√', 299.92, 320.18, 12, 10),
+    item('64', 309.92, 330.11, 12, 11.74),
+    item('x', 100, 360, 12, 6.7), item('2', 106.7, 355, 8, 4.2), item('√', 111.5, 352, 12, 10), item('y', 121.5, 362, 12, 6),
+  ], 1, { height: 400 }, false).map(l => l.text);
+  assert.deepEqual(lines, ['2 + n √ 64', 'x 2 √ y'], 'a script of the item before the sign stays its script');
+});
+
 await check('a small-print line with no larger neighbour is left as its own line', () => {
   const item = (str, x, y, size, width = 5) => ({ str, transform: [size, 0, 0, size, x, 100 - y], height: size, width });
   const lines = groupTextItems([

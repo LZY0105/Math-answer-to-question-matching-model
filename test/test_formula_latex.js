@@ -89,6 +89,18 @@ check('an accent prints its letter', () => {
   assert.equal(latexToText('\\overline{z}'), 'z');
 });
 
+check('a negated relation reads as one symbol, however it was written', () => {
+  // The adapter reads TeX's slash-over-relation off a text layer as the same
+  // code point, so a recogniser's \not= and a key's printed ≠ agree.
+  assert.equal(latexToText('x \\not= 0'), 'x≠0');
+  assert.equal(latexToText('x \\neq 0'), 'x≠0');
+  assert.equal(latexToText('a \\not\\equiv b'), 'a≢b');
+  assert.equal(latexToText('x \\not\\in A'), 'x∉A');
+  assert.equal(latexToText('x \\notin A'), 'x∉A');
+  assert.equal(latexToText('a \\nleq b'), 'a≰b');
+  assert.equal(latexToText('a \\not\\perp b'), 'a⊥̸b', 'with no single code point, the slash overlays');
+});
+
 check('unbalanced input is closed, not rejected', () => {
   assert.equal(latexToText('\\frac{1}{x'), '1/x');
   assert.equal(latexToText('x^{'), 'x');

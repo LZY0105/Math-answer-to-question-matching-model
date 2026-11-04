@@ -82,7 +82,23 @@ const SYMBOL = {
   lfloor: '⌊', rfloor: '⌋', lceil: '⌈', rceil: '⌉', backslash: '\\', hbar: 'ℏ', ell: 'ℓ', Re: 'Re', Im: 'Im',
   aleph: 'ℵ', degree: '°', because: '∵', therefore: '∴', top: '⊤', bot: '⊥', mid: '|', nmid: '∤',
   colon: ':', dagger: '†', S: '§',
+  nleq: '≰', nleqslant: '≰', ngeq: '≱', ngeqslant: '≱', nless: '≮', ngtr: '≯',
+  nsubseteq: '⊈', nsupseteq: '⊉', nsim: '≁', ncong: '≇', nrightarrow: '↛', nparallel: '∦',
 };
+
+/**
+ * A relation and its negation, as \not before the relation prints it.
+ *
+ * TeX's \not is a zero-width slash laid over whatever follows: \not= prints ≠,
+ * \not\in prints ∉. The demo adapter reads the same pair off a text layer
+ * (demo/pdfjs-document-adapter.mjs), so both sides of a comparison name the
+ * negated relation by one code point.
+ */
+export const NEGATED_RELATION = Object.freeze({
+  '=': '≠', '≡': '≢', '∼': '≁', '≈': '≉', '≅': '≇', '→': '↛', '∈': '∉', '∋': '∌',
+  '⊂': '⊄', '⊃': '⊅', '⊆': '⊈', '⊇': '⊉', '<': '≮', '>': '≯', '≤': '≰', '≥': '≱',
+  '|': '∤', '∥': '∦', '∃': '∄',
+});
 
 /** Matrix environments and the brackets they print. */
 const MATRIX = {
@@ -221,6 +237,14 @@ export function latexToText(latex, { fractions = 'slash', scripts = 'inline' } =
         const brackets = MATRIX[env[2]];
         if (brackets) sink.push(env[1] === 'begin' ? brackets[0] : brackets[1]);
         if (env[1] === 'begin' && (env[2] === 'array' || env[2] === 'tabular') && Array.isArray(peek())) next(); // column spec
+        continue;
+      }
+      if (tok === '\\not') {
+        // The slash negates the relation after it; with nothing to negate it
+        // prints nothing readable.
+        const arg = next();
+        const rel = arg === undefined ? '' : render(arg, opts);
+        if (rel) sink.push(NEGATED_RELATION[rel] ?? `${rel}\u0338`);
         continue;
       }
       if (tok.startsWith('\\') && tok.length > 1) {

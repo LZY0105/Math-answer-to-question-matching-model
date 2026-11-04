@@ -4,6 +4,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 
+import { NEGATED_RELATION } from '../src/formula-latex.js';
+
 
 const workerUrl = new URL('../node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs', import.meta.url);
 const cmapUrl = new URL('../node_modules/pdfjs-dist/cmaps/', import.meta.url);
@@ -54,6 +56,98 @@ const OPERATOR_BASE = /[∫∑∏∬∭∮]|^\s*(lim|max|min|sup|inf)\s*$/;
 /** The absolute baseline tolerance for items of the same size. */
 const ROW_TOLERANCE = 2.5;
 
+/**
+ * Relations a TeX negation slash turns into their negated form.
+ *
+ * Computer Modern prints ≠ as two glyphs: a zero-width slash from the symbol
+ * font (cmsy position 0x36, which every PDF here maps to the digit "6") laid
+ * over the relation. Read as text, x ≠ 0 came out "x 6 = 0": a digit that is
+ * not printed, and the relation without its negation. Measured on the 2023
+ * exercise book and the three answer keys: 676 zero-width "6"s, 658 of them
+ * over "=", most of the rest over ≡, ∼, → and −. A recogniser reads the print
+ * as ≠, and the strict formula rule read "6=" against it as a conflict.
+ */
+const NEGATED = NEGATED_RELATION;   // the table formula-latex.js reads \not with
+
+/**
+ * Zero-width glyphs TeX overlays on the glyph after them, and what the pair
+ * reads as: the negation slash (as "6", or as U+0338 where a font maps it), and
+ * the stem of ↦ (cmsy 0x37, read as "7") before an arrow.
+ */
+const OVERLAY = { '6': NEGATED, '̸': NEGATED, '7': { '→': '↦' } };
+
+/**
+ * How far below a radical sign's baseline its radicand's baseline lies, as a
+ * fraction of the sign's size.
+ *
+ * TeX hangs a radical from its top, where it meets the vinculum: the sign's
+ * baseline sits near its top and the glyph hangs below it. Measured on the
+ * same four books, the radicand starts exactly where the sign ends for 1,201
+ * of 1,222 radicals, its baseline lower by 0.72 to 1.11 of the sign's size for
+ * the middle 80% of them (median 0.83). Grouped by baseline, the sign joined
+ * whatever row lay near its top, or none, and √(x+1) read x+1.
+ */
+const RADICAL_DROP = [0.3, 2.5];
+
+/**
+ * Glyphs the text layer places apart from the symbol they belong to, put back.
+ *
+ * - A zero-width overlay merges into the relation it is drawn over (≠, ≢, ↦).
+ * - A zero-width vector arrow (U+20D7) is dropped: the letter is printed and
+ *   the arrow drawn, which is how formula-latex.js reads \vec{a}.
+ * - A radical sign moves onto its radicand's baseline, and the index of an
+ *   n-th root, small in the crook of the sign, moves there too, before the
+ *   sign — so \sqrt[n]{x} reads n√x, as formula-latex.js writes it.
+ *
+ * Items are {text, x, y, width, height} as groupTextRows places them; the
+ * result is the same list with merged overlays removed.
+ */
+export function readMarks(placed) {
+  const kept = new Set(placed);
+  const advance = (item) => item.width > 0.05 * item.height;
+  for (const mark of placed) {
+    const text = mark.text.trim();
+    if (advance(mark)) continue;
+    if (text === '⃗') { kept.delete(mark); continue; }
+    const table = OVERLAY[text];
+    if (!table) continue;
+    const under = placed
+      .filter(other => other !== mark && kept.has(other) && advance(other)
+        && Math.abs(other.y - mark.y) <= 0.3 * mark.height
+        && other.x >= mark.x - 0.6 && other.x <= mark.x + 0.9 * mark.height)
+      .sort((a, b) => Math.abs(a.x - mark.x) - Math.abs(b.x - mark.x))[0];
+    if (!under) continue;
+    const lead = under.text.trimStart();
+    const key = Object.keys(table).find(k => lead.startsWith(k));
+    if (!key) continue;
+    under.text = table[key] + lead.slice(key.length);
+    kept.delete(mark);
+  }
+  for (const sign of placed) {
+    if (!kept.has(sign) || sign.text.trim() !== '√') continue;
+    const end = sign.x + sign.width;
+    const radicand = placed
+      .filter(other => other !== sign && kept.has(other) && Math.abs(other.x - end) <= 1
+        && other.y - sign.y >= RADICAL_DROP[0] * sign.height
+        && other.y - sign.y <= RADICAL_DROP[1] * sign.height)
+      .sort((a, b) => a.y - b.y)[0];
+    if (!radicand) continue;
+    for (const index of placed) {
+      if (index === sign || index === radicand || !kept.has(index)) continue;
+      if (index.height > SCRIPT_SIZE * sign.height) continue;
+      // In the crook: overlapping the sign's left part, between its top and
+      // the radicand's baseline. A script of the item before the sign ends
+      // before the sign begins, and stays where it is.
+      if (index.x + index.width <= sign.x + 0.1 || index.x >= sign.x + 0.6 * sign.width) continue;
+      if (index.y <= sign.y - 0.2 * sign.height || index.y >= radicand.y) continue;
+      index.y = radicand.y;
+      index.x = sign.x - 0.01;
+    }
+    sign.y = radicand.y;
+  }
+  return placed.filter(item => kept.has(item));
+}
+
 export function groupTextItems(items, pageNumber, viewport, includeGeometry) {
   return groupTextRows(items, viewport)
     .map(row => {
@@ -73,7 +167,7 @@ export function groupTextItems(items, pageNumber, viewport, includeGeometry) {
  * origin at the top-left; y is the baseline.
  */
 export function groupTextRows(items, viewport) {
-  const placed = items
+  const placed = readMarks(items
     .filter(item => typeof item.str === 'string' && item.str.trim())
     .map(item => ({
       text: item.str,
@@ -81,7 +175,7 @@ export function groupTextRows(items, viewport) {
       y: viewport.height - (item.transform?.[5] ?? 0),
       width: Math.max(item.width ?? 0, 0),
       height: Math.max(Math.abs(item.height ?? item.transform?.[3] ?? 0), 1),
-    }))
+    })))
     .sort((a, b) => (a.y - b.y) || (a.x - b.x));
 
   // Pass 1: rows of items on the same baseline.
