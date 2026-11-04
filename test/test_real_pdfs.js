@@ -157,18 +157,45 @@ await check('a corpus extracted without cmaps would still be caught', () => {
   assert.ok(verdict.hanRatio < 0.02);
 });
 
-await check('the alphabet check separates a matched pair from unrelated books', () => {
-  // Written when the text was thought to be garbled, and still the guard that
-  // lets unreadable text be used safely IF a book ever genuinely is corrupt:
-  // the signal can detect its own inapplicability.
-  const pair = sharedAlphabetOverlap(raw.q2023.lines, raw.ans2023.lines);
-  assert.ok(pair.comparable, `matched pair should be comparable, got ${pair.overlap}`);
-  assert.ok(pair.overlap > 0.95, `expected near-total overlap, got ${pair.overlap}`);
+await check('the alphabet check tells books that garble alike from books that garble differently', () => {
+  // The guard that lets unreadable text be used safely IF a book is ever
+  // genuinely corrupt. What it measures is whether two books garble the SAME
+  // way — one font, one substitution — so that comparing garbage to garbage is
+  // as valid as comparing the text. It is consulted only for OPAQUE text.
+  //
+  // It is not a test of whether two DECODED books are related, and an earlier
+  // version asserted that it was: q2023 against a2024 stayed under the 0.90
+  // line only through the text a2024's clips hide (0.8375 as read, 0.9178 as
+  // printed), and decoded books do not separate on it at all — the 2025 key
+  // against the 2023 exercise book reads 0.9638. So the garbling is simulated
+  // here, the way the cmap-less extraction above garbled: each Han character
+  // through a substitution fixed by its font, ASCII and mathematics untouched.
+  const hash = (s) => {
+    let h = 0x811c9dc5;
+    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+    return h;
+  };
+  const garble = (lines, font) => lines.map(l => ({
+    ...l,
+    text: [...String(l.text ?? '')]
+      .map(ch => (/\p{Script=Han}/u.test(ch) ? String.fromCodePoint(0x0980 + (hash(font + ch) % 0x2000)) : ch))
+      .join(''),
+  }));
 
-  for (const [a, b] of [['q2023', 'a2024'], ['a2024', 'g2024']]) {
-    const r = sharedAlphabetOverlap(raw[a].lines, raw[b].lines);
-    assert.equal(r.comparable, false,
-      `${a} vs ${b} are different books and must NOT be treated as comparable (${r.overlap})`);
+  const decoded = sharedAlphabetOverlap(raw.q2023.lines, raw.ans2023.lines);
+  assert.ok(decoded.comparable && decoded.overlap > 0.95, `matched pair, decoded: ${decoded.overlap}`);
+
+  // One font across the pair, as the 2023 books share theirs: comparable.
+  const alike = sharedAlphabetOverlap(garble(raw.q2023.lines, 'A'), garble(raw.ans2023.lines, 'A'));
+  assert.ok(alike.sufficient && alike.comparable && alike.overlap > 0.95,
+    `garbled alike: ${alike.overlap}`);
+
+  // Different font subsets: the garbled alphabets barely meet, and the check
+  // must say so rather than let every cross-book score collapse silently.
+  for (const [a, fa, b, fb] of [['q2023', 'A', 'a2024', 'B'], ['a2024', 'B', 'g2024', 'C']]) {
+    const r = sharedAlphabetOverlap(garble(raw[a].lines, fa), garble(raw[b].lines, fb));
+    assert.ok(r.sufficient, `${a} vs ${b}: alphabet too small to judge (${r.total})`);
+    assert.equal(r.comparable, false, `${a} vs ${b} garble differently and must NOT be comparable (${r.overlap})`);
   }
 });
 
