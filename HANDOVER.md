@@ -21,7 +21,8 @@ commands given.
 「习题 n.m」书签按模型读出的行首题号拆成单题（`n.m.k`），只有节书签的答案书按节内
 `k.` 编号，两边经大纲对齐的节才互相解析。全书 69 个习题集中 66 个拆开，共 508 题（答案书
 527 题）；每题点按一次：未绑定时 0 个自动答案，用户确认配对后严格策略 295 个、校准策略
-466 个自动答案，逐一对照页面图像核对，无一错配；错误配对无论是否绑定都是 0。
+466 个自动答案，逐一对照页面图像核对，无一错配；错误配对无论是否绑定都是 0。代码与文档
+已全部提交并推送，PR #2 说明已同步更新，CI 通过。
 
 ## 1. Where things are
 
@@ -29,7 +30,8 @@ commands given.
 |---|---|
 | Repository | `LZY0105/Math-answer-to-question-matching-model` |
 | Default branch | `main`, at `7673a20` (the first optimisation round, merged as PR #1) |
-| Working branch | `claude/project-optimization-review-486rqs`: `main` + `codex/scratch-formula-ocr` (with the model bundle) + the formula-recogniser work and the model's measurement. Open as PR #2. |
+| Working branch | `claude/project-optimization-review-486rqs`: `main` + `codex/scratch-formula-ocr` (with the model bundle) + rounds two to four (§4): the recogniser contract, the reader that reads only printed text, exercises by set and printed number. Open as PR #2. |
+| State at handover | Everything committed and pushed, working tree clean. PR #2's description carries the figures in §3; its CI (the 310 synthetic checks, Node 20, 22 and 24) passes. |
 | Engine | `src/` — pure JavaScript, no runtime dependencies. Entry point `src/matching-engine.js` (`preparePair`). |
 | Demo adapter | `demo/pdfjs-document-adapter.mjs` — PDF.js, development only. The only place PDFs are read. |
 | Formula OCR | `ocr/` — self-trained recogniser: training, export, ONNX inference (`recognize_scratch.py`), Android runner, dataset tooling. Model card: `ocr/MODEL_CARD.md`. The shipped bundle (round 10, cached INT8, 4.1 MB) is committed at `ocr/models/formula-scratch-kv-int8-texteller-r10/`. |
@@ -46,6 +48,13 @@ Two data releases, neither in git:
 One caveat that cost a day: the exam release holds two 2023 exercise books.
 `exam-006` has section bookmarks only; `exam-009` (留白作答版) has the 508
 question bookmarks every 2023 assertion depends on. Use `exam-009` as `q2023`.
+
+Derived from those, and not in git either, all rebuilt by the commands in §2:
+the exam corpus JSON, the extracted textbook JSON, and the 绿皮书's line
+starts — 12,306 lines (1.5 MB) read off its 492 pages by
+`ocr/scan_line_starts.py`, in 3½ to 7½ minutes with four processes on four
+cores (two runs, whose line starts came out byte-identical). The 绿皮书
+figures in §3 come from those line starts.
 
 ## 2. How to run everything
 
@@ -98,19 +107,29 @@ PATH; it is in this container. Nothing downloads a model or calls a service.
 A scanned book: `python -m ocr.scan_line_starts --pdf BOOK.pdf --pages 23-25
 --bundle $B --output starts.jsonl` reads the first ink cluster of every text
 line — on the 绿皮书 (`book-026`), the printed exercise numbers. The whole
-book is `--pages 1-492` (run as four ranges side by side, one output each).
-Then, with the textbook release extracted:
+book, then the measurement, then the sheets its "wrong" count is checked on,
+with the textbook release extracted as above:
 
 ```sh
-S=starts-1-123.jsonl,starts-124-246.jsonl,starts-247-369.jsonl,starts-370-492.jsonl
+G="../find-engine-books/【教材】绿皮书高等代数学第四版-谢启鸿-加书签、颜色深化.pdf"
+mkdir -p ../lvpi
+for r in 1-123 124-246 247-369 370-492; do
+  ../ocr-venv/bin/python -m ocr.scan_line_starts --pdf "$G" --pages $r --bundle $B --output ../lvpi/starts-$r.jsonl &
+done; wait
+S=$(ls ../lvpi/starts-*.jsonl | paste -sd,)
 node tools/measure-sets.mjs --books ../find-engine-books/extracted \
-  --exercise book-026 --answer book-044 --starts $S --json taps.json
-../ocr-venv/bin/python -m ocr.set_crops --pdf BOOK-026.pdf --taps taps.json --out sheets
+  --exercise book-026 --answer book-044 --starts "$S" --json ../lvpi/taps.json
+../ocr-venv/bin/python -m ocr.set_crops --pdf "$G" --taps ../lvpi/taps.json --out ../lvpi/sheets
 ```
 
-The second command draws every automatic answer's tap point, set heading,
-last exercise and page-crossing exercise from the page image, which is how
-its "wrong" count is checked (§3).
+The last command draws, from the page image, every automatic answer's tap
+point beside its id, each set's 习题 heading, each set's last exercise and
+each page-crossing exercise with its band marked (§3). Run end to end on
+2026-11-04 with a fresh extraction, these commands reproduce §3 exactly.
+Extract the textbook release with this branch's reader first: an extraction made before
+round three reads book-044 differently (7,976 lines, not 7,511), which moves
+one strict-policy exercise between two formula reasons (45 and 35 where §3's
+source has 44 and 36) and changes no total.
 
 ## 3. What is verified, as of this branch
 
@@ -248,6 +267,13 @@ index level every textbook in the release needs.
   answer known by section and number is reachable only this way.
 - **Bands**: the last exercise ends at the first break wider than three opener
   heights; one over a page break never takes the next page's running head.
+- **Checked against the page, which found three faults** before the figures
+  in §3: a list in a worked example (`1, ⋯, 1, λ−1`) read as exercise 1, so a
+  comma ends a number only when nothing follows it; last exercises whose
+  median-height estimate ran into the next section's heading (four, one of
+  them into its first paragraph); exercises over a page break that took in the
+  next page's running head and its rule (27 of 39). The band rules above are
+  those fixes.
 - **The pair gate** (`pair-verifier.js`): a binding now settles the UNKNOWN
   role of an answer book indexed by section and number, which states results
   and cannot show its role by its language. On every other index an
@@ -307,6 +333,11 @@ index level every textbook in the release needs.
 - **Ablation is not absence**: stripping bookmarks from a book that has them
   is not a book that never had them (RESEARCH-REPORT §8). The textbook release
   is the real thing and has no text pair.
+- **One timing check is load-sensitive.** `test_no_bookmarks` requires the
+  bookmarked path's 95th-percentile time per page to stay at 5ms or under.
+  Alone it measures 2ms, as before round four; it read 6ms once while the other
+  real-data suites and two measurements shared the machine. Judge timings
+  with the suites run one at a time.
 - **CI has no corpus, and runs no Python.** A green CI run means the 310
   synthetic checks passed and nothing else. The corpus suites run only where
   the data is; `ocr/test_*.py` run by hand
@@ -339,9 +370,14 @@ index level every textbook in the release needs.
    `SIMILARITY_WEAK`, `GAP_PENALTY`, `LABEL_BONUS`, `MATH_WEIGHT`) have still
    never been swept. Sweep them only on a held-out book.
 7. **Host integration**: the Android app must pass regions with positions
-   (the `top`/`bottom` the Java runner's caller knows) and the tap region;
+   (the `top`/`bottom` the Java runner's caller knows, and `left` where a
+   line starts, which the margin check needs) and the tap region;
    `selectByRegion` in `matching-engine.js` is where a tap meets an entry's
-   spans.
+   spans. For a scanned textbook the app's recogniser has to do what
+   `ocr/scan_line_starts.py` does: find each line past the binding shadow,
+   crop its first ink cluster, read it. And the app must store a binding when
+   the user confirms a pair (`createBinding` in `src/fingerprint.js`); without
+   one, a pair like the 绿皮书's is never answered automatically.
 
 ## 7. File map for this cycle
 
