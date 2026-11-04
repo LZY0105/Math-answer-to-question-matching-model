@@ -364,6 +364,42 @@ export function verifyPair({
     };
   };
 
+  /**
+   * A binding is the user asserting a pairing the engine could not establish.
+   *
+   * It resolves ABSENCE of reliable evidence, and nothing else. Every hard
+   * conflict — wrong role, wrong year, wrong subject, and weak content agreement
+   * between two indexes good enough to be believed — is checked before it is
+   * consulted, so a binding can never reach one. What remains is the case it
+   * exists for: a scanned book whose identity simply cannot be checked, or an
+   * answer book read by section and number that states results and so cannot
+   * show its role, where the alternative is refusing a pair the user is
+   * looking at.
+   *
+   * The binding must still name the documents it was made against. A stale one
+   * confers nothing.
+   */
+  const useBinding = () => {
+    if (!manualBinding) return null;
+    const exFp = fingerprintDocument(exerciseDoc);
+    const anFp = fingerprintDocument(answerDoc);
+    const check = bindingMatches(manualBinding, exFp, anFp);
+    evidence.binding = {
+      checked: true,
+      valid: check.valid,
+      reason: check.reason,
+      changed: check.changed,
+      exercise: exFp.id,
+      answer: anFp.id,
+    };
+    if (!check.valid) { reasonCodes.push(check.reason); return null; }
+    reasonCodes.push('PAIR_BOUND_MANUALLY');
+    return {
+      status: PAIR_STATUS.VERIFIED_PAIR,
+      exerciseRole: left.role, answerRole: right.role, reasonCodes, evidence,
+    };
+  };
+
   // ── role, both sides ──
   //
   // Checked before identity because identity cannot see this class of error at
@@ -373,7 +409,23 @@ export function verifyPair({
   if (right.role === ROLE.EXERCISE) return reject('RIGHT_ROLE_INVALID');
   if (left.role === ROLE.ANSWER) return reject('LEFT_ROLE_INVALID');
 
+  const yearsConflict = !!(exYear.year && anYear.year && exYear.year !== anYear.year);
+  const subjectsConflict = exSubject.subject !== 'MIXED' && anSubject.subject !== 'MIXED'
+    && exSubject.subject !== anSubject.subject;
+
   if (right.role === ROLE.UNKNOWN) {
+    // An answer book indexed by section and printed number (the 绿皮书's,
+    // "1. (1) −2. (2) 1.") states results without working them, and so can
+    // never show its role by its language. That is missing evidence, which is
+    // what a binding settles; a year or subject conflict is not. Every other
+    // index that cannot show its role stays unconfirmed even when bound: a
+    // body parse of an exercise book reads exactly like one, and binding two
+    // exercise books, or the wrong answer book, would otherwise answer from
+    // it — measured, the 绿皮书 bound to a real-analysis key whose glyphs are
+    // unreadable gave 135 automatic answers, every one wrong.
+    const settles = answerIndex?.source === 'SECTIONS' && !yearsConflict && !subjectsConflict;
+    const bound = settles ? useBinding() : null;
+    if (bound) return bound;
     reasonCodes.push('PAIR_IDENTITY_UNKNOWN');
     return {
       status: PAIR_STATUS.UNKNOWN_PAIR,
@@ -382,13 +434,8 @@ export function verifyPair({
   }
 
   // ── hard identity conflicts ──
-  if (exYear.year && anYear.year && exYear.year !== anYear.year) {
-    return reject('PAIR_IDENTITY_MISMATCH');
-  }
-  if (exSubject.subject !== 'MIXED' && anSubject.subject !== 'MIXED'
-    && exSubject.subject !== anSubject.subject) {
-    return reject('PAIR_IDENTITY_MISMATCH');
-  }
+  if (yearsConflict) return reject('PAIR_IDENTITY_MISMATCH');
+  if (subjectsConflict) return reject('PAIR_IDENTITY_MISMATCH');
 
   // ── positive identity evidence ──
   const anchors = contentAnchorAgreement(exerciseIndex, answerIndex);
@@ -418,40 +465,6 @@ export function verifyPair({
   const anchorsAreReliable = exerciseIndex?.source === 'OUTLINE'
     && answerIndex?.source === 'OUTLINE'
     && fromLayer(exerciseIndex) && fromLayer(answerIndex);
-
-  /**
-   * A binding is the user asserting a pairing the engine could not establish.
-   *
-   * It resolves ABSENCE of reliable evidence, and nothing else. Every hard
-   * conflict — wrong role, wrong year, wrong subject, and weak content agreement
-   * between two indexes good enough to be believed — has already returned above,
-   * so a binding can never reach one. What remains is the case it exists for: a
-   * scanned book whose identity simply cannot be checked, where the alternative
-   * is refusing a pair the user is looking at.
-   *
-   * The binding must still name the documents it was made against. A stale one
-   * confers nothing.
-   */
-  const useBinding = () => {
-    if (!manualBinding) return null;
-    const exFp = fingerprintDocument(exerciseDoc);
-    const anFp = fingerprintDocument(answerDoc);
-    const check = bindingMatches(manualBinding, exFp, anFp);
-    evidence.binding = {
-      checked: true,
-      valid: check.valid,
-      reason: check.reason,
-      changed: check.changed,
-      exercise: exFp.id,
-      answer: anFp.id,
-    };
-    if (!check.valid) { reasonCodes.push(check.reason); return null; }
-    reasonCodes.push('PAIR_BOUND_MANUALLY');
-    return {
-      status: PAIR_STATUS.VERIFIED_PAIR,
-      exerciseRole: left.role, answerRole: right.role, reasonCodes, evidence,
-    };
-  };
 
   if (anchors.sufficient && anchors.top1 !== null
     && anchors.top1 < THRESHOLDS.anchorTop1) {

@@ -1,13 +1,14 @@
-# Handover — Find-Engine, 2026-11-03
+# Handover — Find-Engine, 2026-11-04
 
 For whoever picks this up next. It says where the code and the data are, what
 is verified and how to re-verify it, what is known to be fragile, and what to
 do next, in order. Everything measured here was measured on the branch named
-below on 2026-11-03; the numbers are reproducible with the commands given.
+below on 2026-11-03 and 2026-11-04; the numbers are reproducible with the
+commands given.
 
 ## 摘要
 
-匹配引擎本体（`src/`，零依赖）已完成三轮优化并全部通过验证。本轮把 PDF 读取层
+匹配引擎本体（`src/`，零依赖）已完成四轮优化并全部通过验证。第三轮把 PDF 读取层
 改成「只读印出来的字」：2024 年两本留白作答版**和两本 2024 答案**都以裁剪方式嵌入整页
 原排版，文本层里藏着 42–83% 看不见的邻题文字；读取层现在按 pdf.js 的绘制指令重放裁剪，
 只保留真正画出来的字，并按印刷形态读出 ≠、√、分式和极限下标。文本路径严格策略召回因此
@@ -15,9 +16,12 @@ below on 2026-11-03; the numbers are reproducible with the commands given.
 508/508、271/271、217/217，无一错配；三套语料测试套件全部通过。仓库自研的公式 OCR 模型
 （`ocr/models/formula-scratch-kv-int8-texteller-r10/`）在三本真题练习册上隐藏文本层后
 跑完全程：零错配，三组配对仅凭模型公式全部通过验证，严格策略召回由 224/85/116 升到
-**289/160/128**，约为「理想识别器」的 71–78%。第一组真实扫描教材（绿皮书）上，模型在
-第 1–2 章读对了 95 道习题中 92 道的题号；答案书只给结果、不复述题目，所以这类教材要靠
-「节 + 题号」匹配——引擎还缺这一层索引，这是下一步。
+**289/160/128**，约为「理想识别器」的 71–78%。第一组真实扫描教材（绿皮书）的答案书只给
+结果、不复述题目，只能靠「习题集 + 印刷题号」定位：第四轮（本轮）补上了这一层索引——练习册的
+「习题 n.m」书签按模型读出的行首题号拆成单题（`n.m.k`），只有节书签的答案书按节内
+`k.` 编号，两边经大纲对齐的节才互相解析。全书 69 个习题集中 66 个拆开，共 508 题（答案书
+527 题）；每题点按一次：未绑定时 0 个自动答案，用户确认配对后严格策略 295 个、校准策略
+466 个自动答案，逐一对照页面图像核对，无一错配；错误配对无论是否绑定都是 0。
 
 ## 1. Where things are
 
@@ -47,7 +51,7 @@ question bookmarks every 2023 assertion depends on. Use `exam-009` as `q2023`.
 
 ```sh
 npm ci                      # pdfjs-dist, development only
-npm run test:unit           # 285 synthetic checks, no data needed; this is what CI runs
+npm run test:unit           # 310 synthetic checks, no data needed; this is what CI runs
 ```
 
 Build the exam corpus JSON (text layers, line geometry, bookmark positions):
@@ -93,7 +97,20 @@ PATH; it is in this container. Nothing downloads a model or calls a service.
 
 A scanned book: `python -m ocr.scan_line_starts --pdf BOOK.pdf --pages 23-25
 --bundle $B --output starts.jsonl` reads the first ink cluster of every text
-line — on the 绿皮书 (`book-026`), the printed exercise numbers.
+line — on the 绿皮书 (`book-026`), the printed exercise numbers. The whole
+book is `--pages 1-492` (run as four ranges side by side, one output each).
+Then, with the textbook release extracted:
+
+```sh
+S=starts-1-123.jsonl,starts-124-246.jsonl,starts-247-369.jsonl,starts-370-492.jsonl
+node tools/measure-sets.mjs --books ../find-engine-books/extracted \
+  --exercise book-026 --answer book-044 --starts $S --json taps.json
+../ocr-venv/bin/python -m ocr.set_crops --pdf BOOK-026.pdf --taps taps.json --out sheets
+```
+
+The second command draws every automatic answer's tap point, set heading,
+last exercise and page-crossing exercise from the page image, which is how
+its "wrong" count is checked (§3).
 
 ## 3. What is verified, as of this branch
 
@@ -129,11 +146,25 @@ the oracle (`ocr/MATCHING.md` has every step):
 The first model run read 224, 85 and 116 by tap. The model reads 81%, 74% and
 80% of regions exactly as the text layer does.
 
-A real scan (绿皮书, chapters 1–2): the model reads 92 of the 95 printed
-exercise numbers, in order (`ocr/scan_line_starts.py`). The engine does not yet
-use them (§6).
+A real scan, the 绿皮书 (`book-026`, 492 scanned pages, against `book-044`'s
+text layer), indexed by set and printed number: 66 of 69 sets split into 508
+exercises of the 527 the answer book numbers. One tap per exercise:
 
-## 4. What changed, and why, in three rounds
+| | Pair | Automatic | Review | Located | Wrong |
+|---|---|---|---|---|---|
+| Not bound | UNKNOWN_PAIR | 0 | 507 | 1 | 0 |
+| Bound, strict | VERIFIED_PAIR | 295 | 212 | 1 | 0 |
+| Bound, calibrated | VERIFIED_PAIR | 466 | 41 | 1 | 0 |
+
+"Wrong" is checked against the page image, not the lookup (which agrees with
+itself by construction): all 466 automatic answers' tap points show the
+printed number of their id, every set's heading sits above its first
+exercise, and every last and page-crossing exercise's band stays inside it.
+Six wrong pairs (the 绿皮书 against three other answer books, the answer book
+against three exercise books with text layers): 0 automatic answers, bound or
+not.
+
+## 4. What changed, and why, in four rounds
 
 Round one (PR #1, merged): a text-profile cache (2–3× on the degraded
 regimes); four gate defects from the textbook release — page-number bookmark
@@ -196,6 +227,34 @@ which is where most of the model's gap to the oracle was.
   numbers; `ocr/extract_formula_dataset.py` and `build_pure_formula_dataset.py`
   no longer fail to import (a `global` declared after use).
 
+Round four (this branch, continued): exercises by set and printed number, the
+index level every textbook in the release needs.
+
+- **Sets split into exercises** (`src/exercise-sets.js`, `answer-index.js`):
+  in an exercise book, a bookmark titled 习题 / 练习 / Exercises / Problems is
+  replaced by one entry per number read at the start of its lines, `1.1.3`,
+  with the band each occupies on each page; the set whole is kept beside it
+  (`withoutSetIds`). An answer book whose outline stops at sections is indexed
+  `section.number` (`INDEX_SOURCE.SECTIONS`), the body parse kept beside it.
+- **Only when both sides carry them** (`reconcileSetIds` in
+  `matching-engine.js`): otherwise both books fall back to the index they had,
+  so no pair without set ids on both sides changes.
+- **Resolution through the aligned section** (`setScopedMatch` in
+  `question-matcher.js`): the set's section by the outline's nesting must be
+  paired with the answer's section. Never automatic when the set's count
+  disagrees with the answer section's, a number is skipped before or after
+  it, a stray opener sits inside it or its answer, or it is off its set's
+  margin. A set exercise resolved any other way is capped at REVIEW, and an
+  answer known by section and number is reachable only this way.
+- **Bands**: the last exercise ends at the first break wider than three opener
+  heights; one over a page break never takes the next page's running head.
+- **The pair gate** (`pair-verifier.js`): a binding now settles the UNKNOWN
+  role of an answer book indexed by section and number, which states results
+  and cannot show its role by its language. On every other index an
+  unconfirmable role stays unconfirmed, bound or not.
+- Tools: `tools/measure-sets.mjs`, `ocr/set_crops.py`; tests
+  `test/test_exercise_sets.js` (22 checks).
+
 ## 5. Known fragile points — do not take these as settled
 
 - **The role threshold (0.97 on answer-language and explicit-answer shares)**
@@ -233,25 +292,34 @@ which is where most of the model's gap to the oracle was.
   0.1–0.9 of its size above the bar and centred on it, a denominator 0.3–1.4
   below. Measured on the 考研 books; a typesetting that draws its bars
   differently, or none (a text-style fraction with a slash), reads as before.
+- **The set-and-number guards were measured on one book.** The margin
+  tolerance (one opener height; real numbers 0.41 away at most, the false one
+  2.08), the break that ends a last exercise (three opener heights; 19pt
+  inside exercises at most, 37–52pt before a heading) and the head-and-rule
+  touch (half an opener height) all come from the 绿皮书. A book set more
+  tightly, or one whose recogniser reports no `left`, has fewer of these
+  guards; the count and sequence checks hold regardless.
+- **Set titles are a word list**: 习题, 练习, Exercises, Problems (and so
+  复习题, which contains 习题 but carries no numeric id). A set bookmarked
+  under another name stays one entry, as before.
+- **Answer books that bookmark their sets are not split**; against an
+  exercise book with split sets, both fall back to the sets whole.
 - **Ablation is not absence**: stripping bookmarks from a book that has them
   is not a book that never had them (RESEARCH-REPORT §8). The textbook release
   is the real thing and has no text pair.
-- **CI has no corpus, and runs no Python.** A green CI run means the 285
+- **CI has no corpus, and runs no Python.** A green CI run means the 310
   synthetic checks passed and nothing else. The corpus suites run only where
   the data is; `ocr/test_*.py` run by hand
   (`python -m unittest ocr.test_clip_windows ocr.test_scan_line_starts`).
 
 ## 6. Open problems, in the order to take them
 
-1. **Section-scoped ids from printed numbers.** The 绿皮书 pair (`book-026`
-   scanned, `book-044` text) shows the shape of every textbook: bookmarks
-   stop at the exercise set (习题 1.1), the answer book has sections only, and
-   its answers state results (`1. (1) −2. (2) 1.`), so a formula-content match
-   has nothing to find. What identifies an exercise is its set and its printed
-   number, and the model reads 92 of 95 of those off the scan. The index needs
-   a level below the set: on the exercise side from the recogniser's line
-   starts (`ocr/scan_line_starts.py`), on the answer side from the text
-   layer's `k.` lines inside each section, matched within the aligned section.
+1. **More textbook pairs by set and number.** The 绿皮书 is the only pair in
+   the release with a scanned exercise side and an answer book with a text
+   layer; the others need their scanned side read the same way
+   (`ocr/scan_line_starts.py`), and answer books that bookmark their sets need
+   splitting too. The 19 unindexed 绿皮书 exercises are reading misses, not
+   engine ones (`ocr/MATCHING.md`).
 2. **The rest of the model's gap**: strict recall is 71–78% of the oracle's.
    It reads long regions worst (40–73% identical over twenty characters);
    whether that is the crop or the model is the next measurement.
@@ -280,12 +348,12 @@ which is where most of the model's gap to the oracle was.
 | File | Role |
 |---|---|
 | `src/formula-latex.js` | LaTeX → matcher text (`latexToText`), with `fractions` and `scripts` options |
-| `src/answer-index.js` | `recognisedLines` (the region contract), `OCR_FORMULA` origin, entries carry `top` |
+| `src/answer-index.js` | `recognisedLines` (the region contract, `left` included), `OCR_FORMULA` origin, entries carry `top`; `expandExerciseSets`, `buildSectionIndex`, `withoutSetIds` |
 | `src/entry-text.js` | newline-joined entry text, `insideBookmarks` / `lineCentre`, page-number lines dropped (not digits) |
-| `src/question-matcher.js` | `textProfile`/`profileSimilarity`, `extractMathFragments` splits on lines and rejoins wrapped ones |
+| `src/question-matcher.js` | `textProfile`/`profileSimilarity`, `extractMathFragments` splits on lines and rejoins wrapped ones; `setScopedMatch` and the set ceilings |
 | `src/outline-classify.js` | `PAGE_MARKER` cohorts, depth-aware spans, `top` carried |
 | `src/region-locator.js` | regions bounded by section spans on both sides |
-| `src/pair-verifier.js` | ten-subject detector; recognised text cannot reject; identity on each entry's own text |
+| `src/pair-verifier.js` | ten-subject detector; recognised text cannot reject; identity on each entry's own text; a binding settles a section-numbered answer book's role |
 | `src/question-id.js` | outline ids from 例题 / 习题 / 练习题 / 第 n 题 / Example / Exercise / Problem |
 | `demo/pdfjs-document-adapter.mjs` | CMap paths, script attachment, bookmark `top`, `groupTextRows`; `readMarks` (≠ √), `pageTextItems`/`paintedGlyphs`/`paintedItems` (only painted text), `paintedRules`/`readFractions`/`readLimits` |
 | `tools/extract-books.mjs` | PDFs → corpus JSON, `--geometry`, `--split --map` for printed text only |
@@ -294,6 +362,10 @@ which is where most of the model's gap to the oracle was.
 | `ocr/ocr_pages.py` | page regions → model LaTeX (`--bundle`) or oracle text (`--oracle`) |
 | `ocr/clip_windows.py` | clip windows of the 2024 留白 books; the one-form-per-copy split, kept as a cross-check of the adapter |
 | `ocr/scan_line_starts.py` | the formula model's reading of each scanned line's first ink cluster (exercise numbers) |
+| `src/exercise-sets.js` | numbered runs, their flags (gaps, strays, margin) and bands; sets → exercises, sections → answers |
+| `tools/measure-sets.mjs` | the set-and-number measurement: every exercise tapped, unbound and bound |
+| `ocr/set_crops.py` | contact sheets from the page image for checking those taps by eye |
+| `test/test_exercise_sets.js` | the set-and-number layer, through `preparePair` |
 | `ocr/models/formula-scratch-kv-int8-texteller-r10/` | the model bundle the measurements used |
 | `test/test_books_20260924.js` | the textbook release suite |
 | `test/test_formula_latex.js`, `test/test_formula_regions.js` | unit suites for the two new modules |

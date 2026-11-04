@@ -813,6 +813,41 @@ function applyPositionalSupport(matches) {
 const MAX_REVIEW_CANDIDATES = 5;
 
 /**
+ * The answer for an exercise identified by set and number, when the evidence
+ * allows one: exactly one answer entry with the same set.number id, read from
+ * a section the outline alignment pairs with the exercise's own section.
+ *
+ * @returns {{entry, section, uncertain: string|null}|null}
+ */
+function setScopedMatch(question, byLabel, entries, alignment) {
+  if (!question?.setId || !Number.isFinite(question.number)) return null;
+  const id = normalizeId(question.label);
+  if (!id) return null;
+  const hits = (byLabel?.get(id) ?? entries.filter(e => sameQuestionId(e.label, id)))
+    .filter(e => e.setId && Number.isFinite(e.number));
+  if (hits.length !== 1) return null;
+  const hit = hits[0];
+  const squash = (t) => String(t ?? '').replace(/\s+/gu, '');
+  const pair = (alignment?.pairs ?? []).find(p => squash(p.exercise?.title) === squash(question.parentSection)
+    && squash(p.answer?.title) === squash(hit.section));
+  if (!pair) return null;
+  // Read numbers are trusted only while their sequence holds on both sides.
+  // On the exercise side a gap either way, an opener off its set's margin, or
+  // a stray opener inside the item puts its number or its extent in doubt; on
+  // the answer side, whose numbers come from a text layer, a stray inside the
+  // answer does.
+  let uncertain = null;
+  if (question.setSize !== hit.setSize) uncertain = 'SET_SIZE_DISAGREES';
+  else if (question.followedByGap || question.precededByGap) uncertain = 'SET_NUMBER_SKIPPED';
+  else if (question.misaligned) uncertain = 'SET_NUMBER_MISALIGNED';
+  else if (question.strays > 0 || hit.strays > 0) uncertain = 'SET_NUMBER_STRAY';
+  return { entry: hit, section: { exercise: pair.exercise.title, answer: pair.answer.title }, uncertain };
+}
+
+/** An answer known only by its section and the number printed in it. */
+const isSetScoped = (entry) => !!entry?.setId;
+
+/**
  * Assigns each result the strongest claim its evidence supports.
  *
  * This is the step that stops a failure to IDENTIFY from becoming a failure to
@@ -882,6 +917,12 @@ function assignRungs(matches, {
       }
     }
 
+    if (match.matched && match.ceiling) {
+      const capped = capRung(rung, match.ceiling.rung, match.ceiling.reason);
+      rung = capped.rung;
+      cappedBy = capped.cappedBy ?? cappedBy;
+    }
+
     if (!match.matched) {
       const candidates = match.candidates ?? [];
       if (candidates.length >= 1 && candidates.length <= MAX_REVIEW_CANDIDATES) {
@@ -949,6 +990,31 @@ export function matchPage(questions, answerIndex, {
   questions.forEach((question, index) => {
     const range = answerRangeForQuestion(alignment, { ...question, page: question.page ?? exercisePage }, answerPageCount);
 
+    // An exercise identified by its set and its printed number (1.1.3) against
+    // an answer identified by its section and its printed number. The id alone
+    // is not enough — two books can number alike by coincidence — so it
+    // resolves only where the outline alignment pairs the set's own section
+    // with the answer's section. See src/exercise-sets.js.
+    const scoped = setScopedMatch(question, byLabel, entries, alignment);
+    if (scoped) {
+      resolved.set(index, {
+        question,
+        ...matchQuestion(question, [scoped.entry], {
+          sectionAligned: true,
+          exactId: true,
+          exactReason: '习题所在节与答案册的节已对齐，节内题号一致',
+          textQuality,
+          crossBookComparable,
+        }),
+        range: { from: scoped.entry.page, to: scoped.entry.endPage ?? scoped.entry.page, exact: true, section: scoped.section },
+        alignmentScore: 1,
+        section: scoped.section,
+        setScoped: true,
+        ...(scoped.uncertain ? { ceiling: { rung: RUNG.REVIEW, reason: scoped.uncertain } } : {}),
+      });
+      return;
+    }
+
     // A label whose location the answer book's own printed contents confirms is
     // structurally established, exactly as a bookmark would be — two independent
     // readings of one document agreeing. It resolves here without any content
@@ -957,6 +1023,7 @@ export function matchPage(questions, answerIndex, {
     const structuralId = normalizeId(question.label);
     const structuralHits = structuralId
       ? (byLabel?.get(structuralId) ?? entries.filter(e => sameQuestionId(e.label, structuralId)))
+        .filter(e => !isSetScoped(e))
       : [];
     if (!range?.exact && structuralHits.length === 1 && structuralHits[0].structural) {
       resolved.set(index, {
@@ -977,8 +1044,8 @@ export function matchPage(questions, answerIndex, {
 
     if (range?.exact) {
       const id = normalizeId(question.label);
-      const hits = byLabel?.get(id)
-        ?? entries.filter(e => sameQuestionId(e.label, id));
+      const hits = (byLabel?.get(id)
+        ?? entries.filter(e => sameQuestionId(e.label, id))).filter(e => !isSetScoped(e));
       if (hits.length === 1) {
         resolved.set(index, {
           question,
@@ -1000,9 +1067,14 @@ export function matchPage(questions, answerIndex, {
 
   if (deferred.length > 0) {
     const pageRange = deferred[0].range ?? null;
+    // An answer known only by its section and printed number is one answer of
+    // many under that number; reached by content or by position it would be an
+    // answer to the wrong granularity, a whole 习题 set or an example. Only the
+    // set-and-number resolution above may reach it.
+    const reachable = entries.filter(e => !isSetScoped(e));
     const pool = pageRange
-      ? entries.filter(e => e.page >= pageRange.from && e.page <= pageRange.to)
-      : entries;
+      ? reachable.filter(e => e.page >= pageRange.from && e.page <= pageRange.to)
+      : reachable;
 
     // Entries must be in book order for a monotonic alignment to mean anything.
     const ordered = [...pool].sort((a, b) =>
@@ -1044,11 +1116,12 @@ export function matchPage(questions, answerIndex, {
       // expected band, i.e. when position SEPARATED the alternatives rather than
       // ordered them. Everything else still refuses.
       const id = normalizeId(question.label);
-      const duplicated = id
-        ? (byLabel?.get(id)?.length ?? entries.filter(e => sameQuestionId(e.label, id)).length) > 1
-        : false;
+      const sameId = id
+        ? (byLabel?.get(id) ?? entries.filter(e => sameQuestionId(e.label, id))).filter(e => !isSetScoped(e))
+        : [];
+      const duplicated = sameId.length > 1;
       if (duplicated && !range) {
-        const hits = byLabel?.get(id) ?? entries.filter(e => sameQuestionId(e.label, id));
+        const hits = sameId;
         // questionCount is the whole book's question total, not this page's.
         // Without it the window cannot be placed, so the prior stays out of the
         // way rather than guessing at the scale — `questions.length` here would
@@ -1118,7 +1191,13 @@ export function matchPage(questions, answerIndex, {
     });
   }
 
-  const matches = questions.map((_, index) => resolved.get(index));
+  // An exercise's set-and-number id is read off the page, not bookmarked; it
+  // is confirmed only by the resolution above, against its set's own aligned
+  // section. Resolved any other way, it is offered, never asserted.
+  const matches = questions.map((_, index) => resolved.get(index))
+    .map(m => (m?.matched && m.question?.setId && !m.setScoped && !m.ceiling
+      ? { ...m, ceiling: { rung: RUNG.REVIEW, reason: 'SET_NUMBER_UNCONFIRMED' } }
+      : m));
   return assignRungs(applyPositionalSupport(matches), {
     alignment,
     exercisePage,

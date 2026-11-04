@@ -292,3 +292,42 @@ answer book states results rather than restating questions, so what that pair
 needs next is section-scoped ids in the index. `ocr/MATCHING.md` has every
 step.
 
+
+## Exercises by set and printed number
+
+A textbook bookmarks its exercise sets, not its exercises, and its answer
+book bookmarks sections; on the 绿皮书 the answers state results ("1. (1) −2.
+(2) 1.") and restate nothing a content match could find. The index now has
+the level the numbering lives on (`src/exercise-sets.js`): an exercise book's
+习题 set is split into `1.1.3`, ... from the numbers a recogniser reads at the
+start of its lines, and an answer book whose outline stops at sections is
+indexed `section.number` from the `k.` lines in each. An id resolves only
+where the outline alignment pairs the set's own section with the answer's,
+and only when both books carry such ids; otherwise each is matched on the
+index it had before, so no other pair changes.
+
+A read number is never answered automatically when its set counts a different
+number of exercises than its answer section, when a number is skipped before
+or after it, when a line inside it opens like an exercise and is not one, or
+when it sits off the margin its set's other numbers share. Checking every
+automatic answer against the page image found three faults, fixed before the
+figures below: a list (`1, ⋯, 1, λ−1`) in a worked example read as exercise 1,
+so a comma now ends a number only when nothing follows it; last exercises
+whose estimated extent ran into the next section's heading, so it now ends at
+the first wide break; and exercises over a page break that took in the next
+page's running head.
+
+The pair gate also changed in one narrow place. An answer book indexed by
+section and printed number states results and cannot show its role by its
+language, so its role reads UNKNOWN; a binding now settles that, as it settles
+other missing evidence, and nothing else: an unconfirmable role on any other
+index stays unconfirmed, bound or not (bound to the wrong books it would have
+answered 135 and 5 times, every one wrong).
+
+On the whole 绿皮书 (492 scanned pages read by the model's line starts, the
+answer book's text layer): 508 of its 527 exercises indexed in 66 of 69 sets;
+one tap per exercise gives 0 automatic answers unbound, 295 bound under the
+strict policy and 466 under the calibrated one, all 466 checked by eye at the
+tap point, zero wrong. Wrong pairs, bound or not: 0. Exam suites, the textbook
+release (552 pairings, 0 automatic) and 310 synthetic checks pass;
+`ocr/MATCHING.md` has the measurement.

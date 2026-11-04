@@ -59,7 +59,7 @@ available; neither is a runtime dependency of the matching engine.
 | Questions resolved, three real textbook pairs | **996 / 996**, zero wrong | [Capability](#capability) |
 | Invalid document pairings that produce an automatic answer | **0 of 60** — 52 before the gates were derived rather than trusted | [Safety](#safety) |
 | Negative results documented with their measurements | **5** | [report §7](RESEARCH-REPORT.md#7-negative-results) |
-| Checks in the suite / on a clean clone with no corpus | **292 / 234**, 0 failed | [Tests](#tests) |
+| Checks in the suite / on a clean clone with no corpus | **368 / 310**, 0 failed | [Tests](#tests) |
 
 And, because a matching engine that only advertises its wins is the exact
 failure this one is built against:
@@ -85,11 +85,13 @@ failure this one is built against:
   zero wrong, all three pairs verified on formulas alone, strict recall 71–78%
   of a perfect recogniser's. It also records that the 2024 books hide much of
   their text layer under clipping, how the demo adapter reads only the printed
-  text, and a first real scan (the 绿皮书), where the model reads 92 of 95
-  printed exercise numbers.
+  text, and a first real scan (the 绿皮书), indexed by exercise set and printed
+  number: 508 of its 527 exercises, and after the user confirms the pair, 295
+  automatic answers under the strict policy and 466 under the calibrated one,
+  each checked against the page image, zero wrong.
 - Figures from the real books cannot be reproduced from a clone: the corpus is
   extracted from copyrighted textbooks and is not committed. A clean clone runs
-  the 285 synthetic checks and skips the rest, saying which are skipped and why.
+  the 310 synthetic checks and skips the rest, saying which are skipped and why.
 
 ## The problem
 
@@ -270,6 +272,14 @@ question-boundary detection, complete formula coverage, bidirectional
 consistency, global one-to-one assignment, a sufficient top-two margin — is
 still required and is not implemented.
 
+One extension, narrow on purpose: an answer book indexed by section and
+printed number states results ("1. (1) −2. (2) 1.") and cannot show by its
+language that it answers anything, so its role reads UNKNOWN, and a binding
+settles that as well. No other unconfirmable role is settled by a binding.
+What raises a single exercise to an automatic answer there is its own
+evidence: its set's aligned section and an unbroken run of printed numbers
+([`ocr/MATCHING.md`](ocr/MATCHING.md)).
+
 ### What the numbers are, and are not
 
 After a binding the engine emits automatic matches, and it is tempting to call
@@ -383,6 +393,11 @@ calls it, and **only successful recognition clears `OCR_REQUIRED`** — a
 recognizer that returns nothing, throws, or yields a layer still too sparse
 leaves the document fail-closed.
 
+It may instead return regions, `[{ latex | text, formula, top, bottom, left }]`.
+LaTeX is read into the matcher's text form; `top` and `bottom` let a tap select
+one question; `left` (or `x0`), where a line starts, lets the printed numbers
+of an exercise set be told from numbers that open indented lines.
+
 `tools/windows-ocr.mjs` is a working reference implementation built from what
 Windows already has — `pdftoppm` to render, `Windows.Media.Ocr` to recognise —
 so it needs no install and no network, and no page leaves the device.
@@ -393,10 +408,16 @@ so it needs no install and no network, and no page leaves the device.
 `例题 1.31` — anchored to the start of a line. `(7)` `（8）` are **subquestions**
 of whichever question is open, never questions in their own right.
 
+Inside a bookmarked exercise set (习题 1.1, 练习, Exercises, Problems) the
+numbers printed at the starts of lines are the exercises, `1.1.1`, `1.1.2`, …,
+and inside an answer book's bookmarked sections its `k.` lines are the
+answers, `1.1.k`. They are used only when both books carry them, and trusted
+only while their sequence holds ([`src/exercise-sets.js`](src/exercise-sets.js)).
+
 ## Tests
 
 ```bash
-npm test              # all eleven suites, 292 checks
+npm test              # all fourteen suites, 368 checks (310 without the corpus)
 npm run test:unit     # synthetic fixtures only, no corpus needed
 npm run test:demo     # public PDFs, CLI/HTTP adapter, and safety paths
 npm run test:scenarios  # bookmarks, no bookmarks, and the 60 invalid pairs

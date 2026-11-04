@@ -255,16 +255,92 @@ Two findings from chapters 1 and 2, 13 exercise sets, 95 exercises:
   binding shadow inks 72–89% of pixel rows, and the shadow changes sides with
   the page.
 
-What the engine lacks for this pair is the index, not the reading: bookmarks
-that stop at the set index each set as one entry, and nothing yet turns the
-printed numbers inside a set — on the scan, read by the model, and in the
-answer book's text — into section-scoped ids. That is the next piece of
-engine work for every textbook in the release.
+### Exercises by set and printed number
+
+The engine now indexes this pair at the level its numbering lives on
+(`src/exercise-sets.js`). In an exercise book, a bookmark that names a set
+(习题, 练习, Exercises, Problems) is split into one entry per exercise, `1.1.3`,
+from the numbers the recogniser reads at the starts of lines inside it. An
+answer book whose outline stops at sections is indexed `section.number` from
+the `k.` lines its text layer prints inside each section. `1.1.3` resolves
+only through the outline alignment: the set's own section, by the outline's
+nesting, must be paired with the answer's section. The ids are used only
+when both books carry them; otherwise each book is matched on the index it
+had before (the sets whole, the body parse).
+
+A read number is trusted only while its sequence holds, and an exercise is
+never answered automatically when:
+
+- its set counts a different number of exercises than its answer section;
+- a number is skipped before or after it (the unread exercise's text sits in
+  its neighbour's band, and a misread digit looks exactly like this);
+- a line inside it opens like an exercise and is not one of the run, or, on
+  the answer side, inside its answer;
+- its number sits off the margin its set's other numbers share on the page
+  (judged when the recogniser says where a line starts: `left` or `x0`).
+
+A comma ends a number only when nothing follows it: a bare `3,` is a scanned
+`3.` (twice in the book), `1, ⋯, 1, λ−1` is a list (chapter 7 opens many
+lines with them). The last exercise of a set ends at the first break wider
+than three line heights below it, and an exercise that runs over a page break
+never claims the next page's running head.
+
+Over the whole book (492 pages read by `ocr/scan_line_starts.py`, 12,306 line
+starts; indexing from those readings takes 0.3 s): 66 of the 69 numbered sets
+split into **508 exercises**. The answer book numbers 527, so 19 are not
+indexed. Three sets stay whole because fewer than two of their numbers were
+read in order. One tap per exercise, at its printed number:
+
+| | Pair | Automatic | Review | Located | Wrong |
+|---|---|---|---|---|---|
+| Not bound | UNKNOWN_PAIR | 0 | 507 | 1 | 0 |
+| Bound, strict policy | VERIFIED_PAIR | **295** / 527 | 212 | 1 | 0 |
+| Bound, calibrated policy | VERIFIED_PAIR | **466** / 527 | 41 | 1 | 0 |
+
+Unbound, the pair stays UNKNOWN: an answer book that states results has no
+language by which to show it is one. A binding settles that, but only for an
+answer book indexed by section and printed number. Every other unconfirmable
+role stays unconfirmed, bound or not. Under the strict policy the formula
+gate still applies to these ids, and the answers' results rarely restate an
+exercise's formulas (103 formula sets missing, 44 extractions incomplete, 36
+conflicts). The 41 left for review under the calibrated policy are 26 in the
+three sets whose count disagrees with the answer book's (7.4 reads 9 against
+12, 8.4 reads 12 of 13 against 14, 10.1 reads 6 against 5), 14 beside a
+skipped number and 1 beside a stray. 10.1.6 finds no answer and is located.
+
+**How "wrong: 0" was checked.** Not by the label lookup, which would agree
+with itself by construction. Every automatic answer's tap point was cropped
+from the page image and set beside the engine's id: the printed number
+matches in all 466. Every set's crop shows its 习题 heading directly above the
+first exercise read. Every last exercise's band, and every next-page part of
+an exercise that crosses a page, was drawn on the page and checked to stay
+inside its exercise. The answer side was spot-checked by content: 1.4.6's
+answer quotes the exercise's coefficient rows, and 5.7.9's polynomial has
+exactly the roots the exercise asks for.
+
+That check found three faults, each fixed before the figures above:
+
+- `1,\cdots`, a list in a worked example above 习题 7.5, read as exercise 1
+  (the set's own `1.` was read without its period). This is why a comma must
+  stand alone.
+- The last exercise's band, estimated from the median exercise height, ran
+  into the next section's heading four times, once into its first paragraph.
+- Bands of exercises that cross a page break took in the next page's running
+  head and the scanner's edge; 27 of the 39 such bands held nothing else.
+
+Wrong pairs: the 绿皮书 against the PDE, ODE and real-analysis answer books
+(049, 061, 043), and the answer book against the probability, abstract-algebra
+and algebra exercise books with text layers (023, 028, 063): 0 automatic
+answers, bound or not.
 
 ## What is left
 
-1. **Section-scoped ids from printed numbers** (above): the index change the
-   textbook release needs, now that the model can read the numbers.
+1. **The 绿皮书's remaining numbers**: 19 exercises unindexed — eight sets'
+   first number, five numbers inside sets, three at the end of 习题 7.4 and
+   four in the three sets left whole, less one extra reading in 10.1. Each is
+   a number the reader did not return as `k.`; the engine already flags the
+   exercises beside every one of them, so a better reading recovers them
+   without engine changes.
 2. **The model's remaining gap** — a quarter of the oracle's strict answers.
    Long regions are where it reads worst; whether that is the crop or the
    model is the next measurement.

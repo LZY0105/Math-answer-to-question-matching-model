@@ -248,6 +248,26 @@ class PairSession {
 }
 
 /**
+ * Set-and-number ids are used only where both books carry them.
+ *
+ * An exercise book's 习题 sets split into exercises (1.1.3) are matchable only
+ * against an answer book whose sections number their answers (1.1.3), and the
+ * reverse. Where one side has them and the other does not, each side is
+ * matched on the index it would have had without them — the sets whole, the
+ * body parse — so a pair this layer cannot serve behaves exactly as before it
+ * existed. Both indexes are derived, never modified: they are cached per
+ * document and shared between pairs.
+ */
+function reconcileSetIds(exerciseIndex, answerIndex) {
+  const carries = (index) => (index?.entries ?? []).some(e => e.setId);
+  if (carries(exerciseIndex) && carries(answerIndex)) return { exerciseIndex, answerIndex };
+  const without = (index) => (carries(index) && index.withoutSetIds
+    ? { ...index.withoutSetIds, setIdsWithdrawn: true }
+    : index);
+  return { exerciseIndex: without(exerciseIndex), answerIndex: without(answerIndex) };
+}
+
+/**
  * Verifies a pair of documents and, if it is usable at all, opens a session.
  *
  * Returns a rejection rather than throwing, because an invalid pair is an
@@ -280,10 +300,12 @@ export async function preparePair({
   const indexOptions = { expectScript, recognizer };
   if (ocrPageBudget !== undefined) indexOptions.ocrPageBudget = ocrPageBudget;
 
-  const exerciseIndex = await cached(exerciseDocument, `q:${expectScript}:${ocrPageBudget ?? ''}`,
-    () => indexQuestionDocument(exerciseDocument, indexOptions));
-  const answerIndex = await cached(answerDocument, `a:${expectScript}:${ocrPageBudget ?? ''}`,
-    () => indexAnswerDocument(answerDocument, indexOptions));
+  const { exerciseIndex, answerIndex } = reconcileSetIds(
+    await cached(exerciseDocument, `q:${expectScript}:${ocrPageBudget ?? ''}`,
+      () => indexQuestionDocument(exerciseDocument, indexOptions)),
+    await cached(answerDocument, `a:${expectScript}:${ocrPageBudget ?? ''}`,
+      () => indexAnswerDocument(answerDocument, indexOptions)),
+  );
 
   const ocrRequired = !!(exerciseIndex.ocrRequired || answerIndex.ocrRequired);
 

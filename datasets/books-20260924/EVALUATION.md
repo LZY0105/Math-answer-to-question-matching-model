@@ -169,6 +169,13 @@ confirmed by rerunning the corpus suites on a machine that has the corpus.
   the exam year and is identity; on a textbook it is a printing and can differ
   between a book and its answer volume. No pair here had a year on both sides,
   so the false-rejection this implies is not yet observed.
+- **With a recogniser, the 绿皮书 indexes by exercise.** Read by the formula
+  model's line starts (`ocr/scan_line_starts.py`), 66 of book-026's 69 sets
+  split into 508 exercises, `1.1.3`, against book-044's 527 answers numbered
+  inside its sections. Bound, one tap per exercise gives 295 automatic answers
+  under the strict policy and 466 under the calibrated one, zero wrong by the
+  page image; unbound, none. The suite here runs without a recogniser and
+  still sees the 69 sets whole. `ocr/MATCHING.md` has the measurement.
 - **Pair preparation on two large body indexes takes seconds.** book-043
   against book-063 took 13 s with the sampled page loop, most of it in the
   content-anchor check and the page alignment over 579 body entries. The
