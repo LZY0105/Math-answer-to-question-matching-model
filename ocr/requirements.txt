@@ -1,0 +1,6 @@
+# Optional tools for our randomly initialized model. No pretrained OCR weights.
+# Install torch==2.10.0 from the appropriate official CPU/CUDA wheel index separately.
+numpy==2.5.3
+Pillow==12.1.1
+onnx==1.20.1
+onnxruntime==1.23.2

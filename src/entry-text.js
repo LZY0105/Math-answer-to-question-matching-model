@@ -108,7 +108,7 @@ export function createTextCleaner({ sectionTitles, lines } = {}) {
   return (text) => {
     let s = String(text ?? '');
     for (const re of patterns) s = s.replace(re, ' ');
-    return s.replace(/\s+/g, ' ').trim();
+    return s.replace(/[^\S\n]+/g, ' ').replace(/ ?\n ?/g, '\n').replace(/\n+/g, '\n').trim();
   };
 }
 
@@ -126,10 +126,11 @@ export function entryLines(lines, entry, next) {
   // The window may run into the next entry's first page: a question that shares
   // a page with its successor ends partway down it.
   const upper = next ? Math.max(to, next.page) : to;
-  const window = (lines ?? []).filter(l => l.page >= from && l.page <= upper);
+  const window = (lines ?? []).filter(l => l.page >= from && l.page <= upper
+    && insideBookmarks(l, entry, next));
 
   const start = headingIndex(window, entry.label);
-  if (start < 0) return { lines: window, scoped: false };
+  if (start < 0) return { lines: window, scoped: boundedByBookmarks(entry, next, window) };
 
   let end = window.length;
   if (next) {
@@ -137,6 +138,55 @@ export function entryLines(lines, entry, next) {
     if (nextAt > start) end = nextAt;
   }
   return { lines: window.slice(start, end), scoped: true };
+}
+
+/**
+ * How far above a bookmark's position a line may start and still be its
+ * entry's. A bookmark points a little above the heading it names; the heading
+ * line itself begins just below that point.
+ */
+const BOOKMARK_SLACK = 3;
+
+/**
+ * Whether a line falls between this entry's bookmark and the next one's.
+ *
+ * The printed heading bounds an entry where the book prints one the parser
+ * can read. A scan read by a formula recogniser prints nothing the parser can
+ * read, and the bookmark tree is then the only boundary there is: where the
+ * adapter reports the position a bookmark points to, lines above it on its
+ * first page belong to the previous entry, and lines at or below the next
+ * bookmark on its page belong to the next. Lines without a position, and
+ * bookmarks without one, leave the window as it was.
+ */
+function insideBookmarks(line, entry, next) {
+  const centre = lineCentre(line);
+  if (centre === null) return true;
+  if (line.page === entry.page && Number.isFinite(entry.top)
+    && centre < entry.top - BOOKMARK_SLACK) return false;
+  if (next && line.page === next.page && Number.isFinite(next.top)
+    && centre >= next.top - BOOKMARK_SLACK) return false;
+  return true;
+}
+
+/**
+ * The vertical middle of a line, whatever convention its geometry follows.
+ *
+ * A text-layer row reports its baseline as y and its font size as height, so
+ * its middle sits half a height above y. A recognised region reports its top
+ * and bottom. Comparing a line's TOP to a bookmark that points just above a
+ * heading was fragile by a point or two; comparing a baseline put the row
+ * above the heading inside the entry. The middle is robust to both.
+ */
+function lineCentre(line) {
+  if (Number.isFinite(line?.top) && Number.isFinite(line?.bottom)) return (line.top + line.bottom) / 2;
+  if (!Number.isFinite(line?.y)) return null;
+  return Number.isFinite(line.height) ? line.y - line.height / 2 : line.y;
+}
+
+/** True when bookmark positions actually bounded the window on some side. */
+function boundedByBookmarks(entry, next, window) {
+  if (!window.some(l => Number.isFinite(l?.y))) return false;
+  return Number.isFinite(entry.top) || (!!next && Number.isFinite(next.top));
 }
 
 /**
@@ -157,7 +207,10 @@ export function entryText(lines, entry, next, clean) {
   const pageNumbers = new Set();
   for (let p = entry.page; p <= (entry.endPage ?? entry.page); p++) pageNumbers.add(String(p));
   const own = all.filter(l => !pageNumbers.has(String(l.text ?? '').trim()));
-  const joined = own.map(l => l.text).join(' ').trim();
+  // Lines stay lines. Joined with a space, two rows of display mathematics —
+  // a numerator and a denominator, a matrix's rows — became one expression,
+  // and so did two formulas a recogniser returned for one page.
+  const joined = own.map(l => l.text).join('\n').trim();
 
   // Vertical extent PER PAGE, when the adapter reports line geometry. This is
   // what lets a tap select one question rather than the whole page.

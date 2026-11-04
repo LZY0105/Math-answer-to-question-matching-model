@@ -23,13 +23,15 @@
 // So: outline first, body text only as a supplement, and never any content
 // comparison at all when the quality gate says the text cannot be trusted.
 
-import { classifyOutline } from './outline-classify.js';
+import { NODE_KIND, classifyOutline } from './outline-classify.js';
+import { answersOfSection, exercisesOfSet, isSetTitle } from './exercise-sets.js';
 import { suppressContentsRows } from './toc-filter.js';
 import { boilerplateFilter } from './boilerplate.js';
 import { bodyQuestionFilter } from './body-structure.js';
 import { buildContentsLocations } from './contents-index.js';
 import { createTextSource } from './text-source.js';
 import { createTextCleaner, entryText } from './entry-text.js';
+import { latexToText } from './formula-latex.js';
 import {
   compareIds,
   normalizeId,
@@ -63,6 +65,13 @@ export const INDEX_SOURCE = Object.freeze({
    * as one. See src/contents-index.js.
    */
   CONTENTS: 'CONTENTS',
+  /**
+   * Section bookmarks, with the numbered entries the book prints inside each:
+   * answer 3 of section 1.1 is entry 1.1.3. The sections are structural; the
+   * numbers are read, and trusted only as far as their sequence holds. See
+   * src/exercise-sets.js.
+   */
+  SECTIONS: 'SECTIONS',
   /** Nothing usable. The reason says which of the four failures this is. */
   NONE: 'NONE',
 });
@@ -191,6 +200,9 @@ export function buildAnswerIndex(lines, {
  */
 export function buildOutlineIndex(outline, lines, {
   numPages, quality, isBoilerplate, scopeText = true,
+  // Split 习题 sets into their numbered exercises. An exercise book's option
+  // only: see expandExerciseSets.
+  expandSets = false,
 } = {}) {
   const none = () => ({
     entries: [], duplicates: [], byLabel: new Map(), source: INDEX_SOURCE.NONE,
@@ -253,8 +265,8 @@ export function buildOutlineIndex(outline, lines, {
     if (linesByPage && cleaner) {
       const own = entryText(
         usable ?? [],
-        { label: item.id, page: item.pageNumber, endPage },
-        next ? { label: next.id, page: next.pageNumber } : null,
+        { label: item.id, page: item.pageNumber, endPage, top: item.top ?? null },
+        next ? { label: next.id, page: next.pageNumber, top: next.top ?? null } : null,
         cleaner,
       );
       scopedText = own.text;
@@ -266,6 +278,8 @@ export function buildOutlineIndex(outline, lines, {
         label: item.id,
         page: item.pageNumber,
         endPage,
+        // Where on its first page the bookmark points, when the adapter says.
+        top: Number.isFinite(item.top) ? item.top : null,
         lines: text ? [text] : [],
         subQuestions: [],
         depth: item.depth ?? 0,
@@ -281,17 +295,165 @@ export function buildOutlineIndex(outline, lines, {
     };
   });
 
+  // A bookmark that names an exercise SET (习题 1.1) holds several exercises,
+  // and the numbers printed at their starts are their ids within it. Where the
+  // set's own region reads as a numbered run, the set is replaced by one entry
+  // per exercise, 1.1.1, 1.1.2, ...; where it does not, it stays one entry.
+  const expanded = expandSets
+    ? expandExerciseSets(entries, ordered, classified, usable ?? [], lastPage)
+    : entries;
+  const setsExpanded = expanded === entries ? 0
+    : new Set(expanded.filter(e => e.setId).map(e => e.setId)).size;
+
   return {
-    entries,
-    ...labelStatistics(entries),
+    entries: expanded,
+    ...labelStatistics(expanded),
     source: INDEX_SOURCE.OUTLINE,
     sections: classified.sections,
     cohorts: classified.cohorts,
+    // The index as it stood before the sets were split. A pair whose answer
+    // book carries no set-and-number ids is matched on this instead, exactly
+    // as before the split existed: see reconcileSetIds in matching-engine.js.
+    ...(setsExpanded ? { setsExpanded, withoutSetIds: { entries, ...labelStatistics(entries) } } : {}),
+  };
+}
+
+/** The node after `node` in the outline's own order, or null. */
+function nextInOrder(classified, node) {
+  const order = node?.order;
+  if (!Number.isFinite(order)) return null;
+  return classified.nodes
+    .filter(n => Number.isFinite(n.order) && n.order > order)
+    .sort((a, b) => a.order - b.order)[0] ?? null;
+}
+
+/**
+ * The lines of the region an outline node opens: from its page to the page
+ * the next node in the outline starts on, in reading order. Where the node's
+ * own heading, or the next node's, is printed in the text, the region starts
+ * after the first and stops before the second.
+ */
+function regionLines(lines, node, next, lastPage) {
+  const from = node.pageNumber;
+  const to = next ? Math.max(from, next.pageNumber) : (lastPage || from);
+  const at = (l) => (Number.isFinite(l.top) ? l.top : (Number.isFinite(l.y) ? l.y : 0));
+  let region = lines
+    .map((l, i) => ({ l, i }))
+    .filter(({ l }) => l.page >= from && l.page <= to)
+    .sort((a, b) => (a.l.page - b.l.page) || (at(a.l) - at(b.l)) || (a.i - b.i))
+    .map(({ l }) => l);
+  const squash = (t) => String(t ?? '').replace(/\s+/gu, '');
+  const own = squash(node.title);
+  const start = own ? region.findIndex(l => l.page === from && squash(l.text).startsWith(own)) : -1;
+  if (start >= 0) region = region.slice(start + 1);
+  const theirs = next ? squash(next.title) : '';
+  const end = theirs ? region.findIndex(l => l.page === next.pageNumber && squash(l.text).startsWith(theirs)) : -1;
+  if (end >= 0) region = region.slice(0, end);
+  return region;
+}
+
+function expandExerciseSets(entries, ordered, classified, lines, lastPage) {
+  if (!lines.length) return entries;
+  const out = [];
+  entries.forEach((entry, i) => {
+    const item = ordered[i];
+    if (!isSetTitle(item?.title)) { out.push(entry); return; }
+    const region = regionLines(lines, item, nextInOrder(classified, item), lastPage);
+    const exercises = exercisesOfSet({ label: entry.label, title: item.title }, region);
+    if (exercises.length < 2) { out.push(entry); return; }
+    for (const ex of exercises) {
+      out.push({
+        ...finalizeEntry({
+          label: ex.label,
+          page: ex.page,
+          endPage: ex.endPage,
+          top: ex.top,
+          lines: ex.text ? [ex.text] : [],
+          subQuestions: [],
+          depth: item.depth ?? 0,
+          title: item.title,
+        }, 0, INDEX_SOURCE.OUTLINE),
+        scopedText: ex.text,
+        textScoped: true,
+        spans: ex.spans,
+        setId: ex.setId,
+        number: ex.number,
+        setSize: ex.setSize,
+        followedByGap: ex.followedByGap,
+        precededByGap: ex.precededByGap,
+        strays: ex.strays,
+        misaligned: ex.misaligned,
+        // The section the set belongs to, by the outline's own nesting: the
+        // alignment pairs THAT with an answer section. A set printed on the
+        // page where the next section starts lies outside its section's page
+        // span, so containment by page cannot say this.
+        parentSection: item.sectionPath?.[item.sectionPath.length - 1] ?? null,
+      });
+    }
+  });
+  if (out.length === entries.length) return entries;
+  return out.map((e, ordinal) => ({ ...e, ordinal, id: `${e.source}:${ordinal}#${e.label}@${e.page}` }));
+}
+
+/**
+ * Builds an index from section bookmarks and the numbered entries printed
+ * inside each section.
+ *
+ * For a book whose outline stops at the section — an answer book with "1.1 二阶
+ * 行列式" bookmarked and its answers numbered 1., 2., ... inside — this is the
+ * only way to its answers by id. Sections without a numeric id, and sections
+ * whose text holds no numbered run, contribute nothing. Used only when the
+ * outline has no question level; fewer than three sections with a run is not
+ * an index.
+ */
+export function buildSectionIndex(outline, lines, { numPages, isBoilerplate } = {}) {
+  const none = { entries: [], duplicates: [], byLabel: new Map(), source: INDEX_SOURCE.NONE };
+  const classified = classifyOutline(outline, { numPages });
+  if (classified.hasQuestionLevel) return none;
+  const usable = isBoilerplate ? (lines ?? []).filter(l => !isBoilerplate(l)) : (lines ?? []);
+  if (!usable.length) return none;
+  const lastPage = numPages || Math.max(0, ...usable.map(l => l.page));
+  const collected = [];
+  let sectionsWithRuns = 0;
+  for (const node of [...classified.nodes].sort((a, b) => a.order - b.order)) {
+    if (node.kind !== NODE_KIND.SECTION || !node.questionId) continue;
+    const region = regionLines(usable, node, nextInOrder(classified, node), lastPage);
+    const answers = answersOfSection(node, region);
+    if (answers.length) sectionsWithRuns++;
+    collected.push(...answers);
+  }
+  if (sectionsWithRuns < 3) return { ...none, sections: classified.sections, cohorts: classified.cohorts };
+  const entries = collected.map((a, ordinal) => ({
+    ...finalizeEntry({
+      label: a.label,
+      page: a.page,
+      endPage: a.endPage,
+      lines: [a.text],
+      subQuestions: [],
+      title: a.section,
+    }, ordinal, INDEX_SOURCE.SECTIONS),
+    scopedText: a.text,
+    textScoped: true,
+    setId: a.setId,
+    number: a.number,
+    setSize: a.setSize,
+    followedByGap: a.followedByGap,
+    precededByGap: a.precededByGap,
+    strays: a.strays,
+    section: a.section,
+  }));
+  return {
+    entries,
+    ...labelStatistics(entries),
+    source: INDEX_SOURCE.SECTIONS,
+    sections: classified.sections,
+    cohorts: classified.cohorts,
+    sectionsIndexed: sectionsWithRuns,
   };
 }
 
 function finalizeEntry(entry, ordinal, source) {
-  const text = entry.lines.join(' ').trim();
+  const text = entry.lines.join('\n').trim();
   const label = normalizeId(entry.label) || String(entry.label ?? '');
   return {
     // Unique per entry. Page and label together are NOT unique — a page can
@@ -305,6 +467,8 @@ function finalizeEntry(entry, ordinal, source) {
     ordinal,
     page: entry.page,
     endPage: entry.endPage ?? entry.page,
+    // Where on its first page the entry's bookmark points, when known.
+    top: Number.isFinite(entry.top) ? entry.top : null,
     depth: entry.depth ?? null,
     title: entry.title ?? null,
     text,
@@ -403,36 +567,103 @@ async function recogniseDocument(doc, recognizer, { expectScript, budget }) {
   // A document that reaches here has already been judged unable to serve its own
   // text, so there is no layer for createTextSource to prefer and nothing lost by
   // going straight to the recogniser.
+  let formulaLines = 0;
+  let textLines = 0;
   for (let page = 1; page <= limit; page++) {
-    let text = '';
+    let got;
     try {
-      const got = await recognizer(page);
-      text = Array.isArray(got)
-        ? got.map(r => r?.text ?? '').join('\n')
-        : String(got ?? '');
+      got = await recognizer(page);
     } catch {
       pagesFailed++;
       continue;
     }
 
-    const pageLines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    const pageLines = recognisedLines(got, page);
     if (pageLines.length === 0) { pagesFailed++; continue; }
-    for (const line of pageLines) lines.push({ page, text: line });
+    for (const line of pageLines) {
+      lines.push(line);
+      if (line.formula) formulaLines++;
+      else textLines++;
+    }
     pagesRecognised++;
   }
 
-  const assessment = assessTextQuality(lines, { expectScript, pagesRead: limit });
+  // A formula recogniser returns no prose, so a book it has read carries no
+  // Han whatever its language; judged as Chinese that reads as a broken font
+  // map, and OPAQUE text is never compared. Its output is judged on noise
+  // alone, which is what it is: mathematics in the script mathematics uses.
+  const formulaOnly = formulaLines > 0 && textLines === 0;
+  const assessment = assessTextQuality(lines, {
+    expectScript: formulaOnly ? 'auto' : expectScript,
+    pagesRead: limit,
+  });
   const usable = pagesRecognised > 0 && !requiresRecognizer(assessment.quality);
   return {
     lines,
     assessment,
     usable,
+    formulaOnly,
     pagesRecognised,
     pagesFailed,
     truncated: limit < total,
     reason: usable ? null
       : (pagesRecognised === 0 ? 'OCR 未返回任何文本' : `OCR 结果仍不可用：${assessment.reason}`),
   };
+}
+
+/**
+ * What a recogniser returned for one page, as lines.
+ *
+ * Three shapes are accepted. A string is page text, one line per newline. An
+ * array is a list of items; an object with a `regions` or `items` array is the
+ * same list. Each item is either a line of text ({text}), a recognised formula
+ * ({latex}), or a formula the host already holds as text ({text, formula:
+ * true}), and any may carry its vertical extent on the page ({top, bottom} or
+ * {y, height}), which is what lets a tap select one question on a page the
+ * recogniser read, and where it starts ({left} or {x0}), which is what tells a
+ * printed exercise number from a number that opens an indented line.
+ *
+ * A formula arrives as LaTeX and leaves as the text form the matcher scores —
+ * see src/formula-latex.js. The line remembers it was a formula, because a
+ * book read by a formula recogniser is judged differently from one read whole.
+ */
+/**
+ * A recognised region is one line, and a line is one expression: see
+ * extractMathFragments. Nothing is inserted between regions; the lines
+ * themselves keep them apart, exactly as a text layer's rows do.
+ */
+function recognisedLines(got, page) {
+  const out = [];
+  const push = (text, geometry, formula) => {
+    for (const piece of String(text ?? '').split(/\r?\n/)) {
+      const trimmed = piece.trim();
+      if (!trimmed) continue;
+      out.push({ page, text: trimmed, ...geometry, ...(formula ? { formula: true } : {}) });
+    }
+  };
+  const items = Array.isArray(got) ? got
+    : Array.isArray(got?.regions) ? got.regions
+      : Array.isArray(got?.items) ? got.items
+        : null;
+  if (items === null) {
+    push(got, {}, false);
+    return out;
+  }
+  for (const item of items) {
+    if (item == null) continue;
+    if (typeof item === 'string') { push(item, {}, false); continue; }
+    const top = Number.isFinite(item.top) ? item.top : (Number.isFinite(item.y) ? item.y : undefined);
+    const bottom = Number.isFinite(item.bottom) ? item.bottom
+      : (Number.isFinite(top) && Number.isFinite(item.height) ? top + item.height : undefined);
+    const geometry = Number.isFinite(top) && Number.isFinite(bottom) ? { top, bottom, y: top, height: bottom - top } : {};
+    // Where the line starts, when the recogniser says: it tells an exercise
+    // number on the margin from a number that opens an indented line.
+    const left = [item.left, item.x0, item.x].find(Number.isFinite);
+    if (left !== undefined) geometry.left = left;
+    if (typeof item.latex === 'string') push(latexToText(item.latex), geometry, true);
+    else push(item.text, geometry, item.formula === true);
+  }
+  return out;
 }
 
 /**
@@ -483,9 +714,9 @@ function collectText(linesByPage, from, to) {
   const parts = [];
   for (let page = from; page <= to; page++) {
     const bucket = linesByPage.get(page);
-    if (bucket) parts.push(bucket.join(' '));
+    if (bucket) parts.push(bucket.join('\n'));
   }
-  return parts.join(' ').trim();
+  return parts.join('\n').trim();
 }
 
 /**
@@ -575,7 +806,7 @@ export function findAnswer(index, label) {
  *   NONE     no outline and no usable text -> genuinely cannot proceed
  */
 export async function indexAnswerDocument(doc, options = {}) {
-  return indexDocument(doc, options);
+  return indexDocument(doc, { ...options, role: 'answer' });
 }
 
 /**
@@ -587,7 +818,7 @@ export async function indexAnswerDocument(doc, options = {}) {
  * match against the key, so the answer-prefix stripping is simply unused.
  */
 export async function indexQuestionDocument(doc, options = {}) {
-  return indexDocument(doc, options);
+  return indexDocument(doc, { ...options, role: 'question' });
 }
 
 async function indexDocument(doc, {
@@ -611,6 +842,10 @@ async function indexDocument(doc, {
   // by a text source. See src/text-source.js.
   lazy = false,
   samplePages = 12,
+  // Which side of a pair this book is. Only an exercise book's 习题 sets are
+  // split into exercises, and only an answer book's sections are read for the
+  // numbered answers inside them: see src/exercise-sets.js.
+  role = null,
 } = {}) {
   let lines = lazy && doc.outline?.available && preferOutline
     ? await sampleText(doc, samplePages, from, to)
@@ -692,9 +927,10 @@ async function indexDocument(doc, {
   const base = {
     ocrRequired,
     recognizerAvailable: !!recognizer,
-    textOrigin: recognised ? 'OCR' : 'TEXT_LAYER',
+    textOrigin: recognised ? (ocr.formulaOnly ? 'OCR_FORMULA' : 'OCR') : 'TEXT_LAYER',
     ocr: ocr ? {
       attempted: true,
+      formulaOnly: !!ocr.formulaOnly,
       pagesRecognised: ocr.pagesRecognised,
       pagesFailed: ocr.pagesFailed,
       truncated: ocr.truncated,
@@ -714,11 +950,28 @@ async function indexDocument(doc, {
       isBoilerplate,
       numPages: doc.numPages,
       quality: assessment.quality,
+      expandSets: role === 'question',
     });
     if (built.entries.length > 0) {
-      return { ...base, ...built, textAttached: textMayBeComparable(assessment.quality) };
+      const index = { ...base, ...built, textAttached: textMayBeComparable(assessment.quality) };
+      if (!built.withoutSetIds) return index;
+      // The index this book had before its sets were split, whole, for a pair
+      // that cannot use the split: see reconcileSetIds in matching-engine.js.
+      const { withoutSetIds, setsExpanded, ...unsplit } = index;
+      return { ...index, withoutSetIds: { ...unsplit, ...withoutSetIds } };
     }
   }
+
+  // Sections bookmarked, answers not: the numbers printed inside each section,
+  // read as section.number, are ids a set-and-number exercise index can use.
+  // The body parse below is kept beside them, because it is what every other
+  // kind of exercise book is matched against.
+  const sectioned = outlineUsable && role === 'answer' && !ocrRequired && textMayBeComparable(assessment.quality)
+    ? buildSectionIndex(doc.outline, lines, { numPages: doc.numPages, isBoilerplate })
+    : null;
+  const withSections = (index) => (sectioned?.entries.length
+    ? { ...base, ...sectioned, textAttached: true, withoutSetIds: index }
+    : index);
 
   // No outline, or an outline with no question ids in it. Body text is the only
   // remaining route, and it is only worth walking when the text can be trusted.
@@ -727,14 +980,14 @@ async function indexDocument(doc, {
   // wrong, it is that there is almost none of it, and parsing the little there
   // is produces entries that look ordinary and match confidently.
   if (ocrRequired || !textMayBeComparable(assessment.quality)) {
-    return {
+    return withSections({
       ...base,
       entries: [],
       duplicates: [],
       byLabel: new Map(),
       source: INDEX_SOURCE.NONE,
       textAttached: false,
-    };
+    });
   }
 
   const built = buildAnswerIndex(lines, { isBoilerplate, opensQuestion });
@@ -748,7 +1001,7 @@ async function indexDocument(doc, {
   });
   const corroborated = applyContentsLocations(built.entries, contents.locations);
 
-  return {
+  return withSections({
     ...base,
     ...built,
     entries: corroborated.entries,
@@ -763,8 +1016,9 @@ async function indexDocument(doc, {
       unseen: contents.unseen,
     },
     textAttached: true,
-  };
+  });
 }
+
 
 /**
  * The questions appearing on one page of an exercise book.

@@ -1,0 +1,38 @@
+{
+  "checkpoint_training_status": "experimental-locally-trained",
+  "onnx_checker": "PASS",
+  "numerical_comparison": "reported-only-int8",
+  "encoder_max_absolute_error": 0.11077666282653809,
+  "spatial_positions": {
+    "stored_as": "row and column tables expanded in graph",
+    "bytes_saved": 564631,
+    "encoder_output_bit_identical": true
+  },
+  "decoder_prefix_checks": [
+    {
+      "prefix_length": 1,
+      "max_absolute_error": 0.12077522277832031,
+      "last_token_argmax_equal": true
+    },
+    {
+      "prefix_length": 2,
+      "max_absolute_error": 0.18080830574035645,
+      "last_token_argmax_equal": true
+    },
+    {
+      "prefix_length": 7,
+      "max_absolute_error": 0.15143489837646484,
+      "last_token_argmax_equal": true
+    },
+    {
+      "prefix_length": 159,
+      "max_absolute_error": 0.12664079666137695,
+      "last_token_argmax_equal": true
+    }
+  ],
+  "input": "seeded synthetic tensor; this is numerical deployment validation, not OCR accuracy",
+  "pytorch_version": "2.10.0+cu126",
+  "onnx_version": "1.20.1",
+  "onnxruntime_version": "1.23.2",
+  "android_device_validation": "NOT RUN"
+}

@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.venv/
+android/build/
+
+# 评估产出（各轮的 json、对照表、复核联系表）。可由 evaluate_*.py 重跑得到，
+# 一兆多，不进仓；MODEL_CARD.md 记的是结论，不是这些原始输出。
+reports/

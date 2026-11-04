@@ -216,3 +216,118 @@ starts where a row's item ends, in that item's whitespace, and leaves the
 bounds of ∫, ∑, ∏ and lim alone. Measured on the three pairs, the cleaner fix
 alone clears every floor; the row rule adds three questions on 2023 and is
 neutral on the display-heavy analysis pair. All floors met, zero wrong.
+
+## A formula recogniser's output, read by the engine
+
+`ocr/` is the repository's own formula OCR (branch `codex/scratch-formula-ocr`,
+merged). It reads one crop into LaTeX; the engine reads pages. The recogniser
+contract now accepts regions — `{latex|text, top, bottom}` per page — and a
+new `src/formula-latex.js` turns LaTeX into the text form the matcher scores.
+Making that output usable changed the engine on every path, for the better:
+a line is now an expression boundary (two rows of display mathematics had been
+one expression on one side and several on the other), a wrapped line is one
+expression, a bookmark's position bounds its entry, and text a recogniser
+produced can confirm a pair but never reject one. Text-layer strict recall:
+2023 from 474 to 506 of 508, algebra from 186 to 191, analysis from 159 to
+183, zero wrong. The figures first recorded here for the formula-only path
+(two of three pairs verified; 356, 122 and 134 strict) were measured on
+regions that included text the 2024 books hide; the next entry corrects them.
+
+## The model, run; and what the 2024 exercise books hide
+
+The model bundle is in the repository now (`ocr/models/`), and it has read
+every formula region of the three exercise books. With the exercise book's
+text layer hidden, the engine verifies all three pairs on the model's formulas
+alone (anchor top-1 0.792, 0.542, 0.750), answers 224, 85 and 116 questions
+under the strict rule against the oracle's 356, 168 and 178 by the tap, and
+gives zero wrong answers in every reading. The model reads 76%, 66% and 76%
+of regions exactly as the text layer does; about a quarter of the rest are
+the text layer's own quirks, which the answer keys share.
+
+Getting a fair oracle found that the two 2024 留白 exercise books are built by
+clipping embedded pages of a compact typesetting to one question's window:
+every extractor ignores the clips, so the text layer carries every
+neighbouring question, 12,790 lines in the analysis book of which 2,130 are
+printed. `ocr/clip_windows.py` splits such a book one form per copy, cutting
+each by its window and its own `/BBox`, and the region and corpus tools read
+the split. The earlier "listing page then reprints" explanation was wrong.
+Read as printed, text-path strict recall on the 2024 pairs is 213 and 208
+instead of 183 and 191, zero wrong, which is the case for clip-aware
+extraction in the host; one assertion moves with it, the alphabet check
+reading two unrelated decoded books at 0.9178 (it is consulted only for
+unreadable text, and the test should be restated on garbled text).
+
+On printed text the identity check rejected the valid analysis pair: it
+ranked page-range text, and a page's range is mostly its other questions. It
+reads each entry's own text now: valid pairs 0.625–1.000, wrong pairs at most
+0.083, as read or as printed. All suites pass as read (23, 9, 26; textbook
+release 56, no automatic answer in 552 pairings). `ocr/MATCHING.md` has the
+measurement.
+
+## Reading what the page prints
+
+The model's gap to the oracle was mostly the reader's. The demo adapter now
+reads TeX's zero-width negation slash (extracted as `6`) as part of the
+relation under it, and hangs a radical on its radicand's line; it replays the
+clip state from pdf.js's operator list and keeps only text a page paints; and
+it rebuilds a display fraction from its drawn bar, and moves a limit's
+subscript after `lim`, keeping the box each is printed in so the crops hold
+the whole formula. `latexToText` reads `\not` through the same table.
+
+Replaying the clips found that the 2024 answer keys embed every question
+statement the same way the exercise books do, a full original page cut to the
+question's box: 44% and 42% of their text layers were hidden neighbouring
+questions. On the printed text the identity check verifies every pair and the
+alphabet test, restated on simulated garbling (the failure the check exists
+for), passes.
+
+Text path, strict recall, both books as printed: 506 / 248 / 213 of 508 / 271
+/ 217 (was 506 / 183 / 191), zero wrong, all suites passing. Formula path, the
+exercise text hidden, strict answers by tap: the model 289 / 160 / 128 (was
+224 / 85 / 116), the oracle 375 / 205 / 180, zero wrong; the model reads 81%,
+74% and 80% of regions exactly as the text layer does. On the first real scan
+in the textbook release, the 绿皮书, the model reads 92 of the 95 printed
+exercise numbers of chapters 1–2 in order (`ocr/scan_line_starts.py`); its
+answer book states results rather than restating questions, so what that pair
+needs next is section-scoped ids in the index. `ocr/MATCHING.md` has every
+step.
+
+
+## Exercises by set and printed number
+
+A textbook bookmarks its exercise sets, not its exercises, and its answer
+book bookmarks sections; on the 绿皮书 the answers state results ("1. (1) −2.
+(2) 1.") and restate nothing a content match could find. The index now has
+the level the numbering lives on (`src/exercise-sets.js`): an exercise book's
+习题 set is split into `1.1.3`, ... from the numbers a recogniser reads at the
+start of its lines, and an answer book whose outline stops at sections is
+indexed `section.number` from the `k.` lines in each. An id resolves only
+where the outline alignment pairs the set's own section with the answer's,
+and only when both books carry such ids; otherwise each is matched on the
+index it had before, so no other pair changes.
+
+A read number is never answered automatically when its set counts a different
+number of exercises than its answer section, when a number is skipped before
+or after it, when a line inside it opens like an exercise and is not one, or
+when it sits off the margin its set's other numbers share. Checking every
+automatic answer against the page image found three faults, fixed before the
+figures below: a list (`1, ⋯, 1, λ−1`) in a worked example read as exercise 1,
+so a comma now ends a number only when nothing follows it; last exercises
+whose estimated extent ran into the next section's heading, so it now ends at
+the first wide break; and exercises over a page break that took in the next
+page's running head.
+
+The pair gate also changed in one narrow place. An answer book indexed by
+section and printed number states results and cannot show its role by its
+language, so its role reads UNKNOWN; a binding now settles that, as it settles
+other missing evidence, and nothing else: an unconfirmable role on any other
+index stays unconfirmed, bound or not (bound to the wrong books it would have
+answered 135 and 5 times, every one wrong).
+
+On the whole 绿皮书 (492 scanned pages read by the model's line starts, the
+answer book's text layer): 508 of its 527 exercises indexed in 66 of 69 sets;
+one tap per exercise gives 0 automatic answers unbound, 295 bound under the
+strict policy and 466 under the calibrated one, all 466 checked by eye at the
+tap point, zero wrong. Wrong pairs, bound or not: 0. Exam suites, the textbook
+release (552 pairings, 0 automatic) and 310 synthetic checks pass;
+`ocr/MATCHING.md` has the measurement.

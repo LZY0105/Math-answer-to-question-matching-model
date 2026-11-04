@@ -1,0 +1,6 @@
+# Local PDF inspection and verified-crop import; no pretrained OCR models.
+# Poppler pdftoppm must be available separately (PATH or --pdftoppm).
+# Compatible with the Pillow pin in the training requirements.
+pdfplumber==0.11.9
+pypdf==6.10.0
+Pillow>=12.1.1,<13

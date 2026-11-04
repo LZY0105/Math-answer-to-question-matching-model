@@ -70,8 +70,10 @@ const THRESHOLDS = Object.freeze({
   /**
    * Share of sampled labels whose correct partner must rank first.
    *
-   * Valid pairs measure 58-75%; a wrong-year pair measures 0%. Forty sits in
-   * the middle of that gap.
+   * Measured on each entry's own text: valid pairs 62.5-100%, the wrong pairs
+   * of the exam corpus 0-8.3%. Forty sits inside that gap. (On page-range text,
+   * as first measured, valid pairs scored 58-75% with hidden text present and
+   * as low as 0% without it.)
    */
   anchorTop1: 0.4,
   /** Labels sampled when testing content agreement. */
@@ -265,12 +267,27 @@ export function documentSubject(doc, { sampleLines = 3000 } = {}) {
 export function contentAnchorAgreement(exerciseIndex, answerIndex, {
   sample = THRESHOLDS.anchorSample,
 } = {}) {
+  // Each entry's OWN text — bounded by its printed heading and the next, or by
+  // its bookmark and the next — where the index has it, and the page range
+  // only where it does not.
+  //
+  // The page range carries the neighbours: on a page holding three questions,
+  // a question's range text is mostly the other two, and so is its answer's.
+  // Measured on the 2024 analysis pair, ranking by range text put question
+  // 1.4's answer fourth behind 1.3's, because 1.3 dominated both ranges; read
+  // as printed, without the text its pages' clips hide
+  // (datasets/exam-corpus-20260924/EVALUATION.md), the valid pair scored 0 of
+  // 24 and was REJECTED. It had verified only because the hidden text made
+  // both books' ranges alike by accident. On own text the three valid pairs
+  // score 1.000, 0.625 and 0.792 as the text layer reads, 1.000, 0.667 and
+  // 0.833 as printed, and the wrong pairs at most 0.083 either way.
+  const own = (e) => e?.scopedText || e?.text || '';
   const answers = new Map();
   for (const e of answerIndex?.entries ?? []) {
-    if (e.text && !answers.has(e.label)) answers.set(e.label, e);
+    if (own(e) && !answers.has(e.label)) answers.set(e.label, e);
   }
   const shared = (exerciseIndex?.entries ?? [])
-    .filter(e => e.text && answers.has(e.label));
+    .filter(e => own(e) && answers.has(e.label));
 
   if (shared.length < THRESHOLDS.minSharedForAnchors) {
     return { top1: null, sampled: 0, shared: shared.length, sufficient: false };
@@ -281,14 +298,14 @@ export function contentAnchorAgreement(exerciseIndex, answerIndex, {
   // on a 500-entry index of page-range texts this is the difference between
   // ~15 s and well under a second for the whole check.
   const pool = (answerIndex?.entries ?? [])
-    .filter(e => e.text)
-    .map(e => ({ entry: e, profile: textProfile(e.text) }));
+    .filter(e => own(e))
+    .map(e => ({ entry: e, profile: textProfile(own(e)) }));
   const step = Math.max(1, Math.floor(shared.length / sample));
   let first = 0;
   let sampled = 0;
   for (let i = 0; i < shared.length && sampled < sample; i += step) {
     const q = shared[i];
-    const qp = textProfile(q.text);
+    const qp = textProfile(own(q));
     let best = null;
     let bestScore = -Infinity;
     for (const candidate of pool) {
@@ -347,61 +364,17 @@ export function verifyPair({
     };
   };
 
-  // ── role, both sides ──
-  //
-  // Checked before identity because identity cannot see this class of error at
-  // all: an answer book compared with itself agrees perfectly on content.
-  // A CONFIRMED wrong role rejects. An unconfirmable one does not — it withholds
-  // AUTO_MATCH via UNKNOWN_PAIR and leaves the pair working at the lower rungs.
-  if (right.role === ROLE.EXERCISE) return reject('RIGHT_ROLE_INVALID');
-  if (left.role === ROLE.ANSWER) return reject('LEFT_ROLE_INVALID');
-
-  if (right.role === ROLE.UNKNOWN) {
-    reasonCodes.push('PAIR_IDENTITY_UNKNOWN');
-    return {
-      status: PAIR_STATUS.UNKNOWN_PAIR,
-      exerciseRole: left.role, answerRole: right.role, reasonCodes, evidence,
-    };
-  }
-
-  // ── hard identity conflicts ──
-  if (exYear.year && anYear.year && exYear.year !== anYear.year) {
-    return reject('PAIR_IDENTITY_MISMATCH');
-  }
-  if (exSubject.subject !== 'MIXED' && anSubject.subject !== 'MIXED'
-    && exSubject.subject !== anSubject.subject) {
-    return reject('PAIR_IDENTITY_MISMATCH');
-  }
-
-  // ── positive identity evidence ──
-  const anchors = contentAnchorAgreement(exerciseIndex, answerIndex);
-  evidence.anchors = anchors;
-
-  // Low content agreement rejects only when both sides were indexed from their
-  // bookmark trees.
-  //
-  // The 40% threshold was measured on OUTLINE indexes, where valid pairs score
-  // 58-75% and a wrong-year pair scores 0%. A body-parsed index does not behave
-  // that way: it over-extracts by two to four times, so the correct partner has
-  // to outrank thousands of spurious entries and legitimately falls below the
-  // line. Measured, applying this test to a body index rejected the valid 2024
-  // Mathematical Analysis pair outright the moment its exercise bookmarks were
-  // removed — a valid pair refused for lack of a bookmark tree.
-  //
-  // Weak agreement from unreliable indexes is missing evidence, and missing
-  // evidence is UNKNOWN, never REJECTED.
-  const anchorsAreReliable = exerciseIndex?.source === 'OUTLINE'
-    && answerIndex?.source === 'OUTLINE';
-
   /**
    * A binding is the user asserting a pairing the engine could not establish.
    *
    * It resolves ABSENCE of reliable evidence, and nothing else. Every hard
    * conflict — wrong role, wrong year, wrong subject, and weak content agreement
-   * between two indexes good enough to be believed — has already returned above,
-   * so a binding can never reach one. What remains is the case it exists for: a
-   * scanned book whose identity simply cannot be checked, where the alternative
-   * is refusing a pair the user is looking at.
+   * between two indexes good enough to be believed — is checked before it is
+   * consulted, so a binding can never reach one. What remains is the case it
+   * exists for: a scanned book whose identity simply cannot be checked, or an
+   * answer book read by section and number that states results and so cannot
+   * show its role, where the alternative is refusing a pair the user is
+   * looking at.
    *
    * The binding must still name the documents it was made against. A stale one
    * confers nothing.
@@ -426,6 +399,72 @@ export function verifyPair({
       exerciseRole: left.role, answerRole: right.role, reasonCodes, evidence,
     };
   };
+
+  // ── role, both sides ──
+  //
+  // Checked before identity because identity cannot see this class of error at
+  // all: an answer book compared with itself agrees perfectly on content.
+  // A CONFIRMED wrong role rejects. An unconfirmable one does not — it withholds
+  // AUTO_MATCH via UNKNOWN_PAIR and leaves the pair working at the lower rungs.
+  if (right.role === ROLE.EXERCISE) return reject('RIGHT_ROLE_INVALID');
+  if (left.role === ROLE.ANSWER) return reject('LEFT_ROLE_INVALID');
+
+  const yearsConflict = !!(exYear.year && anYear.year && exYear.year !== anYear.year);
+  const subjectsConflict = exSubject.subject !== 'MIXED' && anSubject.subject !== 'MIXED'
+    && exSubject.subject !== anSubject.subject;
+
+  if (right.role === ROLE.UNKNOWN) {
+    // An answer book indexed by section and printed number (the 绿皮书's,
+    // "1. (1) −2. (2) 1.") states results without working them, and so can
+    // never show its role by its language. That is missing evidence, which is
+    // what a binding settles; a year or subject conflict is not. Every other
+    // index that cannot show its role stays unconfirmed even when bound: a
+    // body parse of an exercise book reads exactly like one, and binding two
+    // exercise books, or the wrong answer book, would otherwise answer from
+    // it — measured, the 绿皮书 bound to a real-analysis key whose glyphs are
+    // unreadable gave 135 automatic answers, every one wrong.
+    const settles = answerIndex?.source === 'SECTIONS' && !yearsConflict && !subjectsConflict;
+    const bound = settles ? useBinding() : null;
+    if (bound) return bound;
+    reasonCodes.push('PAIR_IDENTITY_UNKNOWN');
+    return {
+      status: PAIR_STATUS.UNKNOWN_PAIR,
+      exerciseRole: left.role, answerRole: right.role, reasonCodes, evidence,
+    };
+  }
+
+  // ── hard identity conflicts ──
+  if (yearsConflict) return reject('PAIR_IDENTITY_MISMATCH');
+  if (subjectsConflict) return reject('PAIR_IDENTITY_MISMATCH');
+
+  // ── positive identity evidence ──
+  const anchors = contentAnchorAgreement(exerciseIndex, answerIndex);
+  evidence.anchors = anchors;
+
+  // Low content agreement rejects only when both sides were indexed from their
+  // bookmark trees.
+  //
+  // The 40% threshold was measured on OUTLINE indexes, where valid pairs score
+  // 58-75% and a wrong-year pair scores 0%. A body-parsed index does not behave
+  // that way: it over-extracts by two to four times, so the correct partner has
+  // to outrank thousands of spurious entries and legitimately falls below the
+  // line. Measured, applying this test to a body index rejected the valid 2024
+  // Mathematical Analysis pair outright the moment its exercise bookmarks were
+  // removed — a valid pair refused for lack of a bookmark tree.
+  //
+  // Weak agreement from unreliable indexes is missing evidence, and missing
+  // evidence is UNKNOWN, never REJECTED.
+  //
+  // Nor does text a recogniser produced. The 40% line was measured on text
+  // layers; recognised formulas carry no prose, and a valid pair's own
+  // exercise book, read as formulas alone, ranked its partner first for 29% of
+  // sampled questions on the 2024 analysis pair — a correct pair, rejected.
+  // Recognised text may still CONFIRM a pair; its disagreement is missing
+  // evidence, and a binding may resolve it.
+  const fromLayer = (index) => (index?.textOrigin ?? 'TEXT_LAYER') === 'TEXT_LAYER';
+  const anchorsAreReliable = exerciseIndex?.source === 'OUTLINE'
+    && answerIndex?.source === 'OUTLINE'
+    && fromLayer(exerciseIndex) && fromLayer(answerIndex);
 
   if (anchors.sufficient && anchors.top1 !== null
     && anchors.top1 < THRESHOLDS.anchorTop1) {

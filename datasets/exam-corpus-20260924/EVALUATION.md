@@ -112,7 +112,22 @@ are the suite's, measured on the host app's reader.
 | Nearest baseline within reach | 175 | 154 | 481 |
 | Adjacent to a base item | 176 | 154 | 475 |
 | Adjacent, in the line's whitespace | 176 | 157 | 474 |
-| **…and not after a large operator** | **176** | **159** | **474** |
+| …and not after a large operator | 176 | 159 | 474 |
+
+Three engine changes made for the formula-recogniser path (see
+`ocr/MATCHING.md`) then moved these again, with the row rule unchanged:
+
+| Engine change, cumulative | 2024 Algebra (175) | 2024 Analysis (159) | 2023 (470) |
+|---|---|---|---|
+| Bookmark positions bound each entry's text | 186 | 184 | 474 |
+| A line is an expression boundary | 191 | 175 | 507 |
+| **…unless it wraps mid-expression** | **191** | **183** | **506** |
+
+Zero wrong at every row. The line boundary is the large one: two rows of
+display mathematics — a numerator and a denominator, the rows of a matrix —
+had been joining into one expression on whichever side happened to break
+differently, and reading as a conflict. The no-answer-bookmarks regime of the
+2023 ablation rose from 444 to 492 distinct questions on the same change.
 
 Zero wrong under every rule and every policy. The cleaner fix alone clears
 every floor. Script attachment is a fidelity gain for inline exponents, worth
@@ -120,6 +135,93 @@ three questions on the 2023 pair, and a wash on the analysis pair, whose
 questions are display mathematics — fractions, limits, integrals — that no
 row rule reads consistently across two typesettings. The final rule is kept
 because it reads what is printed; the row it replaced read `x` for `x^3`.
+
+## What the 2024 exercise books hide
+
+exam-004 and exam-005 are built by embedding pages of a compact typesetting of
+their questions as form XObjects, each clipped to one question's window; a
+question that runs over two embedded pages is drawn as two forms in one
+window, each cut by its own `/BBox`. Text extraction ignores clipping, so the
+text layer of every page holds the whole embedded page — the question in the
+window and every neighbour it hides. The 2024 answer keys (exam-002,
+exam-003) embed every question statement the same way, a full original page
+cut to the question's box above the natively typeset solution — found on
+2026-11-04, when the reader started replaying clips; this section's first
+version said the keys clipped nothing. The 2023 and 2025 books read the same
+either way.
+
+| | Clipped pages | Windows | Exercise lines as read | Printed |
+|---|---|---|---|---|
+| exam-004 (2024 Analysis) | 195 of 200 | 271 | 12,790 | 2,130 |
+| exam-005 (2024 Algebra) | 186 of 197 | 217 | 8,322 | 1,846 |
+
+Every number above this section, and the suites' floors, were measured on the
+text layer as read, hidden text included, which is what the host app's pdf.js
+layer reads too. Read as printed (`ocr/clip_windows.py --split`, then
+`tools/extract-books.mjs --split --map`), on 2026-11-03:
+
+| Suite | As read | As printed |
+|---|---|---|
+| test_real_pdfs | 23 passed | 22 passed, 1 failed |
+| test_no_bookmarks | 9 passed | 9 passed |
+| test_corpus_regression | 26 passed | 26 passed |
+| Strict recall, 2023 / Analysis / Algebra | 506 / 183 / 191 | 506 / 213 / 208 |
+
+Zero wrong in both. The failure is the alphabet assertion: q2023 against
+a2024 reads 0.9178 on printed text, over the 0.90 line (0.8375 as read). The
+check is consulted only for OPAQUE text, and decoded books do not separate on
+it — as read, the 2025 key against the 2023 exercise book is 0.9638. The test
+should be restated on garbled text, not the threshold moved.
+
+**The identity check now reads each entry's own text.** Its content-anchor
+agreement ranked page-range text; on printed text the analysis pair's ranges
+are mostly each page's other questions, and the valid pair scored 0 of 24 and
+was rejected. On each entry's own text (`scopedText`, the lines between its
+heading or bookmark and the next), top-1 agreement over 24 sampled labels:
+
+| Pair | Range text, as read | Range text, printed | Own text, as read | Own text, printed |
+|---|---|---|---|---|
+| 2023 (valid) | 0.750 | 0.750 | 1.000 | 1.000 |
+| 2024 Analysis (valid) | 0.625 | **0.000** | 0.625 | 0.667 |
+| 2024 Algebra (valid) | 0.750 | 0.500 | 0.792 | 0.833 |
+| Wrong pairings, worst of the five that share labels | 0.000 | 0.083 | 0.083 | 0.083 |
+
+The line is 0.40. All three suites pass as read with the change, at the same
+recall, and the textbook release suite still gives no automatic answer in 552
+pairings. `src/pair-verifier.js`
+
+The alphabet test has since been restated on simulated garbling (each Han
+character through a substitution fixed by its font): one font across the 2023
+pair reads 0.998 and is comparable, different fonts 0.25–0.29 and are not, as
+read and as printed. test_real_pdfs passes 23/23 on both.
+
+## Read as printed by the adapter, 2026-11-04
+
+The demo adapter now keeps only the text a page paints (it replays the clip
+state from pdf.js's operator list; `demo/pdfjs-document-adapter.mjs`), reads
+≠ and √ as printed, and rebuilds display fractions and limit subscripts. Every
+book is read that way by default, so the corpus built with the commands below
+is the printed corpus. Lines as read and printed, same row assembly:
+
+| Book | As read | Printed |
+|---|---|---|
+| exam-004, 2024 Analysis exercise book | 12,699 | 2,174 |
+| exam-002, 2024 Analysis key | 19,005 | 10,672 |
+| exam-005, 2024 Algebra exercise book | 8,290 | 1,858 |
+| exam-003, 2024 Algebra key | 12,785 | 7,354 |
+
+Strict recall, each change cumulative, zero wrong throughout:
+
+| Change | 2023 | 2024 Analysis | 2024 Algebra |
+|---|---|---|---|
+| As read, before | 506 / 508 | 183 / 271 | 191 / 217 |
+| ≠ and √ | 506 | 184 | 191 |
+| Only painted text | 506 | 240 | 213 |
+| Fractions and limits | 506 | 248 | 213 |
+
+Suites on the last row: test_real_pdfs 23/23, test_no_bookmarks 9/9 (regimes
+506 / 491 / 2 / 47), test_corpus_regression 26/26. The suites' floors were set
+on the host app's reader and are below every figure here.
 
 ## Reproducing
 
@@ -140,3 +242,14 @@ FIND_ENGINE_CORPUS=../exam-corpus/data.json FIND_ENGINE_EXPANDED_CORPUS=../exam-
 ```
 
 Use exam-009 as `q2023`; exam-006 is the section-only variant.
+
+As printed, replace `a2024` (and `g2024`, the same way) with its split
+reading before building `data.json`:
+
+```sh
+A="$E/2024年名校数学专业考研真题分类_数学分析留白作答版.pdf"
+python -m ocr.clip_windows --pdf "$A" --output $E/a2024-windows.json \
+  --split $E/a2024-split.pdf --map $E/a2024-split-map.json
+node tools/extract-books.mjs --force --geometry --books $E --out $E/extracted \
+  --split $E/a2024-split.pdf --map $E/a2024-split-map.json "a2024=$A"
+```

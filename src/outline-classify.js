@@ -177,9 +177,14 @@ function flatten(outline) {
         title: item.title,
         pageNumber: item.pageNumber,
         endPage: item.endPage,
+        top: Number.isFinite(item.top) ? item.top : null,
         depth: item.depth ?? depth,
         childCount: item.children?.length ?? 0,
         sectionPath: path,
+        // Position in the tree's own order, which is the book's: a set
+        // bookmarked at depth 2 comes before the next section's heading on the
+        // same page, though a page-and-depth sort puts it after.
+        order: out.length,
         raw: item,
       };
       out.push(node);
