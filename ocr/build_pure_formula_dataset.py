@@ -1050,6 +1050,7 @@ def finalize_phase(db: sqlite3.Connection, output_root: Path) -> None:
 
 
 def main() -> None:
+    global POPPLER_PDFTOPPM
     sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser()
     parser.add_argument("--source", type=Path, required=True, help="源书目录（PDF）")
@@ -1081,7 +1082,6 @@ def main() -> None:
     args = parser.parse_args()
     # render_page 按模块名取这个值，而它在调用链的深处，所以在这里落一次，而不是
     # 把一个参数穿过中间那几层函数签名。
-    global POPPLER_PDFTOPPM
     POPPLER_PDFTOPPM = args.pdftoppm
     args.output.mkdir(parents=True, exist_ok=True)
     db = connect_db(args.output)
